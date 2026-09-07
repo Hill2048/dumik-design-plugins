@@ -74,6 +74,7 @@ class VideoPromptItem:
     ratio: str | None
     duration: int | None
     mode: str | None
+    guidance_mode: str
     model_version: str | None
     video_resolution: str | None
     reference_images: list[str]
@@ -134,6 +135,11 @@ def load_prompt_items(path: Path) -> list[VideoPromptItem]:
             raise BatchVideoError(f"Results item {item_id} is missing 'final_instruction'.")
 
         mode = str(row.get("mode") or DEFAULT_MODE).strip()
+        guidance_mode = str(row.get("guidance_mode") or "standard").strip().lower().replace("-", "_")
+        if guidance_mode not in {"standard", "depth_video"}:
+            raise BatchVideoError(
+                f"Unsupported guidance_mode for {item_id}: {guidance_mode}. Use standard or depth_video."
+            )
         model_version = str(row.get("model_version") or row.get("model") or DEFAULT_MODEL).strip()
         provider = normalize_provider(row.get("provider"), mode, model_version)
 
@@ -164,6 +170,15 @@ def load_prompt_items(path: Path) -> list[VideoPromptItem]:
             if row.get(key):
                 images.append(str(row[key]).strip())
 
+        reference_videos = [str(x).strip() for x in (row.get("reference_videos") or []) if str(x).strip()]
+        if guidance_mode == "depth_video":
+            if provider != "dreamina":
+                raise BatchVideoError(f"depth_video guidance requires Dreamina/Seedance for {item_id}.")
+            if mode != "multimodal2video":
+                raise BatchVideoError(f"depth_video guidance requires mode=multimodal2video for {item_id}.")
+            if not reference_videos:
+                raise BatchVideoError(f"depth_video guidance requires a video in reference_videos for {item_id}.")
+
         items.append(
             VideoPromptItem(
                 id=item_id,
@@ -175,10 +190,11 @@ def load_prompt_items(path: Path) -> list[VideoPromptItem]:
                 ratio=ratio,
                 duration=int(duration),
                 mode=mode,
+                guidance_mode=guidance_mode,
                 model_version=model_version,
                 video_resolution=str(row.get("video_resolution") or DEFAULT_RESOLUTION).strip(),
                 reference_images=[str(x).strip() for x in (row.get("reference_images") or []) if str(x).strip()],
-                reference_videos=[str(x).strip() for x in (row.get("reference_videos") or []) if str(x).strip()],
+                reference_videos=reference_videos,
                 reference_audios=[str(x).strip() for x in (row.get("reference_audios") or []) if str(x).strip()],
                 images=images,
                 size=str(row.get("size")).strip() if row.get("size") else None,
@@ -632,6 +648,7 @@ def run_dreamina_submit(item: VideoPromptItem, output_dir: Path, poll: int) -> d
     return {
         "id": item.id,
         "provider": "dreamina",
+        "guidance_mode": item.guidance_mode,
         "output_dir": str(item_dir.resolve()),
         "submit_id": submit_id,
         "submit_result": normalized,

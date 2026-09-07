@@ -1,4 +1,4 @@
 interface:
   display_name: "改图提示词优化"
-  short_description: "改图、身份保护、电影化单帧和 Banana Pro 中文指令"
-  default_prompt: "按统一路由只做图片提示词优化：先判断比例、目标图和参考图角色，再锁定产品或人物身份；需要电影感时补充摄影机站位、视线流量和物理光色，输出可复制中文指令。"
+  short_description: "改图、身份保护、线稿色块重绘和中文指令"
+  default_prompt: "使用 $D-image-prompt 判断图片任务模式，锁定目标与参考图职责，并输出可执行的中文改图指令。"

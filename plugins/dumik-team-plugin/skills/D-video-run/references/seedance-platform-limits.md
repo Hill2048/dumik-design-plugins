@@ -39,6 +39,16 @@ DUMIK 当前默认仍是：
 - 参考视频过长时，先裁剪或换轻量版本。
 - 上传报 502 或 VOD 失败时，只做一次 5 秒内、无音频、H.264、小体积 fallback。
 
+## 深度视频参考
+
+`depth_video` 只是提示词和参考素材的组织方式，不是新模型或新子命令：
+
+- provider 仍是 `dreamina`，模型仍是当前 Seedance 模型。
+- `mode` 固定为 `multimodal2video`。
+- `guidance_mode` 写 `depth_video`。
+- 黑白深度视频放进 `reference_videos`，不放进首帧或普通图片字段。
+- 提示词明确深度视频只控制空间、姿态、位置、构图、动作时序和镜头轨迹，不控制颜色与材质。
+
 ## 提示词检查
 
 提交前必须检查：

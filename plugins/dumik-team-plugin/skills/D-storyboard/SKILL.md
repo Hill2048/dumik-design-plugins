@@ -2,7 +2,7 @@
 name: D-storyboard
 description: "统一视频故事板、产品故事板、连续分镜、关键帧提示词和逐镜生视频提示词。适用于产品视频、高级商业广告、品牌片、参考视频或深度视频的运镜复刻、Image2 产品故事板、剧情/场景分镜和需要跨镜头保持一致的视频提示词；可按需启用电影调度、物理光色和反 AI 质感，默认只输出文字和可执行提示词，不提交图片或视频生成任务。"
 metadata:
-  version: "1.3.0"
+  version: "1.4.0"
 ---
 
 # 视频故事板与分镜提示词
@@ -14,6 +14,8 @@ metadata:
 可直接套用的模板块（Image2 身份板、故事板生图模板、逐镜模板、线性序列）在 [references/templates.md](references/templates.md)，写之前先读对应块。
 
 当用户要求高级感广告、TVC、品牌片、电影感、导演感、真人实景、剧情短片或反 AI 质感时，读取 [references/cinematic-commercial-staging.md](references/cinematic-commercial-staging.md)。它是所有模式都可启用的增强层，不是第四种模式。
+
+当画面包含食材、下锅、煎炒炖煮、沸腾、收汁或用户要求动态感、烹饪感、食欲感、光泽感时，必须读取 [references/cooking-food-motion.md](references/cooking-food-motion.md)。食材的真实烹饪变化是主体动作，不能只靠摄影机运动、蒸汽或形容词制造热闹。
 
 Seedance / Dreamina 相关参考：
 

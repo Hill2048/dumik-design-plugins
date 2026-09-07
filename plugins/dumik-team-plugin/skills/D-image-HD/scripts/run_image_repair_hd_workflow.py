@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from PIL import Image, ImageFilter
+from PIL import Image
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -33,32 +33,29 @@ def build_lineart_prompt(subject_hint: str | None = None) -> str:
     return "".join(parts)
 
 
-def build_reverse_prompt(subject_hint: str | None = None) -> str:
+def build_color_draft_prompt(subject_hint: str | None = None) -> str:
     parts = [
-        "请根据原图反推出一份中文提示词，准确描述主体、材质、色调、光影、构图、镜头感和画面氛围。",
-        "不要写流程说明，不要写操作建议，只输出可直接用于生图的中文提示词正文。",
+        "把原图转化为干净平整的固有色色稿，只保留画面中各物体本身的固有色和清晰色块关系。",
+        "确保不同物体之间的固有色对比和前后层次明确，色块边界贴合原图轮廓。",
+        "去除多余杂色、渐变、阴影、高光、反射、纹理、噪点和灰脏感。",
+        "保持原图主体造型、比例、透视、构图、物体位置和遮挡关系不变。",
+        "不要线稿，不要明暗塑形，不要新增或删除物体，只输出纯色块色稿。",
     ]
     if subject_hint:
         parts.append(f"主体补充说明：{subject_hint.strip()}。")
-    return "\n".join(parts)
+    return "".join(parts)
 
 
-def build_final_prompt(reverse_prompt: str) -> str:
+def build_final_prompt(scene_prompt: str) -> str:
     return (
-        "请你根据图片1的线稿结构，还原主体造型、轮廓、比例和边缘关系；"
-        "根据图片2的固有色关系恢复配色、明暗和整体光影；"
+        "图片1是结构线稿，负责主体造型、轮廓、比例、透视、构图、物体位置和遮挡关系；"
+        "图片2是固有色色稿，负责各物体的基础配色和色块边界。"
+        "严格依据图片1还原结构，依据图片2恢复固有色，再根据下面的中文画面提示词重建真实材质、明暗和光影："
+        f"{scene_prompt.strip()}\n"
         "最后生成一张高清、干净、无脏污、无灰感、边缘清晰、材质明确的最终图。"
-        "保持主体结构稳定，不要改造型，不要改比例，不要引入额外元素。"
-        f"主体与画面描述：{reverse_prompt.strip()}"
+        "约束：不要改变图片1的主体结构、比例、透视、构图和部件关系；"
+        "不要改变图片2的物体固有色；不要新增、删除或替换物体；不要生成伪文字、脏边、噪点或塑料感。"
     )
-
-
-def blur_solid_color(image_path: Path, output_path: Path, radius: float) -> None:
-    with Image.open(image_path) as image:
-        image = image.convert("RGB")
-        blurred = image.filter(ImageFilter.GaussianBlur(radius=radius))
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        blurred.save(output_path)
 
 
 def call_image_batch(
@@ -107,11 +104,19 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run the 4-step HD repair workflow.")
     parser.add_argument("--image", required=True, help="Source image path.")
     parser.add_argument("--output-dir", required=True, help="Workflow output directory.")
-    parser.add_argument("--reverse-prompt", help="Existing Chinese reverse prompt.")
+    parser.add_argument(
+        "--scene-prompt",
+        help="Finished Chinese scene prompt describing the actual image content.",
+    )
+    parser.add_argument(
+        "--reverse-prompt",
+        help="Deprecated alias for --scene-prompt.",
+    )
     parser.add_argument("--lineart-model", default="image2")
+    parser.add_argument("--color-model", default="image2")
     parser.add_argument("--final-model", default="image2")
     parser.add_argument("--final-size")
-    parser.add_argument("--blur-radius", type=float, default=10.0)
+    parser.add_argument("--blur-radius", type=float, default=10.0, help=argparse.SUPPRESS)
     parser.add_argument("--subject", help="Optional subject hint.")
     args = parser.parse_args()
 
@@ -119,14 +124,24 @@ def main() -> None:
     output_dir = Path(args.output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    scene_prompt = (args.scene_prompt or args.reverse_prompt or "").strip()
+    if not scene_prompt:
+        raise SystemExit(
+            "Missing --scene-prompt: pass a finished Chinese description of the actual image, "
+            "not an instruction asking another model to reverse-prompt it."
+        )
+
     lineart_path = output_dir / "01-lineart.png"
-    solid_color_path = output_dir / "02-solid-color-blur.png"
-    reverse_prompt_path = output_dir / "03-reverse-prompt.txt"
+    lineart_prompt_path = output_dir / "01-lineart-prompt.txt"
+    color_draft_path = output_dir / "02-color-draft.png"
+    color_prompt_path = output_dir / "02-color-draft-prompt.txt"
+    scene_prompt_path = output_dir / "03-scene-prompt.txt"
     final_prompt_path = output_dir / "04-final-prompt.txt"
     final_image_path = output_dir / "05-final.png"
     run_record_path = output_dir / "repair-run.json"
 
     lineart_prompt = build_lineart_prompt(args.subject)
+    lineart_prompt_path.write_text(lineart_prompt, encoding="utf-8")
     lineart_size = "source-2k"
     if args.lineart_model.lower() in {"image2", "gpt-image-2"}:
         lineart_size = image2_safe_size(image_path, long_edge=2048)
@@ -139,14 +154,23 @@ def main() -> None:
         out_path=lineart_path,
     )
 
-    blur_solid_color(image_path, solid_color_path, args.blur_radius)
+    color_prompt = build_color_draft_prompt(args.subject)
+    color_prompt_path.write_text(color_prompt, encoding="utf-8")
+    color_size = "source-2k"
+    if args.color_model.lower() in {"image2", "gpt-image-2"}:
+        color_size = image2_safe_size(image_path, long_edge=2048)
+    call_image_batch(
+        image=image_path,
+        references=[],
+        prompt=color_prompt,
+        image_model=args.color_model,
+        output_size=color_size,
+        out_path=color_draft_path,
+    )
 
-    reverse_prompt = (args.reverse_prompt or "").strip()
-    if not reverse_prompt:
-        reverse_prompt = build_reverse_prompt(args.subject)
-    reverse_prompt_path.write_text(reverse_prompt, encoding="utf-8")
+    scene_prompt_path.write_text(scene_prompt, encoding="utf-8")
 
-    final_prompt = build_final_prompt(reverse_prompt)
+    final_prompt = build_final_prompt(scene_prompt)
     final_prompt_path.write_text(final_prompt, encoding="utf-8")
 
     final_size = args.final_size
@@ -156,8 +180,8 @@ def main() -> None:
         final_size = "source-2k"
 
     call_image_batch(
-        image=image_path,
-        references=[lineart_path, solid_color_path],
+        image=lineart_path,
+        references=[color_draft_path],
         prompt=final_prompt,
         image_model=args.final_model,
         output_size=final_size,
@@ -167,14 +191,16 @@ def main() -> None:
     run_record = {
         "image": str(image_path),
         "lineart_image": str(lineart_path),
-        "solid_color_image": str(solid_color_path),
-        "reverse_prompt_file": str(reverse_prompt_path),
+        "lineart_prompt_file": str(lineart_prompt_path),
+        "color_draft_image": str(color_draft_path),
+        "color_draft_prompt_file": str(color_prompt_path),
+        "scene_prompt_file": str(scene_prompt_path),
         "final_prompt_file": str(final_prompt_path),
         "final_image": str(final_image_path),
         "lineart_model": args.lineart_model,
+        "color_model": args.color_model,
         "final_model": args.final_model,
         "final_size": final_size,
-        "blur_radius": args.blur_radius,
         "subject": args.subject or "",
     }
     run_record_path.write_text(json.dumps(run_record, ensure_ascii=False, indent=2), encoding="utf-8")

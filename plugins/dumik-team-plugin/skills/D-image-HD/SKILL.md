@@ -1,12 +1,13 @@
 ---
 name: D-image-HD
-version: 0.1.0
-description: "按公众号四步法做图片去脏污和高清修复的专用工作流。用于 image2/banana 系列图片反复改脏、细节发灰、边缘脏、色块脏、画质塌掉后的修复。严格按四步执行：1) 先调用 D-image-run 生成黑白线稿参考；2) 从原图提取固有色参考；3) 反推原图中文提示词；4) 再次调用 D-image-run，带着线稿图+固有色图+反推提示词做最终高清修复。"
+description: "线稿色块重绘与高清修复工作流。用于 image2/banana 系列图片反复改脏、细节发灰、边缘脏、色块脏、画质塌掉后的修复。严格按四步执行：1) 调用 D-image-run 生成黑白线稿；2) 调用 D-image-run 生成固有色色稿；3) 从原图真实提炼可直接生图的中文画面提示词；4) 带着线稿图+色稿图+成品提示词再次重绘。"
+metadata:
+  version: 0.2.0
 ---
 
 # 高清修复工作流
 
-这是一个**两次生图 + 一次本地处理 + 一次提示词反推**的固定流程。不要跳步骤，不要把它改写成普通改图。
+这是一个**三次生图 + 一次提示词提炼**的固定流程。不要跳步骤，不要把它改写成普通改图，也不要把“请反推提示词”的请求句当成最终画面提示词。
 
 ## 适用情况
 
@@ -28,14 +29,14 @@ description: "按公众号四步法做图片去脏污和高清修复的专用工
   - 去掉杂色、渐变、灰脏感
   - 保持原图结构和比例不变
 
-### 第二步：提取固有色
+### 第二步：提取色稿
 
-不要生图。直接对原图做本地高斯模糊，默认半径 `10`，产出固有色参考图。
+调用 `D-image-run` 生成干净的固有色色稿，不保留线稿、阴影、渐变和材质纹理。
 
-- 目标：保留大色块、固有色、整体光影关系。
-- 默认输出：和原图同尺寸的 `solid-color-blur.png`
+- 目标：只保留各物体固有色和色块关系，保证物体之间固有色对比层次清晰。
+- 默认输出：`02-color-draft.png`
 
-### 第三步：反推提示词
+### 第三步：提炼真实中文画面提示词
 
 基于原图反推一份中文提示词，重点提取：
 
@@ -48,14 +49,16 @@ description: "按公众号四步法做图片去脏污和高清修复的专用工
 
 如果用户已经给了可用提示词，优先复用并轻量补全，不要强制重写。
 
+不能只保存“请根据原图反推出一份中文提示词”这类指令；必须得到一段描述当前画面的成品提示词。
+
 ### 第四步：高清修复
 
 再次调用 `D-image-run` 的真实执行脚本，输入：
 
 - 原图
 - 第一步线稿图
-- 第二步固有色图
-- 第三步反推后的中文提示词
+- 第二步色稿图
+- 第三步真实中文画面提示词
 
 最终修复提示词要明确：
 
@@ -81,16 +84,17 @@ description: "按公众号四步法做图片去脏污和高清修复的专用工
 ```powershell
 python scripts\run_image_repair_hd_workflow.py `
   --image "<原图路径>" `
-  --output-dir "<输出目录>"
+  --output-dir "<输出目录>" `
+  --scene-prompt "<从原图提炼出的真实中文画面提示词>"
 ```
 
 可选参数：
 
-- `--reverse-prompt "<已有中文提示词>"`
+- `--scene-prompt "<真实中文画面提示词>"`（必传；兼容旧参数名 `--reverse-prompt`）
 - `--lineart-model image2|banana|bananapro`
+- `--color-model image2|banana|bananapro`
 - `--final-model image2|banana|bananapro`
 - `--final-size 944x2048` 这类合法尺寸；不传时 `image2` 自动按原图比例换算
-- `--blur-radius 10`
 - `--subject "<主体补充说明>"`
 
 ## 输出要求
@@ -98,8 +102,10 @@ python scripts\run_image_repair_hd_workflow.py `
 结果目录至少要有：
 
 - `01-lineart.png`
-- `02-solid-color-blur.png`
-- `03-reverse-prompt.txt`
+- `01-lineart-prompt.txt`
+- `02-color-draft.png`
+- `02-color-draft-prompt.txt`
+- `03-scene-prompt.txt`
 - `04-final-prompt.txt`
 - `05-final.png`
 - `repair-run.json`

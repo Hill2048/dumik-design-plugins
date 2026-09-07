@@ -1,7 +1,7 @@
 ---
 name: D-video-run
 description: "项目制批量生视频。适用于先确认需求和输出路径，创建中文项目文件夹，让用户放入首帧/参考素材，再先出 1 条确认片，确认后用即梦 CLI 或 Veo 异步接口批量提交视频任务。默认走 Dreamina，全能参考 `multimodal2video`，模型为 `seedance2.0fast_vip`；用户明确选择 Veo 时走 NewAPI Business `/v1/videos`。"
-version: 0.1.8
+version: 0.2.0
 ---
 
 # 批量视频生成 Agent
@@ -31,6 +31,8 @@ Do not skip the confirmation clip. Do not start full batch submission before the
 - 批量执行前必须先出 1 条确认片，用户确认后再继续。
 - 不要把单条视频任务写成一组互不相干的镜头合集。
 - 默认模型是 `seedance2.0fast_vip`，默认模式是 `multimodal2video`。
+- 深度视频只是提示词与参考组织方式，记录为 `guidance_mode: "depth_video"`；不是新模型或新接口模式。底层仍用 Seedance 的 `mode: "multimodal2video"`，黑白深度视频放进 `reference_videos`。
+- `depth_video` 只走 Dreamina，不走 Veo；缺少深度参考视频、误用 `image2video` 或误投 Veo 时必须停止。
 - Veo 只接受文生视频或图生视频参考；不要给 Veo 提交参考视频或参考音频。
 - Veo 比例只用 `16:9` 或 `9:16`，时长只用 `4`、`6`、`8` 秒；需要 `3:4` 或音视频参考时继续走 Dreamina。
 
@@ -135,7 +137,8 @@ Use this row shape:
   "output_name": "shot-001",
   "ratio": "3:4",
   "duration": 5,
-  "mode": "multimodal2video",
+    "mode": "multimodal2video",
+    "guidance_mode": "standard",
   "model_version": "seedance2.0fast_vip",
   "video_resolution": "720p",
   "reference_images": [],
@@ -146,6 +149,28 @@ Use this row shape:
 ```
 
 Veo 任务行形状见 `references/veo.md`。
+
+深度视频任务改为：
+
+```json
+{
+  "id": "depth-001",
+  "provider": "dreamina",
+  "task": "按黑白深度视频生成真实实景视频",
+  "count": 1,
+  "output_name": "depth-001",
+  "ratio": "9:16",
+  "duration": 5,
+  "mode": "multimodal2video",
+  "guidance_mode": "depth_video",
+  "model_version": "seedance2.0fast_vip",
+  "video_resolution": "720p",
+  "reference_images": [],
+  "reference_videos": ["完整黑白深度视频路径"],
+  "reference_audios": [],
+  "final_instruction": "按 D-storyboard 深度视频模板写出的完整中文提示词"
+}
+```
 
 Then call the generation script with `count: 1` and output to `输出\确认片`.
 
@@ -182,6 +207,7 @@ For every video item:
 - 先写比例、时长、参考来源，再写动作。
 - 明确首帧、主体动作、镜头运动、环境变化、结束画面。
 - 默认使用 `multimodal2video`，把参考图 / 参考视频 / 参考音频写成具体角色，不要只说“参考上传素材”。
+- 深度视频模式必须先由 `D-storyboard` 提取空间、姿态、位置、构图、动作时序和镜头轨迹；提示词要明确 `depth_video` 不控制颜色材质，并禁止输出黑白深度图外观。
 - 如果使用 Veo，写清 `provider: "veo"`，只使用图像参考；普通 / Fast 把 2 张图理解为首帧 + 尾帧，Ref 把最多 3 张图理解为身份 / 产品 / 风格参考。
 - 只保留一个主动作和一个主镜头变化，避免一条里塞多个互相打架的动作。
 - 保持产品身份、结构、材质、比例和品牌区一致。
@@ -214,6 +240,7 @@ The generation script accepts either an array or an object with `items`:
       "ratio": "3:4",
       "duration": 5,
       "mode": "multimodal2video",
+      "guidance_mode": "standard",
       "model_version": "seedance2.0fast_vip",
       "video_resolution": "720p",
       "reference_images": ["F:/path/to/ref1.png"],

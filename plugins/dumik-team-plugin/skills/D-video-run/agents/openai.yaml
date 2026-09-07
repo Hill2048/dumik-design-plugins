@@ -1,4 +1,4 @@
 interface:
   display_name: "批量视频生成"
-  short_description: "按 assets/agent-skill-routing.md 只执行确认片和批量生视频；确认片通过后再全量"
-  default_prompt: "只执行已确认的逐镜提示词和参考素材；先出确认片，确认后再批量提交。"
+  short_description: "执行普通、深度引导确认片和批量生视频；确认后再全量"
+  default_prompt: "执行已确认提示词；深度视频用 depth_video 引导模式，先确认片再批量。"
