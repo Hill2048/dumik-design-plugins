@@ -49,7 +49,7 @@ description: "DUMIK 工作台初始化。在新仓库/新电脑装好插件后�
 
 ### 4. 首个项目（可选，问一句）
 
-要建：按 `assets\project-env-protocol.md` 问项目名，调对应 `init_project.py`（图片用 `D-image-run`、视频用 `D-video-run` 的脚本）建目录，写 `CURRENT_PROJECT.md` 指针。不建：跳过。
+要建：按 `assets\project-env-protocol.md` 问项目名，调对应 `init_project.py`（图片用 `D-image-runner`、视频用 `D-video-runner` 的脚本）建目录，写 `CURRENT_PROJECT.md` 指针。不建：跳过。
 
 用户已要求初始化当前项目时，直接建已确定的项目。混合项目将两个初始化脚本的 `--output-path` 指向同一项目目录。只补缺；旧项目不自动搬迁，只有用户要求整理或迁移时才按实际文件处理。
 

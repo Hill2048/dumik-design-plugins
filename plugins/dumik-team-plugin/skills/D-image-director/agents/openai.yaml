@@ -1,0 +1,4 @@
+interface:
+  display_name: "图片导演"
+  short_description: "统一改图、发散、高清修复与局部修复"
+  default_prompt: "使用 $D-image-director 选择 edit、brief、direction、hd 或 repair 模式，按实际画面写最小充分的中文图片提示词。"

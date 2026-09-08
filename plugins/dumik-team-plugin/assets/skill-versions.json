@@ -5,17 +5,11 @@
     "D-init": "0.2.0",
     "D-api-test": "0.1.0",
     "D-psb-install": "0.1.10",
-    "D-detail-plan": "0.1.1",
-    "D-detail-auto": "0.2.1",
-    "D-grid-prompt": "0.1.3",
-    "D-image-repair": "0.1.2",
-    "D-video-plan": "0.1.6",
-    "D-video-report": "0.3.0",
-    "D-image-prompt": "0.4.0",
-    "D-image-HD": "0.2.0",
-    "D-image-run": "1.3.6",
-    "D-rh": "0.1.5",
-    "D-storyboard": "1.4.1",
-    "D-video-run": "0.2.0"
+    "D-visual-plan": "0.1.0",
+    "D-image-director": "0.1.0",
+    "D-image-runner": "0.1.0",
+    "D-video-director": "0.1.0",
+    "D-video-runner": "0.1.0",
+    "D-project-pipeline": "0.1.0"
   }
 }

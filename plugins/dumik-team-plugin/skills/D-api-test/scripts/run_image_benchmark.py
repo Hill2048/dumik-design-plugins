@@ -15,7 +15,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageStat
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 PLUGIN_SKILLS_DIR = SKILL_DIR.parent
-IMAGE_RUNNER = PLUGIN_SKILLS_DIR / "D-image-run" / "scripts" / "generate_batch_images.py"
+IMAGE_RUNNER = PLUGIN_SKILLS_DIR / "D-image-runner" / "scripts" / "generate_batch_images.py"
 FIXTURE_DIR = SKILL_DIR / "assets" / "image-edit-cookware"
 TARGET_IMAGE = FIXTURE_DIR / "image1-target.png"
 REFERENCE_IMAGE = FIXTURE_DIR / "image2-reference.png"

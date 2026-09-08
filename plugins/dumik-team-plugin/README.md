@@ -8,18 +8,13 @@
 - `D-api-test`：新增或更换 API 时运行固定基准。当前内置双参考改图题，测试两个 Gemini 图片模型的 1K/2K/4K 与 1:1/3:4/16:9，汇总成功率、真实尺寸、比例、速度和九宫格；文案、视频基准后续独立增加。
 - `D-psb-install`：安装或更新 Photoshop PSB 智能对象工具，默认走 UXP，自动核对 GitHub 版本并验证安装结果。
 - 总监判断（已并入 AGENTS.md，非独立 skill）：图片/视频任务先按 AGENTS.md 总监职责给一句判断、决定是否进入项目制，再按统一路由分流到下面的 D-* skill。原 `ecom-visual-director` / `tvc-director` 已归档在 `archive/directors-merged-into-agents-md/`。
-- `D-detail-plan`：详情页出图策略层，固化视觉设定，规划详情页结构、每卖点视觉证据和创意方向，是图片线对称于视频线 `D-video-plan` 的转化策划入口。
-- `D-grid-prompt`：详情页发散层，两段式四宫格抽卡，段一 2x2 探方向、段二选中后展开全幅候选，引用视觉设定不重写 SKU。
-- `D-detail-auto`：详情页批量出图的 Agent 模式编排器，完全在 Agent（Codex / Hermes）内跑，把策划、抽卡、生图、修复串成自动流水线；三个闸（方向 / 选片 / 终审）在对话里停等用户，校准回写视觉设定后再批量；进度写一份轻量 run-state 到运行记录用于断点续跑，不接前端、不起桥服务。（早期的本地桥 + BatchRefiner 前端方案已归档到 `archive/bridge-frontend-legacy/`。）
-- `D-image-repair`：抽卡选片后的细节修复质量门，诊断漂移的产品细节，给局部切图指引，再用 banana2 加产品白底图作参考写局部修复提示词。
-- `D-image-prompt`：图片提示词唯一入口，覆盖普通改图、洗图、视觉 brief、电影化单帧、人物身份卡和线稿色块重绘提示词；新任务只读取本轮输入，避免串入上一张图。
-- `D-image-HD`：线稿色块重绘与高清修复，依次生成线稿、固有色色稿、真实中文画面提示词和最终高清重绘图。
-- `D-image-run`：统一承接实际生图和改图。默认单图模式，默认模型为 `banana2`；只有明确说批量、项目制批量或批量生成时才进入批量模式；也支持 `gpt-image-2`。
-- `D-rh`：RunningHub 图片后处理执行入口，负责放大/超分、抠图、去背景等后处理，不混入普通图片接口。
-- `D-video-plan`：先梳理电商视频的转化逻辑和卖点顺序；高级广告同时明确可见障碍、产品证据和品牌记忆。
-- `D-video-report`：把已有参考视频、教程、录屏或深度视频拆成可交互中文 HTML 报告，并分析复合运镜、旋转轴、视差与非线性速度。
-- `D-storyboard`：统一产品故事板、身份板、连续分镜、关键帧和逐镜提示词；支持电影调度、物理光色、烹饪动态、复合摄影机轨迹和深度视频转实景。
-- `D-video-run`：项目制批量生视频，支持普通模式与 `depth_video` 深度引导模式；先出确认片，确认后用 Dreamina CLI 批量提交。
+- `D-visual-plan`：统一图片详情页策略和视频转化策划，负责视觉设定、卖点证据、创意方向、证据链和转化节奏。
+- `D-image-director`：统一普通改图、视觉 brief、四宫格发散、线稿色块高清重绘和产品局部修复。
+- `D-image-runner`：统一普通生图/改图、多候选并发和 RunningHub 放大、超分、抠图、去背景。
+- `D-video-director`：统一已有视频分析、HTML 拉片报告、故事板、关键帧、深度视频和电影化复合运镜。
+- `D-video-runner`：统一确认片、普通视频、深度视频和 Dreamina / Seedance / Veo 批量提交。
+- `D-project-pipeline`：详情页项目制 pilot、方向闸门、校准回写、批量出图、局部修复和终审。
+- 旧入口已归档到 `archive/merged-skills-legacy/`，仅用于追溯，不再作为新任务入口。
 
 ## 流程地图
 

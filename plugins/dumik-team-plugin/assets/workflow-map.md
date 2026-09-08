@@ -1,37 +1,22 @@
 # DUMIK 流程地图索引
 
-权威路由只看：
+权威路由只看 `assets/agent-skill-routing.md`。
 
-```text
-assets/agent-skill-routing.md
-```
+## 生产入口
 
-本文件不再保存完整规则，避免和统一路由文档重复或冲突。
+- `D-visual-plan`：图片详情页与视频转化策划。
+- `D-image-director`：普通改图、brief、四宫格、高清重绘、局部修复。
+- `D-image-runner`：普通生图改图与 RunningHub 后处理。
+- `D-video-director`：视频分析、故事板、深度视频和电影化运镜。
+- `D-video-runner`：确认片与批量视频生成提交。
+- `D-project-pipeline`：详情页项目制 pilot、校准、批量、修复和终审。
 
-## 快速入口
+## 支撑入口
 
-- 工作台初始化：`D-init`
-- 图片/视频先判断：AGENTS.md 总监职责（不再是独立 skill）
-- 图片策划：`D-detail-plan`
-- 四宫格抽卡：`D-grid-prompt`
-- 详情页自动串跑：`D-detail-auto`
-- 细节修复：`D-image-repair`
-- 改图指令 / 视觉 brief：`D-image-prompt`（双模式）
-- 图片执行：`D-image-run`
-- 图片后处理：`D-rh`
-- 视频转化：`D-video-plan`
-- 视频拆解报告：`D-video-report`
-- 视频故事板 / 深度视频提示词：`D-storyboard`
-- 视频执行 / 深度引导生成：`D-video-run`
+- `D-init`：工作台初始化。
+- `D-api-test`：图片 API 基准测试。
+- `D-psb-install`：PSB 工具安装与更新。
 
-## 当前能力
+旧入口已归档到 `archive/merged-skills-legacy/`，不再参与自动路由。
 
-- 图片生成：Image2 / Banana2 / Banana Pro
-- 图片放大：RunningHub / SeedVR
-- 图片抠图：RunningHub
-- 详情页流程：策划 / 抽卡 / 修复
-- 视频生成：Seedance 2.0
-- 视频流程：TVC / 拉片报告 / 故事板 / 逐镜 / 深度视频转实景
-- 批量执行：图片 / 视频
-
-可视化新版在 `assets/workflow-map.html`，只作展示参考；执行时以 `agent-skill-routing.md` 为准。
+可视化地图在 `assets/workflow-map.html`，执行时以统一路由文件为准。

@@ -5,54 +5,41 @@
 适用版本：
 
 - 插件版本：`0.5.22`
-- 技能数量：`15`
+- 当前生产 skill：`9` 个（6 个生产入口 + 3 个支撑入口）
 - 详细版本：`assets/skill-versions.json`
-- 拉片网页：`D-video-report 0.3.0`
-- 图像提示词与高清修复：`D-image-prompt 0.4.0` + `D-image-HD 0.2.0`
-- 视频策划与分镜：`D-video-plan 0.1.6` + `D-storyboard 1.4.1`
-- 深度视频执行：`D-video-run 0.2.0`
+- 统一路由：`assets/agent-skill-routing.md`
+- 流程地图：`assets/workflow-map.md`
 
-## 已确认正确
+## 本次合并结果
 
-- `skills` 下 15 个技能目录全部存在 `SKILL.md`。
-- `.codex-plugin/plugin.json` 与 `assets/skill-versions.json` 均可解析，插件版本一致，均已登记 `D-video-report`。
-- `D-video-report` 已接入统一路由、README、流程地图、D-init 视频总导演模板和 `D-video-plan` 交接。
-- `D-video-report` 包含固定网页模板、报告数据协议、页面构建脚本、交互规范和关键帧下载数据脚本。
-- 拉片模板已用真实图片和视频构建预览；桌面与移动端截图无横向溢出，筛选、字幕搜索、时间跳转通过 Playwright 测试。
-- 深度视频已明确为提示词与参考组织方式，不是新模型；底层继续走 Seedance `multimodal2video`。
-- 深度引导任务校验已通过 3 项测试：正常挂载 `reference_videos`、缺深度视频拦截、误走 Veo 拦截。
-- 项目参考边界已覆盖环境协议、统一路由、初始化模板、图片提示词与执行、高清修复、细节修复、RunningHub、详情页策划与编排、视频策划、故事板和视频执行：默认只用 `design.md`、`设定集` 和用户本轮明确给出的文件，不从素材、制作、成品、旧报告或外部素材库自动补参考。
-- 用户明确给出的设定集外文件只用于本次任务；存进项目目录、进入成品或被流程生成，都不等于自动升格为项目设定。
-- 人物身份卡拼接脚本、线稿色块高清修复脚本均通过语法和命令入口检查。
-- 全包 15 个技能、17 个当前生效 JSON、16 个 Python 脚本、8 个 JavaScript 脚本和现有 4 项单元测试已复查通过。
-- `build_frame_download_data.mjs` 通过 `node --check`，并用真实 PNG 生成过 `frame-downloads.js`；图片数量、输出文件和相对路径键均正确。
-- 本机 Python 可用：`Python 3.12.10`。
-- 本机 FFmpeg / FFprobe 可用：`8.1.2`。
-- 本机 Node.js 可用：`v26.5.1`。
-- 本机 Dreamina CLI 可用。
-- 图片生成、视频生成和视频证据报告脚本均存在。
-- API 本机缓存存在且检测到非空 Key；清单不记录、不展示 Key。
-- NAS 图片配置存在；公网 tunnel 属动态项，不在本清单固化可用状态。
-- 插件包敏感信息扫描通过：未发现明文 API Key、Bearer token 或私钥。
+- 图片策划与视频策划合并为 `D-visual-plan`。
+- 普通改图、四宫格、高清修复和局部修复合并为 `D-image-director`。
+- 图片生成与 RunningHub 后处理合并为 `D-image-runner`。
+- 视频拉片、HTML 报告、故事板、深度视频和电影运镜合并为 `D-video-director`。
+- 视频确认片与批量生成统一为 `D-video-runner`。
+- 详情页项目制自动串跑统一为 `D-project-pipeline`。
+- `D-init`、`D-api-test`、`D-psb-install` 保留为支撑入口。
+- 旧 skill 已移动到 `archive/merged-skills-legacy/`，不再参与自动发现和新任务路由。
 
-## 校验器说明
+## 已完成检查
 
-通用 `skill-creator` 校验器会拒绝插件沿用的 `D-*` 大写技能名，以及部分技能顶层的 `version` 字段。这是插件既有命名和版本记录约定，不是本次参考边界更新引入的错误；本次未擅自重命名技能或改动版本协议。
+- 新生产 skill 均有 `SKILL.md` 和 `agents/openai.yaml`。
+- 源目录和本机缓存已同步新的 skill 目录与模式名称。
+- 图片、视频执行脚本和报告模板已合并到对应新入口的资源目录。
+- 统一路由、README、流程地图、插件清单和版本清单已改用新名称。
+- `D-image-director` 与 `D-video-director` 保留旧模式文档作为可按需读取的 legacy references。
+- 参考素材“存在性优先、最小充分描述”规则已保留在图片和视频 director 入口。
+- `git diff --check` 已通过。
+
+## 未在本次执行的项目
+
+- 未运行真实图片或视频生成任务。
+- 未执行 Dreamina、RunningHub 或外部 API 提交。
+- 未推送 GitHub，也未发布新的插件版本。
 
 ## 后续调用规则
 
-插件版本仍为 `0.5.22` 且本清单存在时：
-
-- 不重复检查插件目录、技能数量、版本矩阵、Python、FFmpeg、FFprobe、Node、Dreamina 和敏感信息。
-- 只检查本次项目目录、输入视频、输出路径、字幕/音轨和任务所需工具是否仍可调用。
-- 实际调用图片或视频接口前，仍轻量确认本次 Key、额度、登录和权限。
-- `D-video-report` 只有在需要本地关键帧下载数据时才检查 Node；普通抽帧只检查 FFmpeg / FFprobe。
-- 使用动态公网 URL 前必须重新确认可达性。
-
-## 清单失效条件
-
-- 插件版本、技能版本、目录结构、执行脚本或模型接口规范变化。
-- 用户明确要求重新全量检查。
-- 工具命令或脚本实际执行失败。
-
-清单失效后重新检查并更新本文件，不能继续引用旧结论。
+- 只要用户要文字提示词，停在 `D-visual-plan` 或对应 director，不调用 runner。
+- 只有用户明确要求生成、出图、出片、提交或批量，才进入 runner。
+- 有真实参考视频时，先用 `D-video-director` 的 `analyze` 模式，再写故事板或深度视频提示词。
+- 项目制详情页任务才进入 `D-project-pipeline`。

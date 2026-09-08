@@ -1,0 +1,4 @@
+interface:
+  display_name: "项目流水线"
+  short_description: "详情页图片项目的阶段闸门与批量串跑"
+  default_prompt: "使用 $D-project-pipeline 运行项目制图片流程，先 pilot、停等方向确认，再校准、批量、修复和终审。"

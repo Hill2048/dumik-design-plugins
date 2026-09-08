@@ -88,7 +88,7 @@ project\<项目名>\
 - 缺 API 缓存但本机配置存在：运行 `scripts\init_api_cache.py`。
 - 缺 Python 依赖且有明确依赖文件或脚本报缺模块：当前环境安装后重验。
 - 缺 FFmpeg 且本机包管理器可用：自动安装后重验。
-- `D-video-report` 需要下载数据脚本且缺 Node.js：优先安装 Winget 包 `OpenJS.NodeJS.LTS`，再复查 `node --version`。
+- `D-video-director` 需要下载数据脚本且缺 Node.js：优先安装 Winget 包 `OpenJS.NodeJS.LTS`，再复查 `node --version`。
 
 不能自动处理才停下说明缺口：
 
