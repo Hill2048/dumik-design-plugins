@@ -17,7 +17,7 @@
 - Git 引用：`main`
 - 稀疏路径：留空
 
-仓库 Marketplace 清单位于 `.agents/plugins/marketplace.json`。
+仓库 Marketplace 清单位于 `.codex-plugin/marketplace.json`。
 
 安装后搜索 `DUMIK Team Plugin` 即可使用。
 
