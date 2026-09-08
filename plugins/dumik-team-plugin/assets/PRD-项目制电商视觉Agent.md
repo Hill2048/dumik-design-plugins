@@ -1,5 +1,7 @@
 # PRD：项目制电商视觉 Agent
 
+> 注：项目指针机制（`CURRENT_PROJECT.md`、`CONTEXT.md`）已于 2026-09-10 废弃。项目根由用户指定的项目文件夹决定，权威规则见 `assets\project-env-protocol.md`。本文件保留原始需求记录，下文涉及的指针描述不再生效。
+
 ## 背景
 
 `F:\AI HOME\CODEX\image` 已从一次性图片需求路由，升级为围绕当前商品持续推进的项目制工作台。项目制规则不再分散在顶层多个文档里；当前项目由根目录 `CURRENT_PROJECT.md` 指定，路由由 `assets\agent-skill-routing.md` 指定，具体执行看对应 `SKILL.md`。

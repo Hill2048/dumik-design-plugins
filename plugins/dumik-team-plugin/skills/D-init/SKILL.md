@@ -1,7 +1,7 @@
 ---
 name: D-init
-version: 0.2.0
-description: "DUMIK 工作台初始化。在新仓库/新电脑装好插件后跑一次：先问项目类型（图片 / 视频 / 混合），生成执行入口和项目视觉设定文件，按设定集核心目录创建项目，初始化 API 缓存并做环境检查。只补缺不覆盖已有文件。"
+version: 0.3.0
+description: "DUMIK 工作台初始化。在新仓库/新电脑装好插件后跑一次：先问项目类型（图片 / 视频 / 混合），生成项目执行入口和视觉设定文件，按设定集核心目录创建项目，初始化 API 缓存并做环境检查。只补缺不覆盖已有文件。"
 ---
 
 # 工作台初始化
@@ -11,13 +11,14 @@ description: "DUMIK 工作台初始化。在新仓库/新电脑装好插件后�
 ## 触发
 
 - 初始化工作台 / 初始化项目 / 新仓库初始化 / 装好插件怎么开始。
-- 进入任务时发现仓库根缺 `AGENTS.md` 或 `CURRENT_PROJECT.md`，且用户要开展项目制工作。
+- 进入任务时发现项目根缺 `AGENTS.md` 或 `design.md`，且用户要开展项目制工作。
 
-不触发：入口文件齐全的老仓库日常任务（那直接按 AGENTS.md 走）。
+不触发：入口文件齐全的老项目日常任务（那直接按 AGENTS.md 走）。
 
 ## 硬规则
 
 - **第一个问题永远是项目类型**：图片项目 / 视频项目 / 混合项目。用户已经说明时不重复问；项目类型决定初始化哪些图片/视频制作目录。
+- **项目根就是用户指定的项目文件夹**，项目身份由文件夹本身确定。不生成、不读取任何指针文件：`CURRENT_PROJECT.md` 已废弃，`CONTEXT.md`、`CLAUDE.md` 也不再生成。
 - **只补缺，不覆盖**。已存在的入口文件一律不动，只报告"已存在，跳过"；用户明确说重置才允许覆盖，覆盖前先改名留底（`<名>.bak-<日期>`）。
 - 默认参考只来自项目 `design.md` 和 `设定集`；其他位置的文件只有用户明确给出时才可用于本次任务。
 - 不写 API Key 进任何仓库文件；Key 只进本机 `CODEX_HOME\dumik-team-plugin\api_settings.py`。
@@ -31,25 +32,22 @@ description: "DUMIK 工作台初始化。在新仓库/新电脑装好插件后�
 
 ### 2. 检查现状
 
-先确定工作台根与当前项目根。用户已在具体项目目录中时，直接使用该目录，不嵌套创建 `project/<项目名>`，不重复问已知项目名或类型。工作台的指针不能覆盖用户明确指定的当前项目。
+项目根就是用户指定的项目文件夹。用户已在具体项目目录中时，直接使用该目录，不嵌套创建 `project/<项目名>`，不重复问已知项目名或类型；不写、不读项目指针。
 
-列出仓库根的 `AGENTS.md`、`CLAUDE.md`、`CURRENT_PROJECT.md`、`CONTEXT.md` 是否存在；确认插件路径（`plugins\dumik-team-plugin` 或本机插件缓存）。
+列出项目根的 `AGENTS.md`、`design.md` 是否存在；确认插件路径（`plugins\dumik-team-plugin` 或本机插件缓存）。
 
 ### 3. 生成入口文件（缺哪个补哪个）
 
 按 [references/entry-templates.md](references/entry-templates.md) 拼装，替换插件路径占位符：
 
 - `AGENTS.md` = 执行规范、工具入口和项目协作规则；图片/视频/混合项目均以 `设定集` 为核心，不生成旧的 `原图`、`参考`、`输出` 目录规则。
-- `CLAUDE.md`：一行 `@AGENTS.md` 引用，Claude Code 与 Codex 共用入口。
-- `CURRENT_PROJECT.md`：空指针模板。
 - `design.md`：项目视觉设定模板，记录产品、场景、角色及确认状态。
-- `CONTEXT.md`：折叠规则头。
 
-项目根只补 `AGENTS.md`、`design.md`；不另建 `agent.md`。工作台指针和历史留在工作台根，`CLAUDE.md` 仅在需要 Claude 入口时补充。已有工作台入口不代替项目自己的执行规范与视觉设定。
+项目根只生成这两个文件。不另建 `agent.md`，不建 `CLAUDE.md`，不建项目指针或历史文件。
 
 ### 4. 首个项目（可选，问一句）
 
-要建：按 `assets\project-env-protocol.md` 问项目名，调对应 `init_project.py`（图片用 `D-image-runner`、视频用 `D-video-runner` 的脚本）建目录，写 `CURRENT_PROJECT.md` 指针。不建：跳过。
+要建：按 `assets\project-env-protocol.md` 确认项目文件夹，调对应 `init_project.py`（图片用 `D-image-runner`、视频用 `D-video-runner` 的脚本）建目录。不建：跳过。
 
 用户已要求初始化当前项目时，直接建已确定的项目。混合项目将两个初始化脚本的 `--output-path` 指向同一项目目录。只补缺；旧项目不自动搬迁，只有用户要求整理或迁移时才按实际文件处理。
 
@@ -61,11 +59,11 @@ description: "DUMIK 工作台初始化。在新仓库/新电脑装好插件后�
 
 ### 6. 交付清单
 
-输出：项目类型、生成的文件、跳过的文件、项目目录（如建了）、环境检查结果、待补项。在 `CONTEXT.md` 写一条初始化记录。
+输出：项目类型、生成的文件、跳过的文件、项目目录（如建了）、环境检查结果、待补项。不写项目指针或历史文件。
 
 ## 升级已有工作台
 
-老仓库的 AGENTS.md 还在引用总监 skill 时，经用户确认后做一次升级：把对应总监职责节并进 AGENTS.md，删掉指向 `ecom-visual-director` / `tvc-director` skill 的字样（这两个 skill 已归档）。同样先留底再改。
+老项目的 AGENTS.md 还在引用总监 skill 时，经用户确认后做一次升级：把对应总监职责节并进 AGENTS.md，删掉指向 `ecom-visual-director` / `tvc-director` skill 的字样（这两个 skill 已归档）。同样先留底再改。
 
 ## 交接
 
