@@ -1,6 +1,6 @@
 {
   "plugin": "dumik-team-plugin",
-  "pluginVersion": "0.5.22",
+  "pluginVersion": "0.1.5",
   "skills": {
     "D-init": "0.2.0",
     "D-api-test": "0.1.0",

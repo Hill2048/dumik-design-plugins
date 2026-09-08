@@ -1,6 +1,6 @@
 {
   "name": "dumik-team-plugin",
-  "version": "0.5.22",
+  "version": "0.1.5",
   "description": "DUMIK 团队视觉工作流：统一图片策划、改图、修复、执行，以及视频策划、拉片、故事板和生成执行。",
   "author": {
     "name": "DUMIK Team"
