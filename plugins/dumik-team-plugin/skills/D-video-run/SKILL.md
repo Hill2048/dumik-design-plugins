@@ -1,6 +1,6 @@
 ---
 name: D-video-run
-description: "项目制批量生视频。适用于先确认需求和输出路径，创建中文项目文件夹，让用户放入首帧/参考素材，再先出 1 条确认片，确认后用即梦 CLI 或 Veo 异步接口批量提交视频任务。默认走 Dreamina，全能参考 `multimodal2video`，模型为 `seedance2.0fast_vip`；用户明确选择 Veo 时走 NewAPI Business `/v1/videos`。"
+description: "项目制批量生视频。适用于先确认需求、输出路径和用户明确指定的首帧/参考素材，再先出 1 条确认片，确认后用即梦 CLI 或 Veo 异步接口批量提交视频任务。默认走 Dreamina，全能参考 `multimodal2video`，模型为 `seedance2.0fast_vip`；用户明确选择 Veo 时走 NewAPI Business `/v1/videos`。"
 version: 0.2.0
 ---
 
@@ -17,15 +17,15 @@ Do not skip the confirmation clip. Do not start full batch submission before the
 ## Hard Rules
 
 - 开始前必须确认输出路径；不能静默使用默认路径继续。
-- 写提示词、写 `提示词记录.json`、提交视频前，必须先确认当前项目的最新有效文件；不能凭记忆、浏览器当前页、旧报告、旧提示词或上一次对话猜参数。
-- 最新文件确认必须至少做三件事：按修改时间列出项目最近文件；用关键词搜索目标镜头 / 故事板 / 时长 / 比例 / 模型；读取命中的最新相关 HTML、MD、JSON 或运行记录。
+- 写提示词、写 `提示词记录.json`、提交视频前，只读取当前任务目录、项目 `design.md`、相关 `设定集` 和用户本轮明确给出的文件。不得扫描其他目录寻找参考。
+- 当前任务目录只用于恢复本任务的提示词和运行状态，不能把其中候选自动作为参考。旧报告、旧提示词、制作结果和成品只有用户点名后才可回用。
 - 如果不同文件里的时长、比例、模型、镜头编号或故事板编号冲突，必须以“最新明确生产规格文件”为准，并在提交记录或回复里写清来源文件路径；不能静默沿用旧文件。
 - 提交 `multimodal2video` 前必须校验所有参考视频 / 音频时长；视频参考必须在 CLI 当前允许范围内，超过上限要先裁剪到合规长度或移除，不能等接口报错。
 - 如果参考视频上传返回远端 `502`、upload video/audio 失败、VOD 上传失败或类似网络上传错误，先把该参考视频处理成 `5` 秒以内、无音频、H.264 MP4、小体积版本，再替换 `reference_videos` 重提一次；不要反复提交同一个失败视频文件。
 - Seedance2 / Dreamina 视频生成通常是 `10-30` 分钟级异步任务。提交成功并返回 `querying` / `Queueing` / `Generating` 后，不要把几分钟无结果误判成失败；按长任务节奏轮询和汇报。
 - 每条视频默认生成 `1` 条，除非用户明确指定其他数量。
-- 项目目录必须保留三个入口文件夹：`原图`、`参考`、`输出`；同时在 `输出` 内创建 `提示词`、`确认片`、`成片`、`运行记录`、`临时`，让后续产物归档到对应分类。
-- 创建文件夹后必须暂停，让用户把首帧/分镜图放进 `原图`，参考素材放进 `参考`。
+- 项目目录必须使用 `素材`、`设定集`、`制作/视频`、`成品/视频`；不再创建旧的 `原图`、`参考`、`输出`。
+- 首帧、分镜图和参考素材可以存入 `素材`，但只有用户明确点名或明确说使用刚放入的文件时才可读取；视频任务的提示词、确认片、候选、运行记录和临时文件放在 `制作/视频/<任务名>/`。
 - 默认执行入口是 `dreamina` CLI，提交前先按子命令 help 确认参数。
 - 用户明确选择 Veo 时，执行入口改为 NewAPI Business `/v1/videos` 异步接口；默认仍是 Dreamina。
 - 批量执行前必须先出 1 条确认片，用户确认后再继续。
@@ -92,20 +92,15 @@ The helper creates:
 
 ```text
 <项目目录>\
-  原图\
-  参考\
-  输出\
-    提示词\
-    确认片\
-    成片\
-    运行记录\
-    临时\
+  素材\
+  设定集\
+  制作\视频\<任务名>\
+  成品\视频\
 ```
 
 After creating the folders, stop and tell the user:
 
-- 把首帧 / 分镜图放进 `原图`。
-- 把参考图、参考视频、参考音频放进 `参考`。
+- 把尚未整理的首帧、分镜图、参考图、参考视频和参考音频放进 `素材`。
 - 放好后让你继续。
 
 Do not scan or generate until the user says the files are ready.
@@ -114,15 +109,15 @@ Do not scan or generate until the user says the files are ready.
 
 When the user says the files are ready:
 
-0. Confirm the newest source-of-truth files before writing or submitting anything.
-1. Read `原图` and `参考`.
-2. Choose the first source image in stable filename sort order as the confirmation sample.
-3. Use `D-storyboard` for product storyboards, product videos, general continuous shots, and hybrid scene-product videos.
-4. Generate one strict Chinese video prompt for that one item.
-5. Save the prompt row to:
+0. Read `design.md` and the relevant `设定集` files.
+1. Add only the files the user explicitly named or just provided, and record each file's role.
+2. Never choose the first file from `素材` or another directory automatically. If the required first frame or target file is still unclear, ask only for that file.
+3. Read the current task folder only when resuming that task; do not use its candidates as references unless the user selects them.
+4. Use `D-storyboard` for product storyboards, product videos, general continuous shots, and hybrid scene-product videos.
+5. Generate one strict Chinese video prompt for the user-selected item and save the prompt row to:
 
 ```text
-输出\提示词\提示词记录.json
+制作\视频\<任务名>\提示词记录.json
 ```
 
 Use this row shape:
@@ -172,12 +167,12 @@ Veo 任务行形状见 `references/veo.md`。
 }
 ```
 
-Then call the generation script with `count: 1` and output to `输出\确认片`.
+Then call the generation script with `count: 1` and output to `制作\视频\<任务名>`.
 
 ```powershell
 python scripts\generate_batch_videos.py `
-  --results-input "<项目目录>\输出\提示词\提示词记录.json" `
-  --output-dir "<项目目录>\输出\确认片"
+  --results-input "<项目目录>\制作\视频\<任务名>\提示词记录.json" `
+  --output-dir "<项目目录>\制作\视频\<任务名>"
 ```
 
 Show the confirmation clip path to the user and stop. Wait for approval or revision instructions.
@@ -188,16 +183,16 @@ Only after the user approves the confirmation clip:
 
 1. Write one prompt row per item.
 2. Use the confirmed per-item count, defaulting to `1`.
-3. Save all rows to `输出\提示词\提示词记录.json`，并在需要兼容脚本时复制到 `输出\提示词记录.json`。
-4. Run the generation script with output dir `输出\成片`.
-5. Save or copy run records into `输出\运行记录`，不要混进成片目录。
+3. Save all rows to `制作\视频\<任务名>\提示词记录.json`。
+4. Run the generation script with output dir `制作\视频\<任务名>`.
+5. Save run records in the task folder. 批量结果仍是候选；用户逐项确认 OK 后才将选定结果归入 `成品/视频`。
 
 Run pattern:
 
 ```powershell
 python scripts\generate_batch_videos.py `
-  --results-input "<项目目录>\输出\提示词\提示词记录.json" `
-  --output-dir "<项目目录>\输出\成片"
+  --results-input "<项目目录>\制作\视频\<任务名>\提示词记录.json" `
+  --output-dir "<项目目录>\制作\视频\<任务名>"
 ```
 
 ## Prompt Writing Rules
@@ -270,23 +265,21 @@ Read [references/seedance-platform-limits.md](references/seedance-platform-limit
 
 Before running `generate_batch_videos.py` or direct `dreamina` submit:
 
-1. Locate the active project folder from the user's path, current report path, or prompt row paths.
-2. List the newest files in that folder tree and identify likely source files, such as current HTML reports, MD方案, prompt JSON, storyboards, and run records.
-3. Search those files with concrete keywords: target shot id, storyboard id, `时长`, `duration`, `比例`, `ratio`, `seedance`, `VIP`, `veo`, `gemini-veo`, `生成`.
-4. Read the newest matching source file around the target shot / storyboard section.
-5. Validate `ratio`, `duration`, `model_version`, `video_resolution`, main frame, references, and final prompt against that source.
-6. Validate referenced media constraints with the current execution path. For `multimodal2video`, confirm image/video/audio count and duration limits before submit. For Veo, confirm only image references are used and image count does not exceed the selected model limit.
-7. If reference video duration is too long, create a clearly named clipped reference inside `参考` or replace it with an allowed reference; record the replacement path.
-8. If reference video upload fails with remote `502` / upload video/audio / VOD errors, create a lighter fallback reference: `<=5s`, no audio, H.264 MP4, compressed enough for stable upload. Use a clear filename like `*_5s.mp4`.
-9. If the 5s lightweight reference still fails for the same upload reason, stop and report the upload blocker instead of burning repeated submissions; the next fallback is image-only or extracted frame-board reference, but that needs user awareness because video-reference strength changes.
-10. If a prepared `提示词记录.json` conflicts with the latest source, update it only when the user has asked you to proceed with that source; otherwise stop and report the conflict.
-11. The run record must preserve the actual submitted values so later review can see what was really sent.
+1. Locate the active task folder from the user's path or the prompt row path; do not search the whole project for candidates.
+2. Read only this task's prompt JSON and run records, plus project `design.md`, relevant `设定集`, and user-named files.
+3. Validate `ratio`, `duration`, `model_version`, `video_resolution`, main frame, references, and final prompt against those allowed sources.
+4. Validate referenced media constraints with the current execution path. For `multimodal2video`, confirm image/video/audio count and duration limits before submit. For Veo, confirm only image references are used and image count does not exceed the selected model limit.
+5. If a user-provided reference video is too long, create a clearly named clipped copy inside the current task directory; record the replacement path. The copy remains a task input and does not become a project setting.
+6. If reference video upload fails with remote `502` / upload video/audio / VOD errors, create a lighter fallback reference: `<=5s`, no audio, H.264 MP4, compressed enough for stable upload. Use a clear filename like `*_5s.mp4`.
+7. If the 5s lightweight reference still fails for the same upload reason, stop and report the upload blocker instead of burning repeated submissions; the next fallback is image-only or extracted frame-board reference, but that needs user awareness because video-reference strength changes.
+8. If a prepared `提示词记录.json` conflicts with the allowed sources, update it only when the user has asked you to proceed with that source; otherwise stop and report the conflict.
+9. The run record must preserve the actual submitted values so later review can see what was really sent.
 
-Never infer duration or ratio from an older report when a newer planning file exists.
+Never infer duration, ratio or reference roles from an unselected report or historical output.
 
 ## Guardrails
 
-- Do not create extra top-level project subfolders beyond `原图`、`参考`、`输出`; output categorization belongs under `输出`.
+- Do not create extra top-level project subfolders beyond `素材`、`设定集`、`制作`、`成品`; task categorization belongs under `制作/图片` or `制作/视频`.
 - Do not begin full batch generation from an unapproved confirmation clip.
 - Do not generate prompts without a clear Dreamina execution path.
 - Do not silently change ratio, duration, model, or reference roles.

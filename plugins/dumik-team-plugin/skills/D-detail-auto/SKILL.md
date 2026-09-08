@@ -10,7 +10,7 @@ description: "详情页批量出图的自动编排器，完全在 Agent（Codex 
 
 **完全在 Agent 内跑**：Agent 自己生成、自己看图自检，到闸口直接把图展示给用户，用户在对话里确认方向、选片、终审，Agent 据此继续。不接前端、不起桥服务、不开端口。
 
-唯一的落盘是一份**轻量 run-state.json**，写在 `输出/运行记录/`，只给 Agent 自己用：会话中断后凭它断点续跑，不用从头重来。它不是对外合同，没有前端读它。
+唯一的落盘是一份**轻量 run-state.json**，写在 `制作/图片/<任务名>/`，只给 Agent 自己用：会话中断后凭它断点续跑，不用从头重来。它不是对外合同，没有前端读它。
 
 ## 触发
 
@@ -24,10 +24,11 @@ description: "详情页批量出图的自动编排器，完全在 Agent（Codex 
 进入前确认：
 - 当前项目（`CURRENT_PROJECT.md`）和项目目录已就位。
 - 图片接口可用（按 `D-image-run` 的 API 缓存规则）。
+- 默认参考只来自 `design.md` 和 `设定集`。用户本轮明确给出的文件可用于本次任务；不得从素材、制作、成品或外部素材库自动找参考，也不得把流水线候选自动回垫。
 
 ## 状态文件（断点续跑用）
 
-路径：`输出/运行记录/run-state.json`。每推进一步、每出一张图就更新它。**进入流水线前先读它**：
+路径：`制作/图片/<任务名>/run-state.json`。每推进一步、每出一张图就更新它。**进入流水线前先读它**：
 
 - 不存在或 `stage=done`：从头开始（planning）。
 - 存在且停在某个闸（`stage=await_*`）：把对应的图重新展示给用户，接着等用户回话，不要重跑已完成的步骤。
@@ -54,7 +55,7 @@ description: "详情页批量出图的自动编排器，完全在 Agent（Codex 
       "routeId": "material_macro",
       "status": "Success",
       "promptText": "引用视觉设定的完整中文提示词……",
-      "resultImage": "输出/确认图/卖点A-方向2-1.png",
+      "resultImage": "制作/图片/<任务名>/卖点A-方向2-1.png",
       "qaVerdict": "pass",
       "qaNotes": ""
     }
@@ -74,7 +75,7 @@ description: "详情页批量出图的自动编排器，完全在 Agent（Codex 
 
 ### 2. pilot — 试跑一个卖点
 
-选**第一个卖点**，调 `D-grid-prompt` 段一（从 prompt-pack family 选方向）写 2x2 探方向提示词，调 `D-image-run` 出 pilot 图（`count: 1`，落 `输出/确认图/`）。
+选**第一个卖点**，调 `D-grid-prompt` 段一（从 prompt-pack family 选方向）写 2x2 探方向提示词，调 `D-image-run` 出 pilot 图（`count: 1`，落 `制作/图片/<任务名>/`）。
 
 只跑一个卖点。不要一上来就并发全部——否则方向错了，十几张一起错。
 
@@ -90,7 +91,7 @@ description: "详情页批量出图的自动编排器，完全在 Agent（Codex 
 
 ### 4. calibrating — 沉淀校准 → 回写视觉设定（关键）
 
-把用户在闸①指出的问题 + pilot 经验提炼成**产品级**校准，写 `输出/校准沉淀.json`（`scope=product`：`lockedCorrections`、`confirmedBaseline`、`winningPromptPattern`）。
+把用户在闸①指出的问题 + pilot 经验提炼成**产品级**校准，写 `制作/图片/<任务名>/校准沉淀.json`（`scope=product`：`lockedCorrections`、`confirmedBaseline`、`winningPromptPattern`）。
 据此回写视觉设定的校准层（交 `D-detail-plan`），再用**校准后的视觉设定**给**所有卖点**重新生成抽卡提示词（交 `D-grid-prompt`）。
 
 只传播产品级（身份锁、材质光学、画幅光线、模型参数、参考图用法）。卖点级构图不进校准。
@@ -99,7 +100,7 @@ description: "详情页批量出图的自动编排器，完全在 Agent（Codex 
 
 ### 5. batch_draw — 批量并发抽卡
 
-对所有卖点的选中方向，按 `D-grid-prompt` 段二展开多行独立全幅候选（每行 `count:1`、不同 id/output_name、带 `selected_direction_id` 和 `route_id`）。交 `D-image-run` 批量并发生成，落 `输出/确认图/`。
+对所有卖点的选中方向，按 `D-grid-prompt` 段二展开多行独立全幅候选（每行 `count:1`、不同 id/output_name、带 `selected_direction_id` 和 `route_id`）。交 `D-image-run` 批量并发生成，落 `制作/图片/<任务名>/`。
 
 每张生成后，Agent **自己看图自检**，标 `pass`/`drift`/`reject`；明显崩的（reject）先自己淘汰，不拿去烦用户。每出一张就更新 run-state 的 `tasks[]` 和 `stats`，方便中途断了接着补。
 
@@ -121,11 +122,11 @@ description: "详情页批量出图的自动编排器，完全在 Agent（Codex 
 
 ### 8. 闸③ 终审（停，对话里等用户）
 
-把修完的成品候选展示给用户终审：approved 进 `输出/成品`；redo 回对应步骤。写 `stage=await_final`、`openGate=final`，然后停。
+把修完的成品候选展示给用户终审：approved 进 `成品/图片`；redo 回对应步骤。写 `stage=await_final`、`openGate=final`，然后停。
 
 ### 9. done — 交付
 
-approved 的图归 `输出/成品/`，写 `handoff.md` 记下每张来源（卖点/方向/route）和下一步归属。run-state 写 `stage=done`。
+approved 的图归 `成品/图片/`，写 `handoff.md` 记下每张来源（卖点/方向/route）和下一步归属。run-state 写 `stage=done`。
 
 注意：本流水线交付的是**确认图/成品图**，不含文字、参数、logo、版式叠加（那是后续确定性叠加层，不在本 skill）。
 

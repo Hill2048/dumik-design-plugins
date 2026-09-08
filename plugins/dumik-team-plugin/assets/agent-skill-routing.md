@@ -4,10 +4,11 @@
 
 ## 文档权威顺序
 
-1. 当前项目：项目根目录 `CURRENT_PROJECT.md`
-2. 路由规则：本文件 `plugins\dumik-team-plugin\assets\agent-skill-routing.md`
-3. 执行细节：对应技能的 `SKILL.md`
-4. 历史记录：项目根目录 `CONTEXT.md`
+1. 用户当前要求与项目 `AGENTS.md`；工作台 `CURRENT_PROJECT.md` 仅辅助定位，不能覆盖用户明确指定的项目。
+2. 项目 `design.md` 与相关 `设定集`；其他目录或外部素材只有用户明确给出时才使用。
+3. 路由规则：本文件与 `assets/project-env-protocol.md`。
+4. 执行细节：对应技能的 `SKILL.md`。
+5. 历史记录：工作台 `CONTEXT.md`。
 
 如果文档冲突，按上面的顺序判断；`CONTEXT.md` 只记录历史，不作为执行规则来源。
 
@@ -113,7 +114,7 @@
 
 ### D-detail-auto
 
-- 作用：详情页批量出图的自动编排器，完全在 Agent（Codex / Hermes）内跑，把 planner / D-grid-prompt / D-image-run / D-image-repair 串成自动流水线；三个闸在对话里停等用户，进度写轻量 run-state 到 `输出\运行记录` 供断点续跑，校准沉淀回写视觉设定。是唯一会主动驱动生成的 skill。不依赖前端和桥服务（旧方案已归档 `archive\bridge-frontend-legacy`）。
+- 作用：详情页批量出图的自动编排器，完全在 Agent（Codex / Hermes）内跑，把 planner / D-grid-prompt / D-image-run / D-image-repair 串成自动流水线；三个闸在对话里停等用户，进度写轻量 run-state 到 `制作\图片\<任务名>` 供断点续跑，校准沉淀回写视觉设定。是唯一会主动驱动生成的 skill。不依赖前端和桥服务（旧方案已归档 `archive\bridge-frontend-legacy`）。
 - 触发：详情页批量自动串跑、项目制批量出图、走 Agent 模式、一整套详情页自动跑。
 - 交接：策略给 `D-detail-plan`；抽卡词给 `D-grid-prompt`；生成给 `D-image-run`；修复/QA 给 `D-image-repair`；顶层路由/项目入口按 AGENTS.md 总监职责。
 - 禁止：不自己写最终提示词或手搓接口参数；三个闸（方向/选片/终审）必须真停，在对话里等用户回话；校准只回写产品级；pilot 只跑一个卖点，并发只在校准之后。

@@ -23,7 +23,7 @@ crop 按基础框外扩切出局部并记录位置 -> banana2 重绘 -> paste �
     python crop_paste.py paste \
         --image 原图.png --repaired 修好的局部.png \
         --meta 临时/repair-把手-1-meta.json --feather 24 \
-        --out 输出/成品/repair-把手-1-final.png
+        --out 制作/图片/当前任务/repair-把手-1-final.png
 
 批量见 repair_batch.py。
 """

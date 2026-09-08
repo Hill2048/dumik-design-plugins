@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 
-DEFAULT_ROOT = Path(r"F:\AI HOME\CODEX\image\outputs\批量改图项目")
+DEFAULT_ROOT = Path.cwd() / "project"
 
 
 def clean_name(value: str) -> str:
@@ -48,14 +48,15 @@ def main() -> None:
         project_dir = build_project_path(Path(args.root).resolve(), args.project_name)
 
     folders = (
-        "原图",
-        "参考",
-        "输出",
-        "输出/提示词",
-        "输出/确认图",
-        "输出/成品",
-        "输出/运行记录",
-        "输出/临时",
+        "素材",
+        "设定集",
+        "设定集/白底图",
+        "设定集/场景",
+        "设定集/角色",
+        "制作",
+        "制作/图片",
+        "成品",
+        "成品/图片",
     )
     for folder_name in folders:
         (project_dir / folder_name).mkdir(parents=True, exist_ok=True)

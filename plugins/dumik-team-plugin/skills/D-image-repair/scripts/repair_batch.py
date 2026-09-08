@@ -19,8 +19,8 @@ D-image-repair 批量修复驱动。
   "items": [
     {
       "image_id": "卖点A-方向2-cand-1",
-      "image_path": "输出/确认图/卖点A-方向2-1.png",
-      "white_ref": "原图/产品白底图.png",
+      "image_path": "制作/图片/详情页任务/卖点A-方向2-1.png",
+      "white_ref": "设定集/白底图/产品白底图.png",
       "verdict": "blocked",
       "regions": [
         {
@@ -39,17 +39,17 @@ D-image-repair 批量修复驱动。
 ----
 切 + 出任务：
     python repair_batch.py crop-batch \
-        --manifest 输出/运行记录/修复清单.json \
-        --workdir 输出/临时/repair \
-        --jobs 输出/提示词/修复任务.json \
+        --manifest 制作/图片/详情页任务/修复清单.json \
+        --workdir 制作/图片/详情页任务/repair \
+        --jobs 制作/图片/详情页任务/修复任务.json \
         --project-root .
 
 贴回（D-image-run 跑完后）：
     python repair_batch.py paste-batch \
-        --manifest 输出/运行记录/修复清单.json \
-        --workdir 输出/临时/repair \
-        --repaired-dir 输出/确认图/repair \
-        --out-dir 输出/成品 \
+        --manifest 制作/图片/详情页任务/修复清单.json \
+        --workdir 制作/图片/详情页任务/repair \
+        --repaired-dir 制作/图片/详情页任务/repair/repaired \
+        --out-dir 制作/图片/详情页任务/repair/final \
         --project-root . \
         --feather 24
 """

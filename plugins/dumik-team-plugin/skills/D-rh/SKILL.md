@@ -8,6 +8,8 @@ description: "RunningHub 图片后处理执行入口。只负责把已配置好�
 
 Use this skill only when the user explicitly asks for RunningHub / RH / 放大 / 超分 / 高清放大 / 抠图 / 去背景.
 
+输入图片必须由用户本轮明确指定，或来自项目 `设定集` 中与当前任务相关的文件。不得从素材、制作、成品或外部素材库自动挑图；历史结果只有用户点名后才可处理。
+
 ## Hard Rules
 
 - 本 skill 只管 RunningHub 工作流或 AI App 提交与结果拉取。

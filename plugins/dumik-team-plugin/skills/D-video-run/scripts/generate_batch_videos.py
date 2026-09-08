@@ -18,7 +18,7 @@ from typing import Any
 from urllib import error, request
 
 
-DEFAULT_OUTPUT_DIR = Path.cwd() / "输出"
+DEFAULT_OUTPUT_DIR = Path.cwd() / "制作" / "视频"
 DEFAULT_PROVIDER = "dreamina"
 DEFAULT_MODEL = "seedance2.0fast_vip"
 DEFAULT_RESOLUTION = "720p"

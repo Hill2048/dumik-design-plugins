@@ -3,7 +3,7 @@
     {
       "id": "shot-001",
       "provider": "dreamina",
-      "file": "F:/AI HOME/CODEX/video/outputs/批量视频项目/demo/原图/1.png",
+      "file": "<项目目录>/设定集/白底图/产品主图.png",
       "task": "高压锅开盖展示内胆结构",
       "count": 1,
       "output_name": "shot-001",
@@ -13,7 +13,7 @@
       "model_version": "seedance2.0fast_vip",
       "video_resolution": "720p",
       "reference_images": [
-        "F:/AI HOME/CODEX/video/outputs/批量视频项目/demo/参考/ref-01.png"
+        "<项目目录>/设定集/场景/场景参考.png"
       ],
       "reference_videos": [],
       "reference_audios": [],
@@ -22,7 +22,7 @@
     {
       "id": "veo-shot-001",
       "provider": "veo",
-      "file": "F:/AI HOME/CODEX/video/outputs/批量视频项目/demo/原图/1.png",
+      "file": "<项目目录>/设定集/白底图/产品主图.png",
       "task": "高压锅主图短视频",
       "count": 1,
       "output_name": "veo-shot-001",
@@ -53,7 +53,7 @@
       "video_resolution": "720p",
       "reference_images": [],
       "reference_videos": [
-        "F:/AI HOME/CODEX/video/outputs/批量视频项目/demo/参考/depth.mp4"
+        "<用户本轮明确给出的深度视频路径>"
       ],
       "reference_audios": [],
       "final_instruction": "比例：9:16，时长：5秒。depth_video 只控制空间纵深、人物姿态、物体位置、构图、动作时序和镜头轨迹。将深度结构转化为真实实景拍摄，保持动作与布局逐帧一致，呈现真实材质、自然光影和写实电影质感，不要保留黑白深度图外观，不要漂移、穿模、闪烁或肢体崩坏。"

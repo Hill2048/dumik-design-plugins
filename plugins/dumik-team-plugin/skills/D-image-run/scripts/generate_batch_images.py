@@ -31,7 +31,7 @@ import requests
 from PIL import Image
 
 
-DEFAULT_OUTPUT_DIR = Path.cwd() / "输出"
+DEFAULT_OUTPUT_DIR = Path.cwd() / "制作" / "图片"
 DEFAULT_BASE_URL = "https://sub.juaihub.cn"
 DEFAULT_IMAGE_MODEL = "banana2"
 BANANA2_IMAGE_MODEL = "gemini-3.1-flash-image-preview"

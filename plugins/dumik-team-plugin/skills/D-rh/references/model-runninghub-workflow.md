@@ -62,19 +62,19 @@ python scripts\run_runninghub_workflow.py --config "references\runninghub-upscal
 放大：
 
 ```powershell
-python plugins\dumik-team-plugin\skills\D-rh\scripts\run_runninghub_workflow.py --preset upscale --image "<要放大的图片路径>" --out-dir "project\纯钛+乌檀木菜板\输出\成品\runninghub-upscale"
+python plugins\dumik-team-plugin\skills\D-rh\scripts\run_runninghub_workflow.py --preset upscale --image "<用户明确指定的图片路径>" --out-dir "<项目目录>\制作\图片\<任务名>\runninghub-upscale"
 ```
 
 指定尺寸：
 
 ```powershell
-python plugins\dumik-team-plugin\skills\D-rh\scripts\run_runninghub_workflow.py --preset upscale --image "<要放大的图片路径>" --reduce-size 1500 --upscale-size 4000 --out-dir "project\纯钛+乌檀木菜板\输出\成品\runninghub-upscale"
+python plugins\dumik-team-plugin\skills\D-rh\scripts\run_runninghub_workflow.py --preset upscale --image "<用户明确指定的图片路径>" --reduce-size 1500 --upscale-size 4000 --out-dir "<项目目录>\制作\图片\<任务名>\runninghub-upscale"
 ```
 
 抠图：
 
 ```powershell
-python plugins\dumik-team-plugin\skills\D-rh\scripts\run_runninghub_workflow.py --preset matting --image "<要抠图的图片路径>" --out-dir "project\纯钛+乌檀木菜板\输出\成品\runninghub-matting"
+python plugins\dumik-team-plugin\skills\D-rh\scripts\run_runninghub_workflow.py --preset matting --image "<用户明确指定的图片路径>" --out-dir "<项目目录>\制作\图片\<任务名>\runninghub-matting"
 ```
 
 ## 临时覆盖节点参数
