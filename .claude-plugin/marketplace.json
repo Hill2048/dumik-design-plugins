@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "dumik-codex-plugins",
+  "description": "DUMIK 团队视觉工作流插件：图片提示词、改图指令、详情页、视频故事板等",
+  "owner": {
+    "name": "DUMIK Team"
+  },
+  "plugins": [
+    {
+      "name": "dumik-team-plugin",
+      "displayName": "DUMIK Team Plugin",
+      "source": "./plugins/dumik-team-plugin",
+      "description": "DUMIK 团队视觉工作流：统一图片策划、改图、修复、执行，以及视频策划、拉片、故事板和生成执行。",
+      "category": "创意工具"
+    }
+  ]
+}
