@@ -31,7 +31,7 @@ Mac 默认使用 UXP。当前 UXP 版已做完整迁移，包含：
 
 ## Codex 自动安装
 
-让 Codex 使用 DUMIK 插件里的 `D-psb-install` 技能，或直接运行：
+让 Codex 使用 DUMIK 插件里的 `d-psb-install` 技能，或直接运行：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File "<插件根>\scripts\install_psb_smart_object_tools.ps1"

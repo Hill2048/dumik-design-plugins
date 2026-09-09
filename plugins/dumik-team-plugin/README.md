@@ -4,16 +4,16 @@
 
 ## 已收纳流程
 
-- `D-init`：项目初始化。新仓库/新电脑装好插件后跑一次，按模板生成项目入口文件（AGENTS.md、design.md），按需建第一个项目目录并做环境检查；只补缺不覆盖。项目根就是用户指定的项目文件夹，不生成任何指针或历史文件。
-- `D-api-test`：新增或更换 API 时运行固定基准。当前内置双参考改图题，可测试 Gemini Flash / Pro 和 GPT Image 2.5 Flare / Sunburst 的多尺寸、多比例、速度与画面保持；Image2.5 自动使用官方合法的 1K、2K、最大尺寸矩阵。
-- `D-psb-install`：安装或更新 Photoshop PSB 智能对象工具，默认走 UXP，自动核对 GitHub 版本并验证安装结果。
+- `d-init`：项目初始化。新仓库/新电脑装好插件后跑一次，按模板生成项目入口文件（AGENTS.md、design.md），按需建第一个项目目录并做环境检查；只补缺不覆盖。项目根就是用户指定的项目文件夹，不生成任何指针或历史文件。
+- `d-api-test`：新增或更换 API 时运行固定基准。当前内置双参考改图题，可测试 Gemini Flash / Pro 和 GPT Image 2.5 Flare / Sunburst 的多尺寸、多比例、速度与画面保持；Image2.5 自动使用官方合法的 1K、2K、最大尺寸矩阵。
+- `d-psb-install`：安装或更新 Photoshop PSB 智能对象工具，默认走 UXP，自动核对 GitHub 版本并验证安装结果。
 - 总监判断（已并入 AGENTS.md，非独立 skill）：图片/视频任务先按 AGENTS.md 总监职责给一句判断、决定是否进入项目制，再按统一路由分流到下面的 D-* skill。原 `ecom-visual-director` / `tvc-director` 已归档在 `archive/directors-merged-into-agents-md/`。
-- `D-visual-plan`：统一图片详情页策略和视频转化策划，负责视觉设定、卖点证据、创意方向、证据链和转化节奏。
-- `D-image-director`：统一普通改图、视觉 brief、四宫格发散、线稿色块高清重绘和产品局部修复。
-- `D-image-runner`：统一普通生图/改图、多候选并发和 RunningHub 放大、超分、抠图、去背景。
-- `D-video-director`：统一已有视频分析、HTML 拉片报告、故事板、关键帧、深度视频和电影化复合运镜。
-- `D-video-runner`：统一确认片、普通视频、深度视频和 Dreamina / Seedance / Veo 批量提交。
-- `D-project-pipeline`：详情页项目制 pilot、方向闸门、校准回写、批量出图、局部修复和终审。
+- `d-visual-plan`：统一图片详情页策略和视频转化策划，负责视觉设定、卖点证据、创意方向、证据链和转化节奏。
+- `d-image-director`：统一普通改图、视觉 brief、四宫格发散、线稿色块高清重绘和产品局部修复。
+- `d-image-runner`：统一普通生图/改图、多候选并发和 RunningHub 放大、超分、抠图、去背景。
+- `d-video-director`：以 Seedance 2.5 方法升级的提示词编译器为核心，统一任意视频提示词、已有视频分析、HTML 拉片报告、故事板、关键帧、深度视频和电影化复合运镜；目标模型只在末端适配。
+- `d-video-runner`：统一确认片、普通视频、深度视频和 Dreamina / Seedance / Veo 批量提交。
+- `d-project-pipeline`：详情页项目制 pilot、方向闸门、校准回写、批量出图、局部修复和终审。
 - 旧入口已归档到 `archive/merged-skills-legacy/`，仅用于追溯，不再作为新任务入口。
 
 ## 流程地图
@@ -31,6 +31,8 @@
 图片改图默认遵守本项目规则：先判断图片角色，锁定产品结构和品牌区域，明确比例和目标图，最终给可直接复制的中文改图指令。
 
 所有图片和视频技能默认只交付文字提示词、brief、脚本或分镜，不自动生图、不自动生视频、不调用生成接口。只有明确要求“生图 / 出图 / 生成图片 / 调用接口 / 生成视频 / 调用即梦”时才进入实际生成。进入项目制或批量执行前，先按 `assets/project-env-protocol.md` 确认项目根：用户指定了项目文件夹就直接以该文件夹为项目根，没指定就先问项目文件夹路径和项目类型；用户也可以切换项目或本次不进入项目。项目根不写指针文件。
+
+所有视频提示词先经过 `d-video-director/references/seedance25-prompt-compiler.md`：先锁故事合同和素材职责，再组织事件、镜头与声音，最后适配 Seedance 2.5、Dreamina 2.0 或 Veo。模型、画幅、时长、分辨率、帧率和声音开关属于执行规格，不写进最终 Prompt。
 
 ## 钩子
 

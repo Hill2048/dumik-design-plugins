@@ -1,0 +1,4 @@
+interface:
+  display_name: "视频执行器"
+  short_description: "确认片与批量视频生成提交"
+  default_prompt: "使用 $d-video-runner 执行已确认的视频提示词；先出确认片，确认后再批量提交。"

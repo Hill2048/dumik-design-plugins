@@ -1,0 +1,4 @@
+interface:
+  display_name: "图片执行器"
+  short_description: "统一生图改图与 RunningHub 后处理"
+  default_prompt: "使用 $d-image-runner 选择 generate 或 postprocess；只有用户明确要求执行时才发包并回传结果。"

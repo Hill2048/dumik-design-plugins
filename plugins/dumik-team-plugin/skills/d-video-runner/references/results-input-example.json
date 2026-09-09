@@ -1,0 +1,61 @@
+{
+  "items": [
+    {
+      "id": "shot-001",
+      "provider": "dreamina",
+      "file": "<项目目录>/设定集/白底图/产品主图.png",
+      "task": "高压锅开盖展示内胆结构",
+      "count": 1,
+      "output_name": "shot-001",
+      "ratio": "3:4",
+      "duration": 5,
+      "mode": "multimodal2video",
+      "model_version": "seedance2.0fast_vip",
+      "video_resolution": "720p",
+      "reference_images": [
+        "<项目目录>/设定集/场景/场景参考.png"
+      ],
+      "reference_videos": [],
+      "reference_audios": [],
+      "final_instruction": "主输入产品图作为首帧，定义高压锅的 SKU、轮廓、锅盖、旋钮、内胆结构和起始构图；场景参考图只定义厨房环境，不改变产品结构。开始时锅盖闭合，随后锅盖沿真实连接结构平稳打开，摄影机沿产品正面轴线轻微推进。结束时锅盖保持打开，内胆结构完整清楚，产品数量、比例、材质和关键部件保持一致。"
+    },
+    {
+      "id": "veo-shot-001",
+      "provider": "veo",
+      "file": "<项目目录>/设定集/白底图/产品主图.png",
+      "task": "高压锅主图短视频",
+      "count": 1,
+      "output_name": "veo-shot-001",
+      "ratio": "16:9",
+      "duration": 4,
+      "mode": "veo-fast",
+      "model_version": "gemini-veo-3.1-fast-generate-preview-4s",
+      "video_resolution": "720p",
+      "reference_images": [],
+      "reference_videos": [],
+      "reference_audios": [],
+      "images": [],
+      "generate_audio": true,
+      "final_instruction": "主输入产品图作为首帧，定义高压锅的 SKU、轮廓、结构、材质和起始构图。产品保持固定，摄影机沿产品正面轴线缓慢推进，侧光在金属表面产生连续而克制的明暗变化。结束时产品仍居中清晰，数量、比例、锅盖、旋钮、把手和品牌区保持一致。"
+    },
+    {
+      "id": "depth-001",
+      "provider": "dreamina",
+      "task": "按黑白深度视频重建真实实景",
+      "count": 1,
+      "output_name": "depth-001",
+      "ratio": "9:16",
+      "duration": 5,
+      "mode": "multimodal2video",
+      "guidance_mode": "depth_video",
+      "model_version": "seedance2.0fast_vip",
+      "video_resolution": "720p",
+      "reference_images": [],
+      "reference_videos": [
+        "<用户本轮明确给出的深度视频路径>"
+      ],
+      "reference_audios": [],
+      "final_instruction": "depth_video 是深度引导参考，只控制空间纵深、人物姿态、物体位置、遮挡关系、构图、动作时序和镜头轨迹，不采用黑白深度图外观。将其中的空间和运动结构转化为真实实景拍摄，保持主体身份、数量、动作路径、空间布局和摄影机运动连续，呈现真实材质、自然光影和写实电影质感。"
+    }
+  ]
+}

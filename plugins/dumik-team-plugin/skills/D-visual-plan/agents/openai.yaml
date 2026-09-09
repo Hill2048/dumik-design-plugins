@@ -1,4 +1,0 @@
-interface:
-  display_name: "视觉策划"
-  short_description: "统一图片详情页与视频转化策划"
-  default_prompt: "使用 $D-visual-plan 判断 image 或 video 模式，先固化视觉设定、卖点证据和转化结构，不直接生成媒体。"
