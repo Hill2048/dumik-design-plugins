@@ -42,12 +42,37 @@ image2：菜品参考，只控制番茄炒蛋的食材形态、色泽与熟度�
 | 2K | 2048x2048 | 1536x2048 | 2048x1152 |
 | 4K | 4096x4096 | 3072x4096 | 4096x2304 |
 
+GPT Image 2.5 遵守官方单边 `3840` 和总像素限制，使用独立合法矩阵：
+
+| 档位 | 1:1 请求尺寸 | 3:4 请求尺寸 | 16:9 请求尺寸 |
+| --- | --- | --- | --- |
+| 1K | 1024x1024 | 768x1024 | 1024x576 |
+| 2K | 2048x2048 | 1536x2048 | 2048x1152 |
+| 最大 / 4K | 2880x2880 | 2480x3312 | 3840x2160 |
+
+方图与 3:4 的最高合法尺寸记为 `MAX`，不谎称完整 4K；16:9 使用官方 4K `3840x2160`。
+
 默认测试模型：
 
 - Flash：`gemini-3.1-flash-image-preview`
 - Pro：`gemini-3-pro-image-preview`
 
+GPT Image 2.5 可选模型：
+
+- Flare：`gpt-image-2.5-flare`
+- Sunburst：`gpt-image-2.5-sunburst`
+
 模型可按供应商实际名称覆盖，但报告必须记录真实提交名。
+
+只测试 GPT Image 2.5：
+
+```powershell
+python scripts\run_image_benchmark.py `
+  --base-url "https://example.com" `
+  --models image25-flare image25-sunburst `
+  --use-local-credentials `
+  --output-dir "<报告目录>"
+```
 
 ## 执行
 

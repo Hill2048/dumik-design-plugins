@@ -5,7 +5,7 @@
 ## 已收纳流程
 
 - `D-init`：项目初始化。新仓库/新电脑装好插件后跑一次，按模板生成项目入口文件（AGENTS.md、design.md），按需建第一个项目目录并做环境检查；只补缺不覆盖。项目根就是用户指定的项目文件夹，不生成任何指针或历史文件。
-- `D-api-test`：新增或更换 API 时运行固定基准。当前内置双参考改图题，测试两个 Gemini 图片模型的 1K/2K/4K 与 1:1/3:4/16:9，汇总成功率、真实尺寸、比例、速度和九宫格；文案、视频基准后续独立增加。
+- `D-api-test`：新增或更换 API 时运行固定基准。当前内置双参考改图题，可测试 Gemini Flash / Pro 和 GPT Image 2.5 Flare / Sunburst 的多尺寸、多比例、速度与画面保持；Image2.5 自动使用官方合法的 1K、2K、最大尺寸矩阵。
 - `D-psb-install`：安装或更新 Photoshop PSB 智能对象工具，默认走 UXP，自动核对 GitHub 版本并验证安装结果。
 - 总监判断（已并入 AGENTS.md，非独立 skill）：图片/视频任务先按 AGENTS.md 总监职责给一句判断、决定是否进入项目制，再按统一路由分流到下面的 D-* skill。原 `ecom-visual-director` / `tvc-director` 已归档在 `archive/directors-merged-into-agents-md/`。
 - `D-visual-plan`：统一图片详情页策略和视频转化策划，负责视觉设定、卖点证据、创意方向、证据链和转化节奏。
@@ -44,6 +44,6 @@
 
 默认不自动生图。只有明确要求“生图 / 出图 / 生成图片 / 调用接口”时才调用图片接口；没有明确说批量时，默认按单图处理。
 
-生图前先选模型：`gpt-image-2`、`banana2` 或 `bananapro`。`banana2` 提交为 `gemini-3.1-flash-image-preview`，`bananapro` 提交为 `gemini-3-pro-image-preview`。
+生图前先选模型：`gpt-image-2`、`gpt-image-2.5-flare`、`gpt-image-2.5-sunburst`、`banana2` 或 `bananapro`。用户只说 `image2.5` 时使用质量优先的 Sunburst；需要快速迭代时使用 Flare。插件全局默认仍为 `banana2`。
 
 各 skill 版本号见 `assets/skill-versions.json`。

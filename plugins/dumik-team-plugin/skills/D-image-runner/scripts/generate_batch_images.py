@@ -37,13 +37,29 @@ DEFAULT_IMAGE_MODEL = "banana2"
 BANANA2_IMAGE_MODEL = "gemini-3.1-flash-image-preview"
 BANANAPRO_IMAGE_MODEL = "gemini-3-pro-image-preview"
 IMAGE2_IMAGE_MODEL = "gpt-image-2"
+IMAGE25_FLARE_MODEL = "gpt-image-2.5-flare"
+IMAGE25_SUNBURST_MODEL = "gpt-image-2.5-sunburst"
 CHAT_IMAGE_MODELS = {
     BANANA2_IMAGE_MODEL,
     BANANAPRO_IMAGE_MODEL,
 }
+GPT_IMAGE_25_MODELS = {
+    IMAGE25_FLARE_MODEL,
+    IMAGE25_SUNBURST_MODEL,
+}
 IMAGE_MODEL_ALIASES = {
     "gpt-image-2": "gpt-image-2",
     "image2": "gpt-image-2",
+    "gpt-image-2.5-flare": IMAGE25_FLARE_MODEL,
+    "image2.5-flare": IMAGE25_FLARE_MODEL,
+    "image25-flare": IMAGE25_FLARE_MODEL,
+    "flare": IMAGE25_FLARE_MODEL,
+    "gpt-image-2.5-sunburst": IMAGE25_SUNBURST_MODEL,
+    "image2.5-sunburst": IMAGE25_SUNBURST_MODEL,
+    "image25-sunburst": IMAGE25_SUNBURST_MODEL,
+    "sunburst": IMAGE25_SUNBURST_MODEL,
+    "image2.5": IMAGE25_SUNBURST_MODEL,
+    "image25": IMAGE25_SUNBURST_MODEL,
     "banana": BANANA2_IMAGE_MODEL,
     "banana2": BANANA2_IMAGE_MODEL,
     "gemini-3.1-flash-image": BANANA2_IMAGE_MODEL,
@@ -484,10 +500,11 @@ def image2_quality_for_size(size: str) -> str:
 
 
 def image_model_payload_options(image_model: str, size: str) -> dict[str, Any]:
-    payload: dict[str, Any] = {
-        "size": size,
-        "response_format": "b64_json",
-    }
+    payload: dict[str, Any] = {"size": size}
+    if image_model in GPT_IMAGE_25_MODELS:
+        payload.update({"quality": "high", "output_format": "png"})
+        return payload
+    payload["response_format"] = "b64_json"
     if image_model == IMAGE2_IMAGE_MODEL:
         payload["quality"] = image2_quality_for_size(size)
     return payload
@@ -867,8 +884,9 @@ def generate_images(
             try:
                 for image_path in image_paths:
                     image_files.append(image_path.open("rb"))
+                image_field = "image[]" if image_model in GPT_IMAGE_25_MODELS else "image"
                 files = [
-                    ("image", (image_path.name, image_file))
+                    (image_field, (image_path.name, image_file))
                     for image_path, image_file in zip(image_paths, image_files)
                 ]
                 started = time.perf_counter()
@@ -1201,7 +1219,10 @@ def main() -> None:
     parser.add_argument(
         "--image-model",
         default=DEFAULT_IMAGE_MODEL,
-        help="Image model name. Default banana2. Banana aliases: banana, banana2, bananapro, banana-pro.",
+        help=(
+            "Image model name. Default banana2. GPT Image aliases include image2, "
+            "image2.5, flare, and sunburst."
+        ),
     )
     parser.add_argument(
         "--api-key",

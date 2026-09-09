@@ -1,13 +1,15 @@
 ---
 name: D-api-test
 description: "DUMIK API 基准测试入口。用于新增或更换图片 API 时，用固定双参考改图题测试模型可用性、尺寸、比例、速度和画面保持度；普通生图不走这里。"
+metadata:
+  version: 0.1.1
 ---
 
 # API 基准测试
 
 先判断测试域：
 
-- 图片 API：使用当前已实现的固定测试题，读取 `references/image-benchmark.md`。
+- 图片 API：使用当前已实现的固定测试题，读取 `references/image-benchmark.md`；支持 Gemini Flash / Pro 与 GPT Image 2.5 Flare / Sunburst。
 - 文案 API：尚未建立基准；用户明确要求时再新增独立测试题和脚本。
 - 视频 API：尚未建立基准；用户明确要求时再新增独立测试题和脚本。
 

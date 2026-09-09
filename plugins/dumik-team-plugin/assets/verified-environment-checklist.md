@@ -4,7 +4,7 @@
 
 适用版本：
 
-- 插件版本：`0.1.5`
+- 插件版本：`0.1.6`
 - 当前生产 skill：`9` 个（6 个生产入口 + 3 个支撑入口）
 - 详细版本：`assets/skill-versions.json`
 - 统一路由：`assets/agent-skill-routing.md`

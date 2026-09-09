@@ -23,9 +23,11 @@ REFERENCE_IMAGE = FIXTURE_DIR / "image2-reference.png"
 MODELS = {
     "flash": "gemini-3.1-flash-image-preview",
     "pro": "gemini-3-pro-image-preview",
+    "image25-flare": "gpt-image-2.5-flare",
+    "image25-sunburst": "gpt-image-2.5-sunburst",
 }
 
-MATRIX = [
+GEMINI_MATRIX = [
     ("1K", "1:1", "1024x1024"),
     ("2K", "1:1", "2048x2048"),
     ("4K", "1:1", "4096x4096"),
@@ -35,6 +37,18 @@ MATRIX = [
     ("1K", "16:9", "1024x576"),
     ("2K", "16:9", "2048x1152"),
     ("4K", "16:9", "4096x2304"),
+]
+
+GPT_IMAGE25_MATRIX = [
+    ("1K", "1:1", "1024x1024"),
+    ("2K", "1:1", "2048x2048"),
+    ("MAX", "1:1", "2880x2880"),
+    ("1K", "3:4", "768x1024"),
+    ("2K", "3:4", "1536x2048"),
+    ("MAX", "3:4", "2480x3312"),
+    ("1K", "16:9", "1024x576"),
+    ("2K", "16:9", "2048x1152"),
+    ("4K", "16:9", "3840x2160"),
 ]
 
 PROMPT_BODY = """image1：目标图，锁定炒锅、锅铲、手部、机位与厨房环境。
@@ -49,9 +63,13 @@ def ratio_slug(ratio: str) -> str:
     return ratio.replace(":", "x")
 
 
+def matrix_for_model(model_slug: str) -> list[tuple[str, str, str]]:
+    return GPT_IMAGE25_MATRIX if model_slug.startswith("image25-") else GEMINI_MATRIX
+
+
 def build_items(model_slug: str) -> list[dict[str, Any]]:
     items = []
-    for size_label, ratio, output_size in MATRIX:
+    for size_label, ratio, output_size in matrix_for_model(model_slug):
         item_id = f"{model_slug}-{size_label.lower()}-{ratio_slug(ratio)}"
         items.append(
             {
@@ -262,9 +280,13 @@ def create_contact_sheet(output_root: Path, rows: list[dict[str, Any]], model_sl
     draw = ImageDraw.Draw(sheet)
     font = load_font(24)
     ratios = ["1x1", "3x4", "16x9"]
-    sizes = ["1k", "2k", "4k"]
+    sizes_by_ratio = {
+        "1x1": ["1k", "2k", "max"] if model_slug.startswith("image25-") else ["1k", "2k", "4k"],
+        "3x4": ["1k", "2k", "max"] if model_slug.startswith("image25-") else ["1k", "2k", "4k"],
+        "16x9": ["1k", "2k", "4k"],
+    }
     for row_index, ratio in enumerate(ratios):
-        for column_index, size in enumerate(sizes):
+        for column_index, size in enumerate(sizes_by_ratio[ratio]):
             row = selected.get(f"{model_slug}-{size}-{ratio}")
             if not row or not row["file"]:
                 continue
@@ -286,6 +308,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--models", nargs="+", choices=sorted(MODELS), default=["flash", "pro"])
     parser.add_argument("--flash-model", default=MODELS["flash"])
     parser.add_argument("--pro-model", default=MODELS["pro"])
+    parser.add_argument("--image25-flare-model", default=MODELS["image25-flare"])
+    parser.add_argument("--image25-sunburst-model", default=MODELS["image25-sunburst"])
     parser.add_argument("--api-key-env", default="DUMIK_API_TEST_KEY")
     parser.add_argument("--use-local-credentials", action="store_true")
     parser.add_argument("--concurrency", type=int, default=3)
@@ -313,11 +337,17 @@ def main() -> int:
     )
     output_root.mkdir(parents=True, exist_ok=True)
 
-    model_names = {"flash": args.flash_model, "pro": args.pro_model}
+    model_names = {
+        "flash": args.flash_model,
+        "pro": args.pro_model,
+        "image25-flare": args.image25_flare_model,
+        "image25-sunburst": args.image25_sunburst_model,
+    }
     for model_slug in args.models:
         write_json(output_root / f"{model_slug}-tasks.json", {"items": build_items(model_slug)})
     if args.dry_run:
-        print(f"Dry run complete: {len(args.models) * len(MATRIX)} tasks written to {output_root}")
+        task_count = sum(len(matrix_for_model(model_slug)) for model_slug in args.models)
+        print(f"Dry run complete: {task_count} tasks written to {output_root}")
         return 0
 
     api_key = None if args.use_local_credentials else os.getenv(args.api_key_env)
@@ -340,7 +370,13 @@ def main() -> int:
     report = {
         "base_url": args.base_url,
         "created_at": datetime.now().astimezone().isoformat(timespec="seconds"),
-        "matrix": {"sizes": ["1K", "2K", "4K"], "ratios": ["1:1", "3:4", "16:9"]},
+        "matrix": {
+            model_slug: [
+                {"size_label": size_label, "ratio": ratio, "output_size": output_size}
+                for size_label, ratio, output_size in matrix_for_model(model_slug)
+            ]
+            for model_slug in args.models
+        },
         "models": [model_summary(rows, model_slug) for model_slug in args.models],
         "rows": rows,
         "runner_exit_codes": exit_codes,
