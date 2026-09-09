@@ -145,17 +145,21 @@ function Assert-VideoDirectorReferences {
     }
 }
 
-function Repair-InstalledSkillCasing {
-    param([Parameter(Mandatory = $true)][string]$InstalledPath)
+function Repair-SkillCasing {
+    param(
+        [Parameter(Mandatory = $true)][string]$PluginRoot,
+        [Parameter(Mandatory = $true)][string]$AllowedRoot,
+        [Parameter(Mandatory = $true)][string]$LocationLabel
+    )
 
-    $cacheRoot = Join-Path $CodexRoot 'plugins\cache'
-    $normalizedInstalledPath = Normalize-PathForComparison -Path $InstalledPath
-    $normalizedCacheRoot = Normalize-PathForComparison -Path $cacheRoot
-    if (-not $normalizedInstalledPath.StartsWith("$normalizedCacheRoot\", [StringComparison]::OrdinalIgnoreCase)) {
-        throw "Refusing to change skill casing outside the Codex plugin cache: $InstalledPath"
+    $normalizedPluginRoot = Normalize-PathForComparison -Path $PluginRoot
+    $normalizedAllowedRoot = Normalize-PathForComparison -Path $AllowedRoot
+    if ($normalizedPluginRoot -ne $normalizedAllowedRoot -and
+        -not $normalizedPluginRoot.StartsWith("$normalizedAllowedRoot\", [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Refusing to change skill casing outside the $LocationLabel root: $PluginRoot"
     }
 
-    $skillsRoot = Join-Path $InstalledPath 'skills'
+    $skillsRoot = Join-Path $PluginRoot 'skills'
     foreach ($skillName in $expectedSkills) {
         $matches = @(Get-ChildItem -LiteralPath $skillsRoot -Directory |
             Where-Object { $_.Name -ieq $skillName })
@@ -291,6 +295,7 @@ try {
     $afterRevision = Invoke-NativeCommand -Command 'git' -Arguments @('-C', $checkout, 'rev-parse', 'HEAD')
 
     $pluginRoot = Join-Path $checkout 'plugins\dumik-team-plugin'
+    Repair-SkillCasing -PluginRoot $pluginRoot -AllowedRoot $checkout -LocationLabel 'marketplace checkout'
     Assert-SkillLayout -PluginRoot $pluginRoot
     Assert-VideoDirectorReferences -PluginRoot $pluginRoot
 
@@ -303,7 +308,8 @@ try {
             throw 'Codex did not return a valid installed plugin path.'
         }
 
-        Repair-InstalledSkillCasing -InstalledPath $installedPath
+        $cacheRoot = Join-Path $CodexRoot 'plugins\cache'
+        Repair-SkillCasing -PluginRoot $installedPath -AllowedRoot $cacheRoot -LocationLabel 'Codex plugin cache'
         Remove-ObsoleteInstalledVideoReferences -InstalledPath $installedPath
         Assert-SkillLayout -PluginRoot $installedPath
         Assert-VideoDirectorReferences -PluginRoot $installedPath

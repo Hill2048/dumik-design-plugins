@@ -1,10 +1,10 @@
 # DUMIK 插件已检查清单
 
-检查时间：2026-09-08（Asia/Shanghai）
+检查时间：2026-09-09（Asia/Shanghai）
 
 适用版本：
 
-- 插件版本：`0.1.6`
+- 插件版本：`0.1.7`
 - 当前生产 skill：`9` 个（6 个生产入口 + 3 个支撑入口）
 - 详细版本：`assets/skill-versions.json`
 - 统一路由：`assets/agent-skill-routing.md`
@@ -19,6 +19,9 @@
 - 视频确认片与批量生成统一为 `d-video-runner`。
 - 详情页项目制自动串跑统一为 `d-project-pipeline`。
 - `d-init`、`d-api-test`、`d-psb-install` 保留为支撑入口。
+- 9 个生产与支撑入口统一使用小写 skill 名称。
+- 视频提示词统一由 `d-video-director` 的 `prompt` 主线编译；Seedance 2.5、Dreamina 和 Veo 只做末端模型适配。
+- 每个会话首次触发 DUMIK skill 时自动检查官方 `main`，只允许干净 checkout 上的快进更新。
 - 旧 skill 已移动到 `archive/merged-skills-legacy/`，不再参与自动发现和新任务路由。
 
 ## 已完成检查
@@ -35,7 +38,6 @@
 
 - 未运行真实图片或视频生成任务。
 - 未执行 Dreamina、RunningHub 或外部 API 提交。
-- 未推送 GitHub，也未发布新的插件版本。
 
 ## 后续调用规则
 

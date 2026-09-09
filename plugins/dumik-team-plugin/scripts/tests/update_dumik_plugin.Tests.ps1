@@ -135,8 +135,17 @@ try {
     Set-GitRewrite -TargetPath $remotePath
 
     $currentFixture = New-TestCodexRoot -Name 'current' -RemotePath $remotePath
+    $caseTestRoot = Join-Path $currentFixture.Checkout 'plugins\dumik-team-plugin\skills'
+    $caseTestSource = Join-Path $caseTestRoot 'd-image-runner'
+    $caseTestTemporary = Join-Path $caseTestRoot ".case-test-$([Guid]::NewGuid().ToString('N'))"
+    Rename-Item -LiteralPath $caseTestSource -NewName (Split-Path -Leaf $caseTestTemporary)
+    Rename-Item -LiteralPath $caseTestTemporary -NewName 'D-image-runner'
     $currentResult = Invoke-UpdateTest -CodexRoot $currentFixture.CodexRoot -ExpectedExitCode 0
     Assert-Equal -Actual $currentResult.status -Expected 'current' -Label 'already-current status'
+    $repairedNames = @(Get-ChildItem -LiteralPath $caseTestRoot -Directory | ForEach-Object { $_.Name })
+    if (-not ($repairedNames -ccontains 'd-image-runner')) {
+        throw 'Current checkout skill casing was not repaired.'
+    }
 
     Set-Content -LiteralPath (Join-Path $seedPath 'revision.txt') -Value 'second revision'
     [void](Invoke-Git -GitArguments @('-C', $seedPath, 'add', 'revision.txt'))
