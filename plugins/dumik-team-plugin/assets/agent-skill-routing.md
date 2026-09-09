@@ -37,16 +37,19 @@ RunningHub / 放大 / 超分 / 抠图 / 去背景
   -> d-visual-plan (mode=video)
 
 写 / 改 / 优化任意视频提示词
-  -> d-video-director (mode=prompt，统一使用 Seedance 2.5 内核编译器)
+  -> d-video-director（唯一提示词编译主线）
 
 已有视频拉片 / 关键帧 / 口播字幕 / HTML 证据报告
-  -> d-video-director (mode=analyze)
+  -> d-video-director（先做证据分析；只要报告时在此结束）
 
 故事板 / 连续分镜 / 关键帧 / 逐镜提示词
-  -> d-video-director (mode=storyboard)
+  -> d-video-director（统一主线 + 故事板交付结构）
 
-深度视频转真实场景 / 复合运镜 / 电影调度
-  -> d-video-director (mode=depth 或 cinematic)
+深度视频转真实场景
+  -> d-video-director（深度素材职责 + 统一主线）
+
+内容设计 / 电影调度 / 物理光色 / 复合运镜
+  -> d-video-director（所有提示词共同设计层，不设独立模式）
 
 明确生成视频 / 确认片 / 批量提交 Dreamina、Seedance 或 Veo
   -> d-video-runner
@@ -61,8 +64,8 @@ RunningHub / 放大 / 超分 / 抠图 / 去背景
 ## 路由纪律
 
 - 只要用户要文字提示词，停在 director/plan，不调用执行器。
-- `prompt / storyboard / depth / cinematic` 共用 `d-video-director` 的核心提示词编译器；具体模式只添加领域资料，不能另起一套提示词逻辑。
+- `prompt` 是唯一提示词编译主线；已有视频分析是证据阶段，故事板是交付结构，深度视频是素材职责变化，三者都不能另起一套提示词逻辑。
 - 只有用户明确要求生成、出图、出片、提交或批量，才进入 runner。
-- 有真实参考视频时，先 `d-video-director analyze`，再进入 `storyboard / depth`。
+- 有真实参考视频时先完成证据分析，再沿统一主线输出单条 Prompt、故事板或深度转译结果。
 - 参考素材中不存在的主体、道具、动作和声音，不写进最终提示词或负面约束。
 - 旧 skill 已移入 `archive/merged-skills-legacy/`，只用于追溯，不再作为新任务入口。

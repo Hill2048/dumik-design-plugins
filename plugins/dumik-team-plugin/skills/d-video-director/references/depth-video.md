@@ -2,7 +2,7 @@
 
 用于把黑白 Depth Map 视频作为运动与空间引导，生成真实实景视频。只写中文提示词，不在这里提交任务。
 
-先读取 `seedance25-prompt-compiler.md`。本文件只补充深度证据、复合运动和
+先读取 `prompt-compiler.md`。本文件只补充深度证据、复合运动和
 真实化规则；模型、画幅、时长、分辨率、帧率和声音开关统一放入
 `execution_spec`，不写进 `final_instruction`。
 

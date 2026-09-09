@@ -123,6 +123,11 @@ try {
         ) | Set-Content -LiteralPath (Join-Path $skillDirectory 'SKILL.md')
     }
 
+    $videoReferences = Join-Path $seedPath 'plugins\dumik-team-plugin\skills\d-video-director\references'
+    New-Item -ItemType Directory -Force -Path $videoReferences | Out-Null
+    Set-Content -LiteralPath (Join-Path $videoReferences 'prompt-compiler.md') -Value '# Test compiler'
+    Set-Content -LiteralPath (Join-Path $videoReferences 'directing-design.md') -Value '# Test directing design'
+
     [void](Invoke-Git -GitArguments @('-C', $seedPath, 'add', '.'))
     [void](Invoke-Git -GitArguments @('-C', $seedPath, 'commit', '-m', 'initial'))
     [void](Invoke-Git -GitArguments @('-C', $seedPath, 'remote', 'add', 'origin', $remotePath))

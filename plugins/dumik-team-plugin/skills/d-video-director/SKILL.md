@@ -1,6 +1,6 @@
 ---
 name: d-video-director
-description: "视频导演与提示词编译总入口。统一视频提示词、已有视频分析、HTML 拉片报告、故事板、关键帧、深度视频和电影化运镜；只输出分析或提示词，不提交视频生成。"
+description: "视频导演与提示词编译总入口。统一内容设计、导演调度、视频提示词、已有视频分析、HTML 拉片报告、故事板、关键帧和深度视频；只输出分析或提示词，不提交视频生成。"
 metadata:
   version: 0.1.1
 ---
@@ -17,33 +17,43 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 成功时静默继续。失败时只提示 `本次未能自动更新 DUMIK Team Plugin，将按当前本地版本继续。`，随后继续当前任务。此动作只维护本地插件，不代表用户授权图片或视频生成，也不改变费用确认与批量闸门。
 
-统一原 `D-video-report` 与 `D-storyboard` 的视频视觉入口。所有视频提示词先经过 Seedance 2.5 方法升级而来的核心编译器，再按目标模型做执行适配。
+统一原 `D-video-report` 与 `D-storyboard` 的视频视觉入口。`prompt` 是唯一提示词编译主线；Seedance 2.5、Dreamina / Seedance 2.0 和 Veo 只在编译末端做模型适配，不再各自形成提示词模式。
 
-## 模式
+## 唯一主线
 
-- `analyze`：对真实视频做完整拉片、抽帧、音频/字幕核对、运镜轨迹、视差和非线性速度分析，并生成可复查 HTML 报告。
-- `prompt`：默认提示词模式。把文字和可选多模态素材编译成单条干净 Prompt，再按目标模型输出独立执行参数。
-- `storyboard`：输出连续分镜、关键帧、逐镜生视频提示词和产品身份锚点。
-- `depth`：把深度视频的空间、遮挡、构图和运动转译成真实场景，不继承深度图外观。
-- `cinematic`：在产品真实结构和卖点成立的前提下加入电影调度、物理光色和复合摄影机轨迹。
-- `seedance25`：`prompt` 的兼容别名；明确目标为 Seedance 2.5 时启用 2.5 模型适配器。
+任何写、改、补全或返修视频提示词的任务，都按同一条链处理：
 
-## 规则
+```text
+目标与证据 → 故事合同 → 素材职责 → 内容设计与导演调度
+→ 主任务与事件结构 → 镜头、声音和关键状态 → 最终 Prompt → 模型适配
+```
 
-- 有真实参考视频时先完整分析，再写基于该视频的最终提示词；看不清、听不清的内容不编造。
-- 运镜写实体位移、同步旋转/推进、视差和速度曲线，不把复合运动粗化成单一“拉近”。
-- 先判断视频的核心表达，再把画面与运镜作为同一条表达链分析。每个时间段同时记录：主体关系、构图重心、摄影机实体位移、元素自身运动、焦距变化、视线落点，以及这组变化服务的产品证据或叙事信息。焦距、机位和元素运动是不同变量，分别描述并标明是否同步，不能互相替代。
-- 提示词只写视频和参考图中真实存在且需要控制的对象，不补写不存在的人物、道具、动作或声音。
-- 本 skill 不提交生视频；明确生成时交给 `d-video-runner`。
-- 任何写、改、补全或返修视频提示词的任务，都必须先读 `references/seedance25-prompt-compiler.md`。核心先完成“故事合同 → 素材职责 → 主任务路由 → 阶段/关键帧 → 镜头与声音 → 最终 Prompt”，再叠加当前模式资料和目标模型适配器。
-- 核心编译器的规则优先于旧模板；模式资料只补充产品、故事板、深度、电影调度或执行细节，不能覆盖故事合同、素材映射、参数分离和输出合同。
-- `analyze` 只做证据报告时无需加载核心编译器；一旦同时交付最终提示词，就必须加载。
-- 画幅、总时长、分辨率、帧率、模型和声音开关统一作为执行参数，不写进 `final_instruction`。未明确目标模型时只产出模型中立 Prompt，不擅自切换模型。
+1. 先确认视频要让观众理解、相信或记住什么；有真实视频时先取得可验证证据，看不清、听不清的内容不编造。
+2. 锁定人物、产品、道具、场景、数量、关系、因果和起止状态，再逐份定义素材职责。
+3. 每个画面都完成导演判断：镜头功能、主体调度、观众位置、构图与视线、物理光色、信息密度、节奏和连续性。电影化不是可选效果包；没有运动理由时使用克制静镜，不为“高级感”强加复杂运镜。
+4. 把事件和镜头编译成一条干净 Prompt；产品任务先保证同一 SKU、结构、材质、关键部件和卖点证据，再决定风格强度。
+5. 最后才按目标模型删减不支持的能力并整理独立执行参数，不得改写故事合同或素材映射。
 
-## 模式资料
+## 输入与交付变化
 
-- `analyze`：读取 `references/report-data-schema.md`、`references/interactive-report.md`，脚本位于 `scripts/`，报告模板位于 `assets/report-template/`。
-- `prompt / storyboard / depth / cinematic / seedance25`：先读取 `references/seedance25-prompt-compiler.md`。
-- `storyboard` 再按需读取 `references/templates.md`、`references/seedance-image-to-video.md`、`references/seedance-storyboard-driven.md`。
-- `depth` 再读取 `references/depth-video.md`；`cinematic` 再读取 `references/cinematic-commercial-staging.md` 与 `references/seedance-camera-codec.md`。
-- 旧版完整规则保存在 `references/legacy/D-video-report.md` 和 `references/legacy/D-storyboard.md`，只用于追溯；其中的提示词格式不得覆盖核心编译器。
+下面三项不是独立提示词模式，只改变证据来源或交付结构：
+
+- **已有视频分析**：作为统一主线的证据阶段，核对抽帧、音频/字幕、主体关系、镜头轨迹、视差和非线性速度。用户只要拉片报告时可在证据阶段结束并生成 HTML；还要提示词时继续走同一主线。
+- **故事板**：在同一故事合同和导演调度上，把最终内容拆成连续分镜、关键帧、逐镜生视频提示词和必要的产品身份锚点；不是另一套创作逻辑。
+- **深度视频**：只改变某份参考素材的职责。深度视频控制空间、姿态、位置、遮挡、构图、动作时序和摄影机轨迹，图片与文字控制身份、产品、材质、颜色、环境和光线；随后继续走同一主线。
+
+## 共同规则
+
+- 先判断核心表达，再把主体关系、画面设计、摄影机与元素运动写成同一条证据或叙事链。
+- 焦距、机位、摄影机实体位移和元素自身运动是不同变量，分别描述并标明是否同步；复合轨迹不能粗化成“镜头拉近”。
+- 提示词只写素材中真实存在或用户明确要求且需要控制的对象，不补写无关人物、道具、动作或声音。
+- 画幅、总时长、分辨率、帧率、模型和声音开关统一进入 `execution_spec`，不写进 `final_instruction`。
+- 本 skill 不提交生视频；用户明确生成时，把最终 Prompt、素材清单和执行规格交给 `d-video-runner`。
+
+## 资料路由
+
+- 所有提示词任务先读 `references/prompt-compiler.md` 和 `references/directing-design.md`；前者负责统一编译合同，后者负责每个画面的内容设计与导演调度。
+- 已有视频需要证据分析或 HTML 报告时，读取 `references/report-data-schema.md`、`references/interactive-report.md`；脚本位于 `scripts/`，模板位于 `assets/report-template/`。
+- 交付故事板、关键帧或逐镜提示词时，再按需读取 `references/templates.md`、`references/seedance-image-to-video.md`、`references/seedance-storyboard-driven.md`。
+- 输入含深度视频时，再读取 `references/depth-video.md`；需要精确复合摄影机轨迹时，再读取 `references/seedance-camera-codec.md`。
+- 旧版完整规则保存在 `references/legacy/D-video-report.md` 和 `references/legacy/D-storyboard.md`，只用于追溯，不得覆盖统一主线。

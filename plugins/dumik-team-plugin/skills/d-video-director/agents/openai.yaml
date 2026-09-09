@@ -1,4 +1,4 @@
 interface:
   display_name: "视频导演与提示词编译"
-  short_description: "统一视频提示词编译、真实视频拉片、故事板、深度引导和电影运镜"
-  default_prompt: "使用 $d-video-director 先经过核心提示词编译器，再按 prompt、analyze、storyboard、depth 或 cinematic 模式交付结果。"
+  short_description: "统一视频内容设计、导演调度、提示词编译、拉片、故事板和深度引导"
+  default_prompt: "使用 $d-video-director 按统一主线完成内容设计、导演调度和提示词编译，再按素材与交付要求输出。"

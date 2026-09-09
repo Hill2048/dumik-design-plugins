@@ -11,7 +11,7 @@
 - `d-visual-plan`：统一图片详情页策略和视频转化策划，负责视觉设定、卖点证据、创意方向、证据链和转化节奏。
 - `d-image-director`：统一普通改图、视觉 brief、四宫格发散、线稿色块高清重绘和产品局部修复。
 - `d-image-runner`：统一普通生图/改图、多候选并发和 RunningHub 放大、超分、抠图、去背景。
-- `d-video-director`：以 Seedance 2.5 方法升级的提示词编译器为核心，统一任意视频提示词、已有视频分析、HTML 拉片报告、故事板、关键帧、深度视频和电影化复合运镜；目标模型只在末端适配。
+- `d-video-director`：统一内容设计、导演调度和视频提示词编译；已有视频分析作为证据阶段，故事板作为交付结构，深度视频作为素材职责变化，Seedance 2.5、Dreamina 和 Veo 只在末端适配。
 - `d-video-runner`：统一确认片、普通视频、深度视频和 Dreamina / Seedance / Veo 批量提交。
 - `d-project-pipeline`：详情页项目制 pilot、方向闸门、校准回写、批量出图、局部修复和终审。
 - 旧入口已归档到 `archive/merged-skills-legacy/`，仅用于追溯，不再作为新任务入口。
@@ -38,7 +38,7 @@
 
 所有图片和视频技能默认只交付文字提示词、brief、脚本或分镜，不自动生图、不自动生视频、不调用生成接口。只有明确要求“生图 / 出图 / 生成图片 / 调用接口 / 生成视频 / 调用即梦”时才进入实际生成。进入项目制或批量执行前，先按 `assets/project-env-protocol.md` 确认项目根：用户指定了项目文件夹就直接以该文件夹为项目根，没指定就先问项目文件夹路径和项目类型；用户也可以切换项目或本次不进入项目。项目根不写指针文件。
 
-所有视频提示词先经过 `d-video-director/references/seedance25-prompt-compiler.md`：先锁故事合同和素材职责，再组织事件、镜头与声音，最后适配 Seedance 2.5、Dreamina 2.0 或 Veo。模型、画幅、时长、分辨率、帧率和声音开关属于执行规格，不写进最终 Prompt。
+所有视频提示词都走 `d-video-director/references/prompt-compiler.md` 的唯一主线：先锁目标、证据、故事合同和素材职责，再统一完成内容设计与导演调度，最后组织事件、镜头、声音并适配 Seedance 2.5、Dreamina 2.0 或 Veo。已有视频分析是证据阶段，故事板是交付结构，深度视频是素材职责变化；不再设置 `cinematic` 或 `seedance25` 独立模式。模型、画幅、时长、分辨率、帧率和声音开关属于执行规格，不写进最终 Prompt。
 
 ## 钩子
 

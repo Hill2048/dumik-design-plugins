@@ -2,7 +2,7 @@
 
 来源参考：MapleShaw/seedance2.0-prompt-skill，commit a2ab7fd。本文用于 DUMIK 的故事板和多宫格参考图转视频。
 
-本文件是分镜板补充模块。先读取 `seedance25-prompt-compiler.md`；本文件只
+本文件是分镜板补充模块。先读取 `prompt-compiler.md`；本文件只
 定义分镜读取、连续性和拆镜方式。模型、画幅、时长、分辨率、帧率和声音
 开关统一放入 `execution_spec`，不写进 `final_instruction`。
 

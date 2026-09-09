@@ -126,6 +126,25 @@ function Assert-SkillLayout {
     }
 }
 
+function Assert-VideoDirectorReferences {
+    param([Parameter(Mandatory = $true)][string]$PluginRoot)
+
+    $referencesRoot = Join-Path $PluginRoot 'skills\d-video-director\references'
+    foreach ($requiredName in @('prompt-compiler.md', 'directing-design.md')) {
+        $requiredPath = Join-Path $referencesRoot $requiredName
+        if (-not (Test-Path -LiteralPath $requiredPath -PathType Leaf)) {
+            throw "Missing video-director reference: $requiredPath"
+        }
+    }
+
+    foreach ($obsoleteName in @('seedance25-prompt-compiler.md', 'cinematic-commercial-staging.md')) {
+        $obsoletePath = Join-Path $referencesRoot $obsoleteName
+        if (Test-Path -LiteralPath $obsoletePath -PathType Leaf) {
+            throw "Obsolete video-director reference is still present: $obsoletePath"
+        }
+    }
+}
+
 function Repair-InstalledSkillCasing {
     param([Parameter(Mandatory = $true)][string]$InstalledPath)
 
@@ -149,6 +168,25 @@ function Repair-InstalledSkillCasing {
             $temporaryName = ".dumik-casefix-$([Guid]::NewGuid().ToString('N'))"
             Rename-Item -LiteralPath $current.FullName -NewName $temporaryName
             Rename-Item -LiteralPath (Join-Path $skillsRoot $temporaryName) -NewName $skillName
+        }
+    }
+}
+
+function Remove-ObsoleteInstalledVideoReferences {
+    param([Parameter(Mandatory = $true)][string]$InstalledPath)
+
+    $referencesRoot = Join-Path $InstalledPath 'skills\d-video-director\references'
+    $renamedReferences = @{
+        'seedance25-prompt-compiler.md' = 'prompt-compiler.md'
+        'cinematic-commercial-staging.md' = 'directing-design.md'
+    }
+
+    foreach ($obsoleteName in $renamedReferences.Keys) {
+        $replacementPath = Join-Path $referencesRoot $renamedReferences[$obsoleteName]
+        $obsoletePath = Join-Path $referencesRoot $obsoleteName
+        if ((Test-Path -LiteralPath $replacementPath -PathType Leaf) -and
+            (Test-Path -LiteralPath $obsoletePath -PathType Leaf)) {
+            Remove-Item -LiteralPath $obsoletePath -Force
         }
     }
 }
@@ -254,6 +292,7 @@ try {
 
     $pluginRoot = Join-Path $checkout 'plugins\dumik-team-plugin'
     Assert-SkillLayout -PluginRoot $pluginRoot
+    Assert-VideoDirectorReferences -PluginRoot $pluginRoot
 
     if (-not $SkipPluginInstall) {
         $installJson = Invoke-NativeCommand -Command 'codex' -Arguments @('plugin', 'add', [string]$pluginInfo.pluginId, '--json')
@@ -265,7 +304,9 @@ try {
         }
 
         Repair-InstalledSkillCasing -InstalledPath $installedPath
+        Remove-ObsoleteInstalledVideoReferences -InstalledPath $installedPath
         Assert-SkillLayout -PluginRoot $installedPath
+        Assert-VideoDirectorReferences -PluginRoot $installedPath
     }
 
     if ($beforeRevision -eq $afterRevision) {

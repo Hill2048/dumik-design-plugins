@@ -2,7 +2,7 @@
 
 来源参考：MapleShaw/seedance2.0-prompt-skill，commit a2ab7fd。本文是 DUMIK 产品图生视频消化版。
 
-本文件是图生视频补充模块。先读取 `seedance25-prompt-compiler.md`，本文件只
+本文件是图生视频补充模块。先读取 `prompt-compiler.md`，本文件只
 补首帧、产品身份和动作控制；模型、画幅、时长、分辨率、帧率和声音开关
 统一放入 `execution_spec`，不写进 `final_instruction`。
 
