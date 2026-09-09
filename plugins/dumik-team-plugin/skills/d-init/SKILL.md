@@ -7,6 +7,16 @@ metadata:
 
 # 工作台初始化
 
+## 会话级自动更新
+
+每个会话首次触发任意 DUMIK skill 时，先运行当前 `SKILL.md` 所在目录向上两级的 `scripts/update_dumik_plugin.ps1`；无论成功或失败，本会话后续 DUMIK skill 都不重复运行。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\update_dumik_plugin.ps1"
+```
+
+成功时静默继续。失败时只提示 `本次未能自动更新 DUMIK Team Plugin，将按当前本地版本继续。`，随后继续当前任务。此动作只维护本地插件，不代表用户授权图片或视频生成，也不改变费用确认与批量闸门。
+
 解决两个问题：一，插件随 GitHub/缓存走，但项目入口文件不随插件走；二，把执行规范、工具入口、视觉设定和参考来源边界固定在项目文件中，避免每个任务临场猜目录和参考。
 
 ## 触发

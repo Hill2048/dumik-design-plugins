@@ -24,6 +24,12 @@
 - 项目入口与环境协议（唯一来源）：`assets/project-env-protocol.md`
 - 已检查清单：`assets/verified-environment-checklist.md`
 
+## 自动同步
+
+每个会话首次触发任意 DUMIK skill 时，都会调用 `scripts/update_dumik_plugin.ps1` 检查官方 GitHub `main`。脚本只接受官方仓库、干净的受管 marketplace checkout 和 `git pull --ff-only`；成功后用当前安装记录中的 `pluginId` 刷新本地缓存。失败只提示一次并继续当前任务，不会阻塞提示词、图片或视频工作。
+
+已经安装旧版的同事需要先手动更新一次，拿到这段自更新规则和脚本；之后每个新会话自动检查一次。插件版本号可以不变，脚本仍会按 Git 提交刷新缓存。
+
 ## 团队使用建议
 
 优先把任务说成真实工作目标，例如“这张锅图保留结构，改成天猫主图风格”“根据这些参考图写改图指令”“批量给这组图片写提示词”“把这个卖点写成 30 秒视频分镜”。

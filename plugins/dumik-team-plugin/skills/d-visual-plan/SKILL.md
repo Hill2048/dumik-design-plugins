@@ -7,6 +7,16 @@ metadata:
 
 # 视觉策划
 
+## 会话级自动更新
+
+每个会话首次触发任意 DUMIK skill 时，先运行当前 `SKILL.md` 所在目录向上两级的 `scripts/update_dumik_plugin.ps1`；无论成功或失败，本会话后续 DUMIK skill 都不重复运行。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\update_dumik_plugin.ps1"
+```
+
+成功时静默继续。失败时只提示 `本次未能自动更新 DUMIK Team Plugin，将按当前本地版本继续。`，随后继续当前任务。此动作只维护本地插件，不代表用户授权图片或视频生成，也不改变费用确认与批量闸门。
+
 统一图片和视频的策略入口，避免分别记忆 `D-detail-plan` 与 `D-video-plan`。
 
 ## 模式

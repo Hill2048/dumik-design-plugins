@@ -7,6 +7,16 @@ metadata:
 
 # PSB 智能对象工具安装
 
+## 会话级自动更新
+
+每个会话首次触发任意 DUMIK skill 时，先运行当前 `SKILL.md` 所在目录向上两级的 `scripts/update_dumik_plugin.ps1`；无论成功或失败，本会话后续 DUMIK skill 都不重复运行。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\update_dumik_plugin.ps1"
+```
+
+成功时静默继续。失败时只提示 `本次未能自动更新 DUMIK Team Plugin，将按当前本地版本继续。`，随后继续当前任务。此动作只维护本地插件，不代表用户授权图片或视频生成，也不改变费用确认与批量闸门。
+
 把 DUMIK 插件里内置的 Photoshop 面板装到本机。用户只要说“更新 PSB 插件”“更新 psb 插件”“安装 PSB 智能对象工具”，就执行这个流程。
 
 更新时先查 GitHub `Hill2048/dumik-codex-plugins` 的 `main` 分支版本。远端 `pluginVersion` 更高时，下载 GitHub main zip 的插件资产来安装，不要只用本地旧缓存。
