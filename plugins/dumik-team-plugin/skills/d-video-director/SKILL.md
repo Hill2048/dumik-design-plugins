@@ -7,6 +7,8 @@ metadata:
 
 # 视频导演
 
+本 skill 提供分镜、动作、镜头、连续性和提示词的专业方法。任务协作、已有决定的适用范围、确认与反馈归属由项目 `AGENTS.md` 负责；下面的编译步骤不是额外的用户审批流程。
+
 ## 会话级自动更新
 
 每个会话首次触发任意 DUMIK skill 时，先运行当前 `SKILL.md` 所在目录向上两级的 `scripts/update_dumik_plugin.ps1`；无论成功或失败，本会话后续 DUMIK skill 都不重复运行。

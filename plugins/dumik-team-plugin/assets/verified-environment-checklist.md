@@ -1,47 +1,44 @@
 # DUMIK 插件已检查清单
 
-检查时间：2026-09-09（Asia/Shanghai）
+检查时间：2026-09-15（Asia/Shanghai）
 
 适用版本：
 
-- 插件版本：`0.1.7`
+- 插件版本：`0.1.8`
 - 当前生产 skill：`9` 个（6 个生产入口 + 3 个支撑入口）
 - 详细版本：`assets/skill-versions.json`
 - 统一路由：`assets/agent-skill-routing.md`
 - 流程地图：`assets/workflow-map.md`
 
-## 本次合并结果
+## 本次版本检查
 
-- 图片策划与视频策划合并为 `d-visual-plan`。
-- 普通改图、四宫格、高清修复和局部修复合并为 `d-image-director`。
-- 图片生成与 RunningHub 后处理合并为 `d-image-runner`。
-- 视频拉片、HTML 报告、故事板、深度视频和电影运镜合并为 `d-video-director`。
-- 视频确认片与批量生成统一为 `d-video-runner`。
-- 详情页项目制自动串跑统一为 `d-project-pipeline`。
-- `d-init`、`d-api-test`、`d-psb-install` 保留为支撑入口。
-- 9 个生产与支撑入口统一使用小写 skill 名称。
-- 视频提示词统一由 `d-video-director` 的 `prompt` 主线编译；Seedance 2.5、Dreamina 和 Veo 只做末端模型适配。
-- 每个会话首次触发 DUMIK skill 时自动检查官方 `main`，只允许干净 checkout 上的快进更新。
-- 旧 skill 已移动到 `archive/merged-skills-legacy/`，不再参与自动发现和新任务路由。
+- 总控归属项目 `AGENTS.md`，专业 skills 不另设协作核心。
+- `d-init` 区分完整初始化、只写入口、维护规则和仅讨论；保留项目定制。
+- 主要图片、视频和批量参考文档不再固定三道设计确认，也不自动推广局部反馈。
+- 白底图只提供产品外观依据，不推断场景与统一视觉方向。
+- 项目上下文加载器只补充 `design.md`，不重复注入 `AGENTS.md` 或自动加载图片。
+- 保留 9 个小写技能入口，没有新增调度 skill。
 
 ## 已完成检查
 
-- 新生产 skill 均有 `SKILL.md` 和 `agents/openai.yaml`。
-- 源目录和本机缓存已同步新的 skill 目录与模式名称。
-- 图片、视频执行脚本和报告模板已合并到对应新入口的资源目录。
-- 统一路由、README、流程地图、插件清单和版本清单已改用新名称。
-- `d-image-director` 与 `d-video-director` 保留旧模式文档作为可按需读取的 legacy references。
-- 参考素材“存在性优先、最小充分描述”规则已保留在图片和视频 director 入口。
-- `git diff --check` 已通过。
+- 9 个 skill 结构校验通过。
+- 项目上下文钩子与安装器：18 项本地测试通过。
+- 图片执行脚本：4 项模拟测试通过。
+- 视频执行脚本：3 项本地测试通过。
+- 自动更新脚本：4 项隔离仓库测试通过。
+- 测试不提交付费生成，不能据此承诺画面质量或服务可用性。
 
 ## 未在本次执行的项目
 
 - 未运行真实图片或视频生成任务。
 - 未执行 Dreamina、RunningHub 或外部 API 提交。
+- 未验证项目钩子在真实宿主中的自动触发；仍需宿主信任与实际事件验证。
+- 不把本地依赖检查当作其他机器或未来会话的动态状态；生成前仍核对本次必要条件。
 
 ## 后续调用规则
 
 - 只要用户要文字提示词，停在 `d-visual-plan` 或对应 director，不调用 runner。
 - 只有用户明确要求生成、出图、出片、提交或批量，才进入 runner。
-- 有真实参考视频时，先用 `d-video-director` 的 `analyze` 模式，再写故事板或深度视频提示词。
-- 项目制详情页任务才进入 `d-project-pipeline`。
+- 有真实参考视频时，在 `d-video-director` 统一主线中先核对证据，再按请求交付分析、故事板或提示词。
+- 成组任务需要执行编排时使用 `d-project-pipeline`，确认安排遵循项目 `AGENTS.md`。
+- 只创建或维护入口文档时，不因项目制而部署生成环境。

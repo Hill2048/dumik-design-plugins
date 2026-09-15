@@ -7,6 +7,8 @@ metadata:
 
 # 视觉策划
 
+本 skill 是按需使用的策略方法，不是项目必经入口。是否探索、复用哪些决定、怎样确认与回写，均由项目 `AGENTS.md` 决定；已有策略作为输入，不重新策划。
+
 ## 会话级自动更新
 
 每个会话首次触发任意 DUMIK skill 时，先运行当前 `SKILL.md` 所在目录向上两级的 `scripts/update_dumik_plugin.ps1`；无论成功或失败，本会话后续 DUMIK skill 都不重复运行。
@@ -21,7 +23,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 ## 模式
 
-- `image`：固化产品/场景视觉设定，规划详情页结构、卖点顺序、视觉证据和 3-4 个创意方向。需要四宫格或候选发散时，在本 skill 内继续进入 `direction` 子阶段，或交给 `d-image-director` 的 `direction` 模式。
+- `image`：针对本次策略缺项整理详情页结构、卖点顺序、视觉证据或表达方向，不规定方向数量；需要画面展开时使用 `d-image-director`。
 - `video`：规划人群、痛点、卖点顺序、开头钩子、证据链、可见障碍和转化节奏。需要拆镜头时交给 `d-video-director`。
 
 ## 边界

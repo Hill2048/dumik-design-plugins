@@ -1,22 +1,16 @@
 ---
 name: d-video-runner
-description: "项目制批量生视频。适用于先确认需求、输出路径和用户明确指定的首帧/参考素材，再先出 1 条确认片，确认后用即梦 CLI 或 Veo 异步接口批量提交视频任务。默认走 Dreamina，全能参考 `multimodal2video`，模型为 `seedance2.0fast_vip`；用户明确选择 Veo 时走 NewAPI Business `/v1/videos`。"
+description: "视频执行的素材、参数、提交与结果记录方法。按项目给定的执行范围使用 Dreamina CLI 或 Veo 接口，不定义项目确认流程。"
 version: 0.2.0
 ---
 
 # 批量视频生成 Agent
 
-Use this skill for project-based batch video generation with Dreamina（即梦） CLI or Veo async API. Workflow is fixed:
-
-1. 确认需求。
-2. 创建中文项目文件夹，让用户放素材。
-3. 写逐条视频提示词，先出 1 条确认片，用户确认后再批量执行。
-
-Do not skip the confirmation clip. Do not start full batch submission before the user approves the confirmation result.
+本文件提供 Dreamina CLI 和 Veo 异步接口的执行方法。当前项目 `AGENTS.md` 负责协作与确认安排；接收已准备好的提示词、素材与输出位置，不重新策划或初始化已就位的项目。
 
 ## Hard Rules
 
-- 开始前必须确认输出路径；不能静默使用默认路径继续。
+- 执行前核对当前任务的输出路径；已明确的路径直接使用，缺失且无法从有效任务记录确定时交回项目总控处理。
 - 写提示词、写 `提示词记录.json`、提交视频前，只读取当前任务目录、项目 `design.md`、相关 `设定集` 和用户本轮明确给出的文件。不得扫描其他目录寻找参考。
 - 当前任务目录只用于恢复本任务的提示词和运行状态，不能把其中候选自动作为参考。旧报告、旧提示词、制作结果和成品只有用户点名后才可回用。
 - 如果不同文件里的时长、比例、模型、镜头编号或故事板编号冲突，必须以“最新明确生产规格文件”为准，并在提交记录或回复里写清来源文件路径；不能静默沿用旧文件。
@@ -28,7 +22,7 @@ Do not skip the confirmation clip. Do not start full batch submission before the
 - 首帧、分镜图和参考素材可以存入 `素材`，但只有用户明确点名或明确说使用刚放入的文件时才可读取；视频任务的提示词、确认片、候选、运行记录和临时文件放在 `制作/视频/<任务名>/`。
 - 默认执行入口是 `dreamina` CLI，提交前先按子命令 help 确认参数。
 - 用户明确选择 Veo 时，执行入口改为 NewAPI Business `/v1/videos` 异步接口；默认仍是 Dreamina。
-- 批量执行前必须先出 1 条确认片，用户确认后再继续。
+- 是否先试片以及何时进入批量，采用项目已明确的安排，不另设固定确认片关卡。
 - 不要把单条视频任务写成一组互不相干的镜头合集。
 - 默认模型是 `seedance2.0fast_vip`，默认模式是 `multimodal2video`。
 - 深度视频只是提示词与参考组织方式，记录为 `guidance_mode: "depth_video"`；不是新模型或新接口模式。底层仍用 Seedance 的 `mode: "multimodal2video"`，黑白深度视频放进 `reference_videos`。
@@ -49,15 +43,15 @@ Do not skip the confirmation clip. Do not start full batch submission before the
 Only switch to `image2video` when the user explicitly wants a single first-frame animation and does not need full mixed-media references.
 
 Seedance / Dreamina 提交限制参考见 [references/seedance-platform-limits.md](../seedance-platform-limits.md)。
-该文件只做提交前检查，不覆盖本 skill 的默认模型、确认片纪律或最新文件确认规则。
+该文件只做提交前技术检查，不覆盖当前任务的模型选择、协作安排或有效生产规格。
 
 ## Veo 路线（仅用户明确选择时）
 
 主文件只记三条硬限制：Veo 不收参考视频/音频；比例只有 `16:9` / `9:16`；时长只有 `4/6/8` 秒。其余接口、模型族、鉴权、任务行形状、参考图上限全部见 `references/veo.md`，走 Veo 前必读。
 
-## Step 1: Confirm The Job
+## Step 1: Resolve Execution Inputs
 
-Ask the user for the minimum information needed to start:
+从当前任务及有效项目记录取得下面所需参数，不把清单逐项重新问用户；缺少执行必需内容时交回项目总控：
 
 - 本次项目名。
 - 本次视频目标。
@@ -70,13 +64,11 @@ Ask the user for the minimum information needed to start:
 - 如果用 Dreamina，是否直接使用默认模型 `seedance2.0fast_vip`。
 - 如果用 Veo，确认模型族 Fast / Standard / Ref、时长 `4/6/8` 秒、比例 `16:9/9:16`、分辨率 `720p/1080p`、是否生成音频。
 
-Default output path suggestion: 项目制按 `assets\project-env-protocol.md` 用仓库根 `project\<项目名>\`；用户给了别的路径就用用户的。
-
-If the user accepts the suggested path, treat it as confirmed.
+输出位置遵循项目 `AGENTS.md`；用户指定的项目文件夹就是项目根，不另行嵌套 `project/<项目名>`。
 
 ## Step 2: Create The Project Folder
 
-Use the bundled helper when creating the project folder:
+只有本次实际执行需要补目录时才使用初始化 helper；已有目录不重建：
 
 ```powershell
 python scripts\init_project.py --project-name "<项目名>" --root "<仓库根>\project"
@@ -98,16 +90,11 @@ The helper creates:
   成品\视频\
 ```
 
-After creating the folders, stop and tell the user:
+输入是否就位按实际文件与任务记录核对，不强制用户重新放素材或回复“继续”。未明确可用的其他文件不自动加入参考。
 
-- 把尚未整理的首帧、分镜图、参考图、参考视频和参考音频放进 `素材`。
-- 放好后让你继续。
+## Step 3: Prepare Task Rows
 
-Do not scan or generate until the user says the files are ready.
-
-## Step 3: Prompt Writing And Confirmation Clip
-
-When the user says the files are ready:
+对本次已明确可用的输入：
 
 0. Read `design.md` and the relevant `设定集` files.
 1. Add only the files the user explicitly named or just provided, and record each file's role.
@@ -175,11 +162,11 @@ python scripts\generate_batch_videos.py `
   --output-dir "<项目目录>\制作\视频\<任务名>"
 ```
 
-Show the confirmation clip path to the user and stop. Wait for approval or revision instructions.
+保存结果与状态，交回项目总控处理；当前任务确实要求等待确认时才停在对应等待项。
 
-## Step 4: Full Batch After Approval
+## Step 4: Submit The Authorized Batch
 
-Only after the user approves the confirmation clip:
+在本次批量授权及项目要求的依赖均已满足时：
 
 1. Write one prompt row per item.
 2. Use the confirmed per-item count, defaulting to `1`.

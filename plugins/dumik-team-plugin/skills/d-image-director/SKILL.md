@@ -7,6 +7,8 @@ metadata:
 
 # 图片导演
 
+本 skill 提供图片专业方法，不承担项目总控。任务意图、有效决定、提问与确认方式由项目 `AGENTS.md` 给定；参考资料中的流程与展示范例不另设项目协作规则。
+
 ## 会话级自动更新
 
 每个会话首次触发任意 DUMIK skill 时，先运行当前 `SKILL.md` 所在目录向上两级的 `scripts/update_dumik_plugin.ps1`；无论成功或失败，本会话后续 DUMIK skill 都不重复运行。
@@ -22,8 +24,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 ## 模式
 
 - `edit`：普通改图、多参考融合、洗图、KV、场景、材质和人物锁定。
-- `brief`：从零规划图片视觉方向；缺少产品策略时先回 `d-visual-plan`。
-- `direction`：单卖点 2×2 四宫格探方向，选中后展开独立候选。
+- `brief`：按任务要求构思图片视觉方向；确有策略缺项时才使用 `d-visual-plan`。
+- `direction`：把给定表达展开为有意义的候选差异；四宫格是可选表现形式，不规定方向数或确认关卡。
 - `hd`：线稿 → 色稿 → 真实画面提示词 → 高清重绘。
 - `repair`：只诊断和修复已选图片中真实存在的局部产品漂移。
 
