@@ -2,7 +2,7 @@
 name: d-visual-plan
 description: "图片详情页与电商视频的前置策划入口。按 image / video 模式规划视觉设定、卖点证据、创意方向或视频转化结构；只输出策划，不生成图片或视频。"
 metadata:
-  version: 0.1.0
+  version: 0.1.1
 ---
 
 # 视觉策划
@@ -30,6 +30,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 - 用户明确要求提示词时，图片交 `d-image-director`，视频交 `d-video-director`。
 - 用户明确要求实际生成时，先完成对应提示词，再交给 `d-image-runner` 或 `d-video-runner`。
 - 只写当前任务真实需要的主体、卖点和场景，不凭空补充画面元素。
+- 白底图只能用于确认产品外观、结构、颜色、丝印和配件关系；不得据此填写或推断场景、台面、背景道具、整体风格、光线、色温、构图、机位、文案排版等“统一视觉方向”。缺方向素材时保留待确认，不用白底棚拍表现代填。
 
 ## 输出
 
