@@ -8,6 +8,7 @@ const { StringDecoder } = require('node:string_decoder');
 const MAX_FILE_BYTES = 16384;
 const MAX_STDIN_BYTES = 16384;
 const SOURCES = new Set(['startup', 'resume', 'clear', 'compact']);
+const CONFIG_DIRNAMES = new Set(['.codex', '.zcode']);
 
 function isWithin(root, candidate) {
   const relative = path.relative(root, candidate);
@@ -95,9 +96,9 @@ function buildOutput(rootPath, event) {
 
 async function main() {
   try {
-    // The installer places this file under <selected-project>/.codex/hooks.
+    // The installer places this file under <selected-project>/.codex/hooks or .zcode/hooks.
     const configDir = path.dirname(__dirname);
-    if (path.basename(configDir) !== '.codex') return;
+    if (!CONFIG_DIRNAMES.has(path.basename(configDir))) return;
     const raw = await readStdin();
     if (!raw.trim()) return;
     const event = JSON.parse(raw.replace(/^\uFEFF/, ''));

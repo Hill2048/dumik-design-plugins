@@ -3,20 +3,24 @@
 这里提供加载器源文件，不注册插件级或全局钩子。`d-init` 在完整初始化用户选定的项目时运行：
 
 ```powershell
-node "<当前插件目录>/skills/d-init/scripts/install-project-context-hook.js" --project-root "<选定项目的绝对路径>"
+node "<当前插件目录>/skills/d-init/scripts/install-project-context-hook.js" --project-root "<选定项目的绝对路径>" --host auto
 ```
 
-安装器只向该项目写入：
+`--host` 取 `auto`（默认，按是否存在 `ZCODE_` 环境变量判断宿主）、`codex` 或 `zcode`。安装器只向该项目写入当前宿主对应的一套：
 
-- `.codex/hooks.json`：合并一个 `SessionStart` 加载项，保留用户其他钩子。
-- `.codex/hooks/dumik-project-context.cjs`：独立的只读加载器，不依赖会变动的插件缓存路径。
+| 宿主 | 配置 | 加载器 |
+| --- | --- | --- |
+| Codex | `.codex/hooks.json`：合并一个 `SessionStart` 加载项，保留用户其他钩子 | `.codex/hooks/dumik-project-context.cjs` |
+| ZCode | `.zcode/config.json`：合并 `hooks.events.SessionStart`，并把 `hooks.enabled` 置为 `true` | `.zcode/hooks/dumik-project-context.cjs` |
 
-重复初始化不会重复注册。已有加载器或同名钩子与预期不同时，保留原内容并报告冲突，不覆盖项目定制。不修改全局配置、权限、信任记录、`AGENTS.md` 或 `design.md`。
+加载器是同一份独立文件，不依赖会变动的插件缓存路径，并接受 `.codex` 与 `.zcode` 两种安装位置。同一项目可以为两个宿主各装一套，互不覆盖。
+
+重复初始化不会重复注册。已有加载器或同名钩子与预期不同时，保留原内容并报告冲突，不覆盖项目定制。ZCode 中 `hooks.enabled` 已被显式设为 `false` 时安装器报错退出，不改写该设置。不修改全局配置、权限、信任记录、`AGENTS.md` 或 `design.md`。
 
 ## 加载范围
 
 - 根据安装位置固定项目根目录，不从工作目录向上搜索其他项目。
-- 钩子只读取该根目录的 `design.md`，不读取或再次注入 `AGENTS.md`；后者由 Codex 原生项目指令机制处理。会话工作目录不在该项目内时静默跳过；文件链接指向项目外时不读取。
+- 钩子只读取该根目录的 `design.md`，不读取或再次注入 `AGENTS.md`；后者由宿主原生项目指令机制处理。会话工作目录不在该项目内时静默跳过；文件链接指向项目外时不读取。
 - `design.md` 是视觉设定资料，不代表额外执行授权。若原生项目指令未加载，不用此钩子越过信任或权限限制补注入 `AGENTS.md`。
 - 不读取聊天记录、凭据或图片目录，也不自动把设定图传给生成模型。
 - 每个文件最多读取 16 KiB；超出部分明确标为截断，并保留完整文件路径供按需读取。加载器只读文件，不启动网络、生成或后台常驻进程。
@@ -28,7 +32,7 @@ node "<当前插件目录>/skills/d-init/scripts/install-project-context-hook.js
 
 初始化时当前会话已启动，安装不能补发已经过去的启动事件；`d-init` 当场读取 `design.md`，仅在 `AGENTS.md` 本次新建、改动或尚未加载时再读取它。后续会话启动、恢复或上下文压缩后，钩子只补充读取 `design.md`。这不意味着同一会话的所有生命周期事件共用一份注入记录；每次匹配事件仍会重新读取当前设定。
 
-Codex 要求项目配置层受信任，并要求用户首次审阅、信任新钩子的定义；钩子修改后也可能需要重新信任。使用 `/hooks` 查看与确认，不写信任存储、不使用绕过参数。配置落盘和脚本测试成功不等于宿主已经触发，未实际验证时应报告“已配置，自动触发待首次信任确认”。
+两个宿主都要求项目配置层受信任，并要求用户首次审阅、信任新钩子的定义；钩子修改后也可能需要重新信任。Codex 使用 `/hooks` 查看与确认。ZCode 未信任时状态为 `workspace_hooks_pending_trust`，钩子被阻塞，由用户在客户端确认或用 `zcode hooks trust` 授权；改动配置或加载器内容会改变摘要，信任随之失效。两者都不写信任存储、不使用绕过参数。配置落盘和脚本测试成功不等于宿主已经触发，未实际验证时应报告“已配置，自动触发待首次信任确认”。
 
 官方依据：
 - https://learn.chatgpt.com/docs/hooks
@@ -40,4 +44,4 @@ Codex 要求项目配置层受信任，并要求用户首次审阅、信任新�
 node --test "<当前插件目录>/skills/d-init/scripts/tests/project-context-hook.test.js"
 ```
 
-测试使用隔离的临时项目，不触发模型或外部服务。已有 `dumik-image-defaults.md` 仅是历史文字提示，不是运行中的钩子。
+测试使用隔离的临时项目，覆盖 Codex 与 ZCode 两种安装与加载路径，不触发模型或外部服务。已有 `dumik-image-defaults.md` 仅是历史文字提示，不是运行中的钩子。

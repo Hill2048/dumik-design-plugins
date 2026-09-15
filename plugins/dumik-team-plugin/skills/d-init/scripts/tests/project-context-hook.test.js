@@ -8,7 +8,18 @@ const { test } = require('node:test');
 const installer = path.resolve(__dirname, '../install-project-context-hook.js');
 const loaderModule = path.resolve(__dirname, '../../../../hooks/load-project-context.js');
 
-function fixture(t) {
+const HOSTS = {
+  codex: {
+    config: path.join('.codex', 'hooks.json'),
+    loader: path.join('.codex', 'hooks', 'dumik-project-context.cjs'),
+  },
+  zcode: {
+    config: path.join('.zcode', 'config.json'),
+    loader: path.join('.zcode', 'hooks', 'dumik-project-context.cjs'),
+  },
+};
+
+function fixture(t, host = 'codex') {
   const tempRoot = fs.realpathSync(os.tmpdir());
   const base = fs.mkdtempSync(path.join(tempRoot, 'dumik-context-test-'));
   t.after(() => {
@@ -23,16 +34,28 @@ function fixture(t) {
   return {
     base,
     root,
-    config: path.join(root, '.codex/hooks.json'),
-    loader: path.join(root, '.codex/hooks/dumik-project-context.cjs'),
+    host,
+    config: path.join(root, HOSTS[host].config),
+    loader: path.join(root, HOSTS[host].loader),
   };
 }
 
-function install(f) {
-  return spawnSync(process.execPath, [installer, '--project-root', f.root], {
-    encoding: 'utf8',
-    timeout: 3000,
-  });
+function envWithoutZCode() {
+  const env = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (!key.startsWith('ZCODE_')) env[key] = value;
+  }
+  return env;
+}
+
+function rawInstall(root, { host, env } = {}) {
+  const args = [installer, '--project-root', root];
+  if (host !== undefined) args.push('--host', host);
+  return spawnSync(process.execPath, args, { encoding: 'utf8', timeout: 3000, env });
+}
+
+function install(f, host = f.host) {
+  return rawInstall(f.root, { host });
 }
 
 function run(f, event = {}, cwd = f.root) {
@@ -282,4 +305,137 @@ test('only design.md is opened for injection; native AGENTS guidance is not read
   assert.deepEqual(opened, ['design.md']);
   assert.match(output.hookSpecificOutput.additionalContext, /Product reference only/);
   assert.doesNotMatch(output.hookSpecificOutput.additionalContext, /Preserve this/);
+});
+
+test('zcode: installs a project-scoped hook and enables runtime hooks', (t) => {
+  const f = fixture(t, 'zcode');
+  const agents = fs.readFileSync(path.join(f.root, 'AGENTS.md'));
+  const result = install(f);
+  assert.equal(result.status, 0, result.stderr);
+  const config = JSON.parse(fs.readFileSync(f.config, 'utf8'));
+  assert.equal(config.hooks.enabled, true);
+  const group = config.hooks.events.SessionStart[0];
+  assert.equal(group.matcher, 'startup|resume|clear|compact');
+  const handler = group.hooks[0];
+  assert.equal(handler.type, 'process');
+  assert.equal(handler.command, 'node');
+  assert.match(handler.args[0], /dumik-project-context\.cjs/);
+  assert.equal(handler.timeoutMs, 5000);
+  assert.ok(fs.existsSync(f.loader));
+  assert.deepEqual(fs.readFileSync(path.join(f.root, 'AGENTS.md')), agents);
+  const reported = JSON.parse(result.stdout);
+  assert.equal(reported.host, 'zcode');
+  assert.equal(reported.activation, 'requires-hook-trust');
+});
+
+test('zcode: merges existing config, keeps other events, and is idempotent', (t) => {
+  const f = fixture(t, 'zcode');
+  const existing = {
+    hooks: {
+      enabled: true,
+      maxOutputBytes: 4096,
+      events: {
+        SessionStart: [{ hooks: [{ type: 'process', command: 'node', args: ['user.js'] }] }],
+        Stop: [{ hooks: [{ type: 'command', command: 'echo stop' }] }],
+      },
+    },
+    ui: { locale: 'zh-CN' },
+  };
+  fs.mkdirSync(path.dirname(f.config));
+  fs.writeFileSync(f.config, JSON.stringify(existing));
+  assert.equal(install(f).status, 0);
+  const first = fs.readFileSync(f.config, 'utf8');
+  const next = install(f);
+  assert.equal(next.status, 0, next.stderr);
+  assert.equal(fs.readFileSync(f.config, 'utf8'), first);
+  const actual = JSON.parse(first);
+  assert.deepEqual(actual.hooks.events.Stop, existing.hooks.events.Stop);
+  assert.deepEqual(actual.hooks.events.SessionStart[0], existing.hooks.events.SessionStart[0]);
+  assert.equal(actual.hooks.events.SessionStart.length, 2);
+  assert.equal(actual.hooks.maxOutputBytes, 4096);
+  assert.deepEqual(actual.ui, { locale: 'zh-CN' });
+  assert.equal(JSON.parse(next.stdout).status, 'unchanged');
+});
+
+test('zcode: refuses to enable a deliberately disabled hook runtime', (t) => {
+  const f = fixture(t, 'zcode');
+  fs.mkdirSync(path.dirname(f.config));
+  fs.writeFileSync(f.config, JSON.stringify({ hooks: { enabled: false, events: {} } }));
+  const result = install(f);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /hooks\.enabled/);
+  assert.equal(JSON.parse(fs.readFileSync(f.config, 'utf8')).hooks.enabled, false);
+  assert.equal(fs.existsSync(f.loader), false);
+});
+
+test('zcode: invalid existing JSON remains untouched', (t) => {
+  const f = fixture(t, 'zcode');
+  fs.mkdirSync(path.dirname(f.config));
+  fs.writeFileSync(f.config, '{broken');
+  assert.notEqual(install(f).status, 0);
+  assert.equal(fs.readFileSync(f.config, 'utf8'), '{broken');
+  assert.equal(fs.existsSync(f.loader), false);
+});
+
+test('zcode: custom loader content is not overwritten', (t) => {
+  const f = fixture(t, 'zcode');
+  fs.mkdirSync(path.dirname(f.loader), { recursive: true });
+  fs.writeFileSync(f.loader, '// User-owned content\n');
+  assert.notEqual(install(f).status, 0);
+  assert.equal(fs.readFileSync(f.loader, 'utf8'), '// User-owned content\n');
+  assert.equal(fs.existsSync(f.config), false);
+});
+
+test('zcode: an existing linked .zcode directory outside the project is rejected', (t) => {
+  const f = fixture(t, 'zcode');
+  const external = path.join(f.base, 'external-config');
+  fs.mkdirSync(external);
+  try {
+    fs.symlinkSync(external, path.join(f.root, '.zcode'), 'junction');
+  } catch (error) {
+    if (error.code === 'EPERM') return t.skip('Directory junctions unavailable on this host');
+    throw error;
+  }
+  const result = install(f);
+  assert.notEqual(result.status, 0);
+  assert.deepEqual(fs.readdirSync(external), []);
+});
+
+test('zcode: the installed loader injects design.md and skips other contexts', (t) => {
+  const f = fixture(t, 'zcode');
+  assert.equal(install(f).status, 0);
+  const loaded = run(f);
+  assert.equal(loaded.status, 0, loaded.stderr);
+  const context = JSON.parse(loaded.stdout).hookSpecificOutput.additionalContext;
+  assert.equal(JSON.parse(loaded.stdout).hookSpecificOutput.hookEventName, 'SessionStart');
+  assert.match(context, /Product reference only/);
+  assert.doesNotMatch(context, /Preserve this/);
+  assert.equal(run(f, { hook_event_name: 'PreToolUse' }).stdout, '');
+  const sibling = `${f.root}-other`;
+  fs.mkdirSync(sibling);
+  assert.equal(run(f, {}, sibling).stdout, '');
+});
+
+test('rejects an unknown host value', (t) => {
+  const f = fixture(t);
+  const result = rawInstall(f.root, { host: 'vscode' });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /--host/);
+  assert.equal(fs.existsSync(f.config), false);
+});
+
+test('defaults to the Codex layout, and detects ZCode from the environment', (t) => {
+  const codexProject = fixture(t);
+  const withoutZCode = rawInstall(codexProject.root, { env: envWithoutZCode() });
+  assert.equal(withoutZCode.status, 0, withoutZCode.stderr);
+  assert.equal(JSON.parse(withoutZCode.stdout).host, 'codex');
+  assert.ok(fs.existsSync(codexProject.config));
+
+  const zcodeProject = fixture(t, 'zcode');
+  const withZCode = rawInstall(zcodeProject.root, {
+    env: { ...envWithoutZCode(), ZCODE_ENV: '1' },
+  });
+  assert.equal(withZCode.status, 0, withZCode.stderr);
+  assert.equal(JSON.parse(withZCode.stdout).host, 'zcode');
+  assert.ok(fs.existsSync(zcodeProject.config));
 });
