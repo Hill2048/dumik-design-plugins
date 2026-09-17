@@ -2,7 +2,7 @@
 name: d-image-runner
 description: "图片执行总入口。统一普通生图/改图、多候选并发、RunningHub 放大、超分、抠图和去背景；只在用户明确要求执行时调用接口。"
 metadata:
-  version: 0.1.1
+  version: 0.1.2
 ---
 
 # 图片执行器
@@ -17,7 +17,7 @@ metadata:
 powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\update_dumik_plugin.ps1"
 ```
 
-成功时静默继续。失败时只提示 `本次未能自动更新 DUMIK Team Plugin，将按当前本地版本继续。`，随后继续当前任务。此动作只维护本地插件，不代表用户授权图片或视频生成，也不改变费用确认与批量闸门。
+返回 `current` 或 `updated` 时静默继续；返回 `skipped` 表示保留了本地定制、未拉取远端或重装，不得称为已更新。同一会话只提示一次“已保留本地定制，本次跳过自动更新”，继续任务，不自动提交、暂存或回退改动。失败时只提示 `本次未能自动更新 DUMIK Team Plugin，将按当前本地版本继续。`，随后继续当前任务。此动作只维护本地插件，不代表用户授权图片或视频生成，也不改变费用确认与批量闸门。
 
 统一原 `D-image-run` 与 `D-rh` 的执行入口。
 
@@ -27,6 +27,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 - `postprocess`：RunningHub 放大、超分、抠图、去背景和固定工作流后处理。
 
 ## 执行规则
+
+- 提示词图片引用遵循 [图片引用格式](../../assets/image-reference-format.md)。核对 `@图1` 对应主图、后续编号对应实际参考图顺序；模型名与 API 字段不改名。
 
 - 用户只要提示词时不调用接口。
 - 用户明确生图、改图、放大或后处理时才执行，并保存提交状态和结果。

@@ -63,17 +63,18 @@ metadata:
 
 ### 第四步：高清修复
 
-再次调用 `d-image-runner` 的真实执行脚本，输入：
+再次调用 `d-image-runner` 的真实执行脚本，按实际顺序输入：
 
-- 原图
-- 第一步线稿图
-- 第二步色稿图
-- 第三步真实中文画面提示词
+- @图1：第一步线稿图
+- @图2：第二步色稿图
+- 第三步真实中文画面提示词（文字，不占图片编号）
+
+原图用于前两步和第三步提炼，不在最终调用中重复传入；不要把原图列为最终的 @图1。
 
 最终修复提示词要明确：
 
-- 按图片1还原线稿结构
-- 按图片2恢复固有色和光影
+- 按@图1还原线稿结构
+- 按@图2恢复固有色，依据第三步画面提示词重建光影
 - 保持主体造型和比例稳定
 - 输出高清、干净、无脏污、无灰感、边缘清晰的最终图
 - 不写原图没有出现的主体、道具、动作或场景，不为它们添加禁止项
@@ -88,12 +89,12 @@ metadata:
 
 优先执行脚本：
 
-`scripts/run_image_repair_hd_workflow.py`
+`scripts/hd/run_image_repair_hd_workflow.py`（相对本 skill 根目录）
 
 最小调用形态：
 
 ```powershell
-python scripts\run_image_repair_hd_workflow.py `
+python scripts\hd\run_image_repair_hd_workflow.py `
   --image "<原图路径>" `
   --output-dir "<输出目录>" `
   --scene-prompt "<从原图提炼出的真实中文画面提示词>"

@@ -1,15 +1,15 @@
 {
   "plugin": "dumik-team-plugin",
-  "pluginVersion": "0.1.9",
+  "pluginVersion": "0.1.10",
   "skills": {
-    "d-init": "0.3.2",
-    "d-api-test": "0.1.1",
-    "d-psb-install": "0.1.10",
-    "d-visual-plan": "0.1.1",
-    "d-image-director": "0.1.0",
-    "d-image-runner": "0.1.1",
-    "d-video-director": "0.1.1",
-    "d-video-runner": "0.1.0",
-    "d-project-pipeline": "0.1.0"
+    "d-init": "0.3.3",
+    "d-api-test": "0.1.2",
+    "d-psb-install": "0.1.11",
+    "d-visual-plan": "0.1.2",
+    "d-image-director": "0.1.1",
+    "d-image-runner": "0.1.2",
+    "d-video-director": "0.1.2",
+    "d-video-runner": "0.1.1",
+    "d-project-pipeline": "0.1.1"
   }
 }

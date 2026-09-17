@@ -2,7 +2,7 @@
 name: d-psb-install
 description: "安装/更新 PSB 智能对象工具。先自动核对 GitHub 最新版本；默认安装 UXP 版，适合触发词：安装 PSB 插件、更新 PSB 插件、安装智能对象工具、装 PSB 智能对象工具、分享来的插件怎么装。"
 metadata:
-  version: 0.1.10
+  version: 0.1.11
 ---
 
 # PSB 智能对象工具安装
@@ -15,7 +15,7 @@ metadata:
 powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\update_dumik_plugin.ps1"
 ```
 
-成功时静默继续。失败时只提示 `本次未能自动更新 DUMIK Team Plugin，将按当前本地版本继续。`，随后继续当前任务。此动作只维护本地插件，不代表用户授权图片或视频生成，也不改变费用确认与批量闸门。
+返回 `current` 或 `updated` 时静默继续；返回 `skipped` 表示保留了本地定制、未拉取远端或重装，不得称为已更新。同一会话只提示一次“已保留本地定制，本次跳过自动更新”，继续任务，不自动提交、暂存或回退改动。失败时只提示 `本次未能自动更新 DUMIK Team Plugin，将按当前本地版本继续。`，随后继续当前任务。此动作只维护本地插件，不代表用户授权图片或视频生成，也不改变费用确认与批量闸门。
 
 把 DUMIK 插件里内置的 Photoshop 面板装到本机。用户只要说“更新 PSB 插件”“更新 psb 插件”“安装 PSB 智能对象工具”，就执行这个流程。
 

@@ -24,7 +24,7 @@ $expectedSkills = @(
 function Write-ResultAndExit {
     param(
         [Parameter(Mandatory = $true)]
-        [ValidateSet('current', 'updated', 'failed')]
+        [ValidateSet('current', 'updated', 'skipped', 'failed')]
         [string]$Status,
         [Parameter(Mandatory = $true)]
         [string]$Message,
@@ -287,7 +287,9 @@ try {
         '-C', $checkout, 'status', '--porcelain=v1', '--untracked-files=no'
     )
     if (-not [string]::IsNullOrWhiteSpace($trackedChanges)) {
-        throw 'Marketplace checkout has tracked local changes; automatic update was skipped.'
+        Write-ResultAndExit -Status 'skipped' `
+            -Message 'Local customizations preserved; remote update and reinstall skipped. Merge local changes explicitly before updating.' `
+            -Checkout $checkout
     }
 
     $beforeRevision = Invoke-NativeCommand -Command 'git' -Arguments @('-C', $checkout, 'rev-parse', 'HEAD')

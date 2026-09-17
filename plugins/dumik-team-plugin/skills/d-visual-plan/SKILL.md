@@ -2,10 +2,12 @@
 name: d-visual-plan
 description: "图片详情页与电商视频的前置策划入口。按 image / video 模式规划视觉设定、卖点证据、创意方向或视频转化结构；只输出策划，不生成图片或视频。"
 metadata:
-  version: 0.1.1
+  version: 0.1.2
 ---
 
 # 视觉策划
+
+点名图片素材时遵循 [图片引用格式](../../assets/image-reference-format.md)，统一为 `@图1` 等；策划序号、模块序号与图片引用分开。
 
 本 skill 是按需使用的策略方法，不是项目必经入口。是否探索、复用哪些决定、怎样确认与回写，均由项目 `AGENTS.md` 决定；已有策略作为输入，不重新策划。
 
@@ -17,7 +19,7 @@ metadata:
 powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\update_dumik_plugin.ps1"
 ```
 
-成功时静默继续。失败时只提示 `本次未能自动更新 DUMIK Team Plugin，将按当前本地版本继续。`，随后继续当前任务。此动作只维护本地插件，不代表用户授权图片或视频生成，也不改变费用确认与批量闸门。
+返回 `current` 或 `updated` 时静默继续；返回 `skipped` 表示保留了本地定制、未拉取远端或重装，不得称为已更新。同一会话只提示一次“已保留本地定制，本次跳过自动更新”，继续任务，不自动提交、暂存或回退改动。失败时只提示 `本次未能自动更新 DUMIK Team Plugin，将按当前本地版本继续。`，随后继续当前任务。此动作只维护本地插件，不代表用户授权图片或视频生成，也不改变费用确认与批量闸门。
 
 统一图片和视频的策略入口，避免分别记忆 `D-detail-plan` 与 `D-video-plan`。
 

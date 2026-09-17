@@ -14,7 +14,7 @@
 - 文生图：`POST {base}/v1/images/generations`，JSON。
 - 改图 / 多参考：`POST {base}/v1/images/edits`，multipart。
 - 鉴权：`Authorization: Bearer <API_KEY>`。
-- 本地图片字段：重复使用 `image[]`，顺序必须与提示词中的 `image1 / image2 / image3...` 一致。
+- 本地图片字段：重复使用 `image[]`，顺序必须与提示词中的 `@图1 / @图2 / @图3...` 一致；API 字段名保持不变。
 
 文生图：
 

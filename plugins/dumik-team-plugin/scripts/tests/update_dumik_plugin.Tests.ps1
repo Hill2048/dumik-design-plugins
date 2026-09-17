@@ -159,10 +159,10 @@ try {
 
     $dirtyFixture = New-TestCodexRoot -Name 'dirty' -RemotePath $remotePath
     Add-Content -LiteralPath (Join-Path $dirtyFixture.Checkout 'revision.txt') -Value 'tracked local edit'
-    $dirtyResult = Invoke-UpdateTest -CodexRoot $dirtyFixture.CodexRoot -ExpectedExitCode 1
-    Assert-Equal -Actual $dirtyResult.status -Expected 'failed' -Label 'dirty-checkout status'
-    if ($dirtyResult.message -notmatch 'tracked local changes') {
-        throw "Dirty-checkout failure was not explicit: $($dirtyResult.message)"
+    $dirtyResult = Invoke-UpdateTest -CodexRoot $dirtyFixture.CodexRoot -ExpectedExitCode 0
+    Assert-Equal -Actual $dirtyResult.status -Expected 'skipped' -Label 'dirty-checkout status'
+    if ($dirtyResult.message -notmatch 'Local customizations preserved') {
+        throw "Dirty-checkout skip was not explicit: $($dirtyResult.message)"
     }
 
     $offlineFixture = New-TestCodexRoot -Name 'offline' -RemotePath $remotePath
