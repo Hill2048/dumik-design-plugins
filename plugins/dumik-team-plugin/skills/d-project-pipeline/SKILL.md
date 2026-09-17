@@ -1,6 +1,6 @@
 ---
 name: d-project-pipeline
-description: "成组图片任务的执行编排。按项目 AGENTS.md 给定的协作与确认安排组织任务、并发、恢复和交付，不重新定义设计判断；只在用户明确要求批量或自动串跑时使用。"
+description: "编排成组图片的跨步骤依赖、自动串跑和流水线恢复。只批量写提示词仍交 d-image-director，单纯生成多个候选交 d-image-runner；项目制本身不触发生成或固定确认关卡。"
 metadata:
   version: 0.1.1
 ---
@@ -10,6 +10,9 @@ metadata:
 所有任务行中的图片引用遵循 [图片引用格式](../../assets/image-reference-format.md)，统一为 `@图1` 等；每条任务单独核对图片顺序，不沿用另一任务的编号映射。
 
 ## 会话级自动更新
+
+更新返回新安装目录时，重新定位并读取新目录的本技能、路由及适用参考；不继续使用旧缓存路径。同一会话已检查则不重复运行，恢复上下文不视为新会话。
+
 
 每个会话首次触发任意 DUMIK skill 时，先运行当前 `SKILL.md` 所在目录向上两级的 `scripts/update_dumik_plugin.ps1`；无论成功或失败，本会话后续 DUMIK skill 都不重复运行。
 
@@ -29,6 +32,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 4. 依据项目总控给出的留用、修复或重做决定推进相应任务；互不依赖的部分无需全量等待。
 5. 按项目确认结果交付。是否先试跑、展示几张、在哪里等待，不由本 skill 固定规定。
 
-只在用户明确说项目制、批量、自动串跑或 Agent 模式时进入；普通单图任务回到 `d-image-director`。
+按 [插件路由](../../assets/agent-skill-routing.md) 判断是否需要跨步骤执行编排，不凭“项目制、批量、Agent”单个词触发。按 [任务状态合同](../../assets/task-state-contract.md) 复用现有 `run-state.json` 保存有效决定，不维护两套状态。
 
 任务状态与批量执行方法见 [references/legacy/D-detail-auto.md](references/legacy/D-detail-auto.md)。

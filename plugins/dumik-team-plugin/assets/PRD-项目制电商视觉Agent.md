@@ -1,6 +1,6 @@
 # PRD：项目制电商视觉 Agent
 
-> 注：项目指针机制（`CURRENT_PROJECT.md`、`CONTEXT.md`）已于 2026-09-10 废弃。项目根由用户指定的项目文件夹决定，权威规则见 `assets\project-env-protocol.md`。本文件保留原始需求记录，下文涉及的指针描述不再生效。
+> 历史记录，不是执行规范。下文的 11 技能、领导技能、指针和验收要求均不用于当前调用。现行能力路由见 `agent-skill-routing.md`，项目边界见 `project-env-protocol.md`，多轮恢复见 `task-state-contract.md`。
 
 ## 背景
 

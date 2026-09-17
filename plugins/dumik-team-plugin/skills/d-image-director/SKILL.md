@@ -1,6 +1,6 @@
 ---
 name: d-image-director
-description: "图片创作与修复总入口。统一普通改图、视觉 brief、四宫格发散、线稿色块高清重绘和产品局部修复；只写提示词时停在文字，明确生图时交给 d-image-runner。"
+description: "编写、修改图片提示词与改图指令，支持纯文字创作、多参考、材质追改、方向探索、高清和局部修复方案；连续短反馈沿用当前文字任务。实际生成交 d-image-runner，卖点排序与详情页策略交 d-visual-plan。"
 metadata:
   version: 0.1.1
 ---
@@ -10,6 +10,9 @@ metadata:
 本 skill 提供图片专业方法，不承担项目总控。任务意图、有效决定、提问与确认方式由项目 `AGENTS.md` 给定；参考资料中的流程与展示范例不另设项目协作规则。
 
 ## 会话级自动更新
+
+更新返回新安装目录时，重新定位并读取新目录的本技能、路由及适用参考；不继续使用旧缓存路径。同一会话已检查则不重复运行，恢复上下文不视为新会话。
+
 
 每个会话首次触发任意 DUMIK skill 时，先运行当前 `SKILL.md` 所在目录向上两级的 `scripts/update_dumik_plugin.ps1`；无论成功或失败，本会话后续 DUMIK skill 都不重复运行。
 
@@ -22,6 +25,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 统一原 `D-image-prompt`、`D-image-HD`、`D-image-repair` 和 `D-grid-prompt` 的图片创作入口。
 
 ## 模式
+
+选择遵循 [插件路由](../../assets/agent-skill-routing.md)；多轮追改读取 [任务状态合同](../../assets/task-state-contract.md)，先确定修改部件和当前有效属性，再写独立完整正文。
 
 - `edit`：普通改图、多参考融合、洗图、KV、场景、材质和人物锁定。
 - `brief`：按任务要求构思图片视觉方向；确有策略缺项时才使用 `d-visual-plan`。
@@ -38,7 +43,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 ## 模式资料
 
-- `edit / brief`：交付提示词前必须读取 [references/legacy/D-image-prompt.md](references/legacy/D-image-prompt.md)，不能只读本入口就输出；[references/templates.md](references/templates.md) 按需读取。
+- 所有最终图片提示词先读 [交付检查](references/prompt-contract.md)；`edit / brief` 同时读取 [详细写词规范](references/legacy/D-image-prompt.md)。已在当前上下文完整加载且版本未变可复用；更新或恢复后缺失时补读。[references/templates.md](references/templates.md) 按需读取。
 - `direction`：按需读取 [references/legacy/D-grid-prompt.md](references/legacy/D-grid-prompt.md)。
 - `hd`：按需读取 [references/legacy/D-image-HD.md](references/legacy/D-image-HD.md)，执行脚本位于 `scripts/hd/`。
 - `repair`：按需读取 [references/legacy/D-image-repair.md](references/legacy/D-image-repair.md)，局部脚本位于 `scripts/repair/`。

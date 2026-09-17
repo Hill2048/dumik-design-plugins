@@ -1,6 +1,6 @@
 ---
 name: d-video-runner
-description: "视频生成执行入口。负责确认片、普通视频、深度视频和 Dreamina / Seedance / Veo 批量提交；上游必须已有完整提示词和参考素材。"
+description: "执行明确授权的视频生成、确认片和批量提交，查询已有任务并保存结果。只写视频提示词、分镜或提及模型时不提交；缺提示词交 d-video-director 准备，不能把模型名称当执行授权。"
 metadata:
   version: 0.1.1
 ---
@@ -10,6 +10,9 @@ metadata:
 图片引用遵循 [图片引用格式](../../assets/image-reference-format.md)，统一为 `@图1` 等。提交前核对图片顺序与素材映射；如平台需要专用标记，仅在执行适配层按实际绑定转换，不能改动素材职责或模型参数。
 
 ## 会话级自动更新
+
+更新返回新安装目录时，重新定位并读取新目录的本技能、路由及适用参考；不继续使用旧缓存路径。同一会话已检查则不重复运行，恢复上下文不视为新会话。
+
 
 每个会话首次触发任意 DUMIK skill 时，先运行当前 `SKILL.md` 所在目录向上两级的 `scripts/update_dumik_plugin.ps1`；无论成功或失败，本会话后续 DUMIK skill 都不重复运行。
 
@@ -22,6 +25,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 统一视频生成提交入口。项目 `AGENTS.md` 决定是否需要确认片、确认时机及批量范围；本 skill 只负责执行资料与参数检查、提交和收取结果，不重新定义协作流程。
 
 ## 规则
+
+- 遵循 [插件路由](../../assets/agent-skill-routing.md) 与 [任务状态合同](../../assets/task-state-contract.md)。恢复先查询原提交，不因看到历史授权而重复生成。
 
 - 只有用户明确说生成、出确认片、批量提交或调用视频模型时才执行。
 - 上游必须提供比例、时长、完整提示词、首帧/参考素材和输出路径。

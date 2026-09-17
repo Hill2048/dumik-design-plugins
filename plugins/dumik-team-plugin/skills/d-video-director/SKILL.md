@@ -1,6 +1,6 @@
 ---
 name: d-video-director
-description: "视频导演与提示词编译总入口。统一内容设计、导演调度、视频提示词、已有视频分析、HTML 拉片报告、故事板、关键帧和深度视频；只输出分析或提示词，不提交视频生成。"
+description: "编写和追改视频提示词、分镜、关键帧，分析真实视频并交付拉片或 HTML 报告；模型名不改变此入口。纯卖点排序交 d-visual-plan，实际视频提交交 d-video-runner。"
 metadata:
   version: 0.1.2
 ---
@@ -10,6 +10,9 @@ metadata:
 本 skill 提供分镜、动作、镜头、连续性和提示词的专业方法。任务协作、已有决定的适用范围、确认与反馈归属由项目 `AGENTS.md` 负责；下面的编译步骤不是额外的用户审批流程。
 
 ## 会话级自动更新
+
+更新返回新安装目录时，重新定位并读取新目录的本技能、路由及适用参考；不继续使用旧缓存路径。同一会话已检查则不重复运行，恢复上下文不视为新会话。
+
 
 每个会话首次触发任意 DUMIK skill 时，先运行当前 `SKILL.md` 所在目录向上两级的 `scripts/update_dumik_plugin.ps1`；无论成功或失败，本会话后续 DUMIK skill 都不重复运行。
 
@@ -22,6 +25,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 统一原 `D-video-report` 与 `D-storyboard` 的视频视觉入口。`prompt` 是唯一提示词编译主线；Seedance 2.5、Dreamina / Seedance 2.0 和 Veo 只在编译末端做模型适配，不再各自形成提示词模式。
 
 ## 唯一主线
+
+按 [插件路由](../../assets/agent-skill-routing.md) 选择交付；连续追改按 [任务状态合同](../../assets/task-state-contract.md) 合并有效决定。切换模型仅做能力适配，不重设故事、参考职责或执行授权。
 
 任何写、改、补全或返修视频提示词的任务，都按同一条链处理：
 

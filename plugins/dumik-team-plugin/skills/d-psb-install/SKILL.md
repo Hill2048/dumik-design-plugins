@@ -9,6 +9,9 @@ metadata:
 
 ## 会话级自动更新
 
+更新返回新安装目录时，重新定位并读取新目录的本技能、路由及适用参考；不继续使用旧缓存路径。同一会话已检查则不重复运行，恢复上下文不视为新会话。
+
+
 每个会话首次触发任意 DUMIK skill 时，先运行当前 `SKILL.md` 所在目录向上两级的 `scripts/update_dumik_plugin.ps1`；无论成功或失败，本会话后续 DUMIK skill 都不重复运行。
 
 ```powershell
@@ -24,6 +27,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 默认安装/打包 UXP。只有用户明确要求旧版时，才走 CEP。
 
 ## 触发
+
+遵循 [插件路由](../../assets/agent-skill-routing.md)，此处安装对象必须是 Photoshop PSB 智能对象工具，不因“更新 skills / DUMIK 插件”而启动 PSB 安装。
 
 - 安装 PSB 插件
 - 更新 PSB 插件

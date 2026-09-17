@@ -11,6 +11,9 @@ metadata:
 
 ## 会话级自动更新
 
+更新返回新安装目录时，重新定位并读取新目录的本技能、路由及适用参考；不继续使用旧缓存路径。同一会话已检查则不重复运行，恢复上下文不视为新会话。
+
+
 每个会话首次触发任意 DUMIK skill 时，先运行当前 `SKILL.md` 所在目录向上两级的 `scripts/update_dumik_plugin.ps1`；无论成功或失败，本会话后续 DUMIK skill 都不重复运行。
 
 ```powershell
@@ -20,6 +23,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 返回 `current` 或 `updated` 时静默继续；返回 `skipped` 表示保留了本地定制、未拉取远端或重装，不得称为已更新。同一会话只提示一次“已保留本地定制，本次跳过自动更新”，继续任务，不自动提交、暂存或回退改动。失败时只提示 `本次未能自动更新 DUMIK Team Plugin，将按当前本地版本继续。`，随后继续当前任务。此动作只维护本地插件，不代表用户授权图片或视频生成，也不改变费用确认与批量闸门。
 
 先判断测试域：
+
+遵循 [插件路由](../../assets/agent-skill-routing.md)。只有明确的 API 基准或模型比较需求才执行测试；普通生图失败的排障不自动变成付费基准测试。
 
 - 图片 API：使用当前已实现的固定测试题，读取 `references/image-benchmark.md`；支持 Gemini Flash / Pro 与 GPT Image 2.5 Flare / Sunburst。
 - 文案 API：尚未建立基准；用户明确要求时再新增独立测试题和脚本。

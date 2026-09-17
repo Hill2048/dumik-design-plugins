@@ -1,6 +1,6 @@
 ---
 name: d-image-runner
-description: "图片执行总入口。统一普通生图/改图、多候选并发、RunningHub 放大、超分、抠图和去背景；只在用户明确要求执行时调用接口。"
+description: "执行用户明确要求的图片生成、实际改图、多候选和 RunningHub 放大、超分、抠图、去背景。仅写提示词或在文字任务中追改材质时不触发执行；缺完整提示词交 d-image-director 准备后继续。"
 metadata:
   version: 0.1.2
 ---
@@ -10,6 +10,9 @@ metadata:
 本 skill 负责准确传图、调用模型、保存结果与返回执行状态。协作、参考授权范围和结果审阅由项目 `AGENTS.md` 统筹，不在执行器里另设设计判断或展示规则。
 
 ## 会话级自动更新
+
+更新返回新安装目录时，重新定位并读取新目录的本技能、路由及适用参考；不继续使用旧缓存路径。同一会话已检查则不重复运行，恢复上下文不视为新会话。
+
 
 每个会话首次触发任意 DUMIK skill 时，先运行当前 `SKILL.md` 所在目录向上两级的 `scripts/update_dumik_plugin.ps1`；无论成功或失败，本会话后续 DUMIK skill 都不重复运行。
 
@@ -28,7 +31,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 ## 执行规则
 
-- 提示词图片引用遵循 [图片引用格式](../../assets/image-reference-format.md)。核对 `@图1` 对应主图、后续编号对应实际参考图顺序；模型名与 API 字段不改名。
+- 按 [插件路由](../../assets/agent-skill-routing.md) 区分文字修改与真实执行；恢复时按 [任务状态合同](../../assets/task-state-contract.md) 核对已提交任务与剩余授权，不重做已完成提交。
+
+- 提示词图片引用遵循 [图片引用格式](../../assets/image-reference-format.md)。`@图1` 对应第一张实际输入，具体职责由角色说明决定，不强制是目标图；模型名与 API 字段不改名。
 
 - 用户只要提示词时不调用接口。
 - 用户明确生图、改图、放大或后处理时才执行，并保存提交状态和结果。

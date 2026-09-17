@@ -19,4 +19,4 @@
 
 旧入口已归档到 `archive/merged-skills-legacy/`，不再参与自动路由。
 
-`assets/workflow-map.html` 保留历史示意，不作为 v0.1.8 的执行或确认规则；当前工作方式以项目 `AGENTS.md` 为准。
+`assets/workflow-map.html` 保留历史示意，不作为当前版本执行或确认规则。能力选择以 `agent-skill-routing.md` 为准，多轮恢复以 `task-state-contract.md` 为准；项目协作仍遵循项目 `AGENTS.md`。

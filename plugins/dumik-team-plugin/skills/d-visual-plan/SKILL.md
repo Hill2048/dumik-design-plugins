@@ -1,6 +1,6 @@
 ---
 name: d-visual-plan
-description: "图片详情页与电商视频的前置策划入口。按 image / video 模式规划视觉设定、卖点证据、创意方向或视频转化结构；只输出策划，不生成图片或视频。"
+description: "规划详情页结构、卖点顺序、视觉证据与视频转化策略。单图材质或颜色追改不重新策划；图片提示词交 d-image-director，视频分镜与提示词交 d-video-director，不执行生成。"
 metadata:
   version: 0.1.2
 ---
@@ -13,6 +13,9 @@ metadata:
 
 ## 会话级自动更新
 
+更新返回新安装目录时，重新定位并读取新目录的本技能、路由及适用参考；不继续使用旧缓存路径。同一会话已检查则不重复运行，恢复上下文不视为新会话。
+
+
 每个会话首次触发任意 DUMIK skill 时，先运行当前 `SKILL.md` 所在目录向上两级的 `scripts/update_dumik_plugin.ps1`；无论成功或失败，本会话后续 DUMIK skill 都不重复运行。
 
 ```powershell
@@ -24,6 +27,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 统一图片和视频的策略入口，避免分别记忆 `D-detail-plan` 与 `D-video-plan`。
 
 ## 模式
+
+按 [插件路由](../../assets/agent-skill-routing.md) 处理明确的策略需求或专业入口指出的必要策略缺口；单图追改保持原路线，不因出现“质感、创意”就重开策划。多轮决定按 [任务状态合同](../../assets/task-state-contract.md) 维护。
 
 - `image`：针对本次策略缺项整理详情页结构、卖点顺序、视觉证据或表达方向，不规定方向数量；需要画面展开时使用 `d-image-director`。
 - `video`：规划人群、痛点、卖点顺序、开头钩子、证据链、可见障碍和转化节奏。需要拆镜头时交给 `d-video-director`。
