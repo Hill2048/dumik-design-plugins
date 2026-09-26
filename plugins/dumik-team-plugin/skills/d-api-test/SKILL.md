@@ -2,10 +2,16 @@
 name: d-api-test
 description: "DUMIK API 基准测试入口。用于新增或更换图片 API 时，用固定双参考改图题测试模型可用性、尺寸、比例、速度和画面保持度；普通生图不走这里。"
 metadata:
-  version: 0.1.2
+  version: 0.1.4
 ---
 
 # API 基准测试
+
+## 参考文件硬门槛
+
+本 skill 必须遵守 [参考文件读取硬门槛](../../assets/reference-loading-protocol.md)。规则包会登记本 skill `references/` 下的全部文件，再追加本次 API 和模型命中的规范；只有命中文件进入当前正文，读取完整规则包后才能发包或比较结果。
+
+开始测试前先运行当前插件目录的 `scripts/compile_reference_pack.ps1 -Skill d-api-test -Mode <image|copy|video> -Model <模型名>`，再读取脚本返回的 `output_path`。规则包没有成功生成或没有读完时，不发包。
 
 图片提示词与报告中的引用遵循 [图片引用格式](../../assets/image-reference-format.md)，统一为 `@图1` 等；固定素材文件名和模型名不改。对照历史基准时记录引用格式变化，不能把提示词版本差异误当成模型质量变化。
 
@@ -26,7 +32,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 遵循 [插件路由](../../assets/agent-skill-routing.md)。只有明确的 API 基准或模型比较需求才执行测试；普通生图失败的排障不自动变成付费基准测试。
 
-- 图片 API：使用当前已实现的固定测试题，读取 `references/image-benchmark.md`；支持 Gemini Flash / Pro 与 GPT Image 2.5 Flare / Sunburst。
+- 图片 API：使用当前已实现的固定测试题，必须完整读取 `references/image-benchmark.md`；支持 Gemini Flash / Pro 与 GPT Image 2.5 Flare / Sunburst。
 - 文案 API：尚未建立基准；用户明确要求时再新增独立测试题和脚本。
 - 视频 API：尚未建立基准；用户明确要求时再新增独立测试题和脚本。
 

@@ -2,12 +2,18 @@
 name: d-visual-plan
 description: "规划详情页结构、卖点顺序、视觉证据与视频转化策略。单图材质或颜色追改不重新策划；图片提示词交 d-image-director，视频分镜与提示词交 d-video-director，不执行生成。"
 metadata:
-  version: 0.1.2
+  version: 0.1.4
 ---
 
 # 视觉策划
 
 点名图片素材时遵循 [图片引用格式](../../assets/image-reference-format.md)，统一为 `@图1` 等；策划序号、模块序号与图片引用分开。
+
+## 参考文件硬门槛
+
+本 skill 必须遵守 [参考文件读取硬门槛](../../assets/reference-loading-protocol.md)。规则包会登记本 skill `references/` 下的全部文件，再追加本次图片、视频或 Seedance 模式命中的条件文件；只有命中文件进入当前正文，读取完整规则包后才能输出策略结论。
+
+先运行当前插件目录的 `scripts/compile_reference_pack.ps1 -Skill d-visual-plan -Mode <image|video|seedance>`，再读取脚本返回的 `output_path`。规则包没有成功生成或没有读完时，不输出策略结论。
 
 本 skill 是按需使用的策略方法，不是项目必经入口。是否探索、复用哪些决定、怎样确认与回写，均由项目 `AGENTS.md` 决定；已有策略作为输入，不重新策划。
 
@@ -47,4 +53,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 `video` 输出：目标人群、核心障碍、卖点顺序、证据链、开头钩子、节奏和下一步镜头需求。
 
-详细旧规则保存在 [references/legacy/D-detail-plan.md](references/legacy/D-detail-plan.md) 和 [references/legacy/D-video-plan.md](references/legacy/D-video-plan.md)，只在对应模式需要时读取。
+详细规则保存在 [references/legacy/D-detail-plan.md](references/legacy/D-detail-plan.md) 和 [references/legacy/D-video-plan.md](references/legacy/D-video-plan.md)，进入对应模式时必须读取，不得只看链接或依赖旧上下文。

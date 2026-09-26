@@ -2,12 +2,18 @@
 name: d-image-runner
 description: "执行用户明确要求的图片生成、实际改图、多候选和 RunningHub 放大、超分、抠图、去背景。仅写提示词或在文字任务中追改材质时不触发执行；缺完整提示词交 d-image-director 准备后继续。"
 metadata:
-  version: 0.1.2
+  version: 0.1.4
 ---
 
 # 图片执行器
 
 本 skill 负责准确传图、调用模型、保存结果与返回执行状态。协作、参考授权范围和结果审阅由项目 `AGENTS.md` 统筹，不在执行器里另设设计判断或展示规则。
+
+## 参考文件硬门槛
+
+本 skill 必须遵守 [参考文件读取硬门槛](../../assets/reference-loading-protocol.md)。规则包会登记本 skill `references/` 下的全部文件，再追加本次模型和后处理命中的条件文件；只有命中文件进入当前正文，读取完整规则包后才能提交。缺文件或未读完时不得调用接口。
+
+执行前先运行当前插件目录的 `scripts/compile_reference_pack.ps1 -Skill d-image-runner -Mode <generate|postprocess> -Model <模型名>`，再读取脚本返回的 `output_path`。规则包没有成功生成或没有读完时，不发送请求。
 
 ## 会话级自动更新
 
@@ -38,6 +44,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 - 用户只要提示词时不调用接口。
 - 用户明确生图、改图、放大或后处理时才执行，并保存提交状态和结果。
 - 多候选拆成独立 `count: 1` 任务，不把候选串联垫图。
-- `generate` 资料见 `references/legacy/D-image-run.md`；脚本位于 `scripts/`。
-- 使用 `gpt-image-2.5-flare` / `gpt-image-2.5-sunburst` 时，读取 `references/model-image2.5.md`；用户只说 `image2.5` 时路由到质量优先的 Sunburst。
-- `postprocess` 资料见 `references/legacy/D-rh.md`；RunningHub 脚本位于 `scripts/`。
+- `generate` 必须完整读取 `references/legacy/D-image-run.md`；脚本位于 `scripts/`。
+- 使用 `gpt-image-2.5-flare` / `gpt-image-2.5-sunburst` 时，必须读取 `references/model-image2.5.md`；用户只说 `image2.5` 时路由到质量优先的 Sunburst。
+- 使用 Banana2 时必须读取 `references/model-banana2.md`。
+- `postprocess` 必须完整读取 `references/legacy/D-rh.md`；RunningHub 脚本位于 `scripts/`。
+- 没有完成本次 `reference_set` 的读取，停在执行前，不发送请求。

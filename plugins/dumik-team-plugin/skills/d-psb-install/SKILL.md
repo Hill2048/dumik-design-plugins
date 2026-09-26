@@ -2,10 +2,16 @@
 name: d-psb-install
 description: "安装/更新 PSB 智能对象工具。先自动核对 GitHub 最新版本；默认安装 UXP 版，适合触发词：安装 PSB 插件、更新 PSB 插件、安装智能对象工具、装 PSB 智能对象工具、分享来的插件怎么装。"
 metadata:
-  version: 0.1.11
+  version: 0.1.13
 ---
 
 # PSB 智能对象工具安装
+
+## 参考文件硬门槛
+
+本 skill 必须遵守 [参考文件读取硬门槛](../../assets/reference-loading-protocol.md)。规则包会登记本 skill `references/` 下的全部文件，再追加版本清单和安装脚本；只有命中文件进入当前正文，读取完整规则包后才能安装、更新或核对结果。
+
+先运行当前插件目录的 `scripts/compile_reference_pack.ps1 -Skill d-psb-install -Mode <install|update|check>`，再读取脚本返回的 `output_path`。规则包没有成功生成或没有读完时，不安装、不删除旧目录、不生成安装包。
 
 ## 会话级自动更新
 

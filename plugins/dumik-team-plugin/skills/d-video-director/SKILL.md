@@ -2,12 +2,18 @@
 name: d-video-director
 description: "编写和追改视频提示词、分镜、关键帧，分析真实视频并交付拉片或 HTML 报告；模型名不改变此入口。纯卖点排序交 d-visual-plan，实际视频提交交 d-video-runner。"
 metadata:
-  version: 0.1.2
+  version: 0.1.4
 ---
 
 # 视频导演
 
 本 skill 提供分镜、动作、镜头、连续性和提示词的专业方法。任务协作、已有决定的适用范围、确认与反馈归属由项目 `AGENTS.md` 负责；下面的编译步骤不是额外的用户审批流程。
+
+## 参考文件硬门槛
+
+本 skill 必须遵守 [参考文件读取硬门槛](../../assets/reference-loading-protocol.md)。规则包会登记本 skill `references/` 下的全部文件，再追加本次模式命中的条件文件；只有命中文件进入当前正文，读取完整规则包后才能分析视频、设计镜头或写 Prompt。不能只看文件名、链接、摘要或上一次对话内容。
+
+先运行当前插件目录的 `scripts/compile_reference_pack.ps1 -Skill d-video-director -Mode <prompt|storyboard|image-to-video|depth|camera|report|interactive>`，再读取脚本返回的 `output_path`。规则包没有成功生成或没有读完时，不分析素材、不写最终 Prompt、不输出报告。
 
 ## 会话级自动更新
 
@@ -62,8 +68,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 ## 资料路由
 
-- 所有提示词任务先读 `references/prompt-compiler.md` 和 `references/directing-design.md`；前者负责统一编译合同，后者负责每个画面的内容设计与导演调度。
-- 已有视频需要证据分析或 HTML 报告时，读取 `references/report-data-schema.md`、`references/interactive-report.md`；脚本位于 `scripts/`，模板位于 `assets/report-template/`。
-- 交付故事板、关键帧或逐镜提示词时，再按需读取 `references/templates.md`、`references/seedance-image-to-video.md`、`references/seedance-storyboard-driven.md`。
-- 输入含深度视频时，再读取 `references/depth-video.md`；需要精确复合摄影机轨迹时，再读取 `references/seedance-camera-codec.md`。
-- 旧版完整规则保存在 `references/legacy/D-video-report.md` 和 `references/legacy/D-storyboard.md`，只用于追溯，不得覆盖统一主线。
+所有视频任务先核对本 skill 全部参考文件的登记，再读 `references/prompt-compiler.md` 和 `references/directing-design.md` 的正文；然后按任务追加并完整读取命中文件：
+
+- 已有视频分析或 HTML 报告：`references/report-data-schema.md`；需要交互回看时再读 `references/interactive-report.md`，脚本和模板按文件说明读取。
+- 故事板、关键帧或逐镜提示词：`references/templates.md`、`references/seedance-image-to-video.md`、`references/seedance-storyboard-driven.md`。
+- 深度视频：`references/depth-video.md`。
+- 需要精确复合摄影机轨迹：`references/seedance-camera-codec.md`。
+- 只追溯旧规则时：明确读取对应的 `references/legacy/` 文件，但旧规则不能覆盖统一主线。
+
+没有完成上述 `reference_set` 的实际读取时，停在准备阶段，不输出最终 Prompt、分镜或 HTML 报告，也不交给 `d-video-runner`。

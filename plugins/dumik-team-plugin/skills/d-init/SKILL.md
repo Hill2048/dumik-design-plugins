@@ -2,12 +2,18 @@
 name: d-init
 description: "生成或维护 DUMIK 项目入口。初始化时按项目类型和已确认的协作方式生成 AGENTS.md、design.md；用户要求调整项目总控、确认方式或调用规则时，局部维护 AGENTS.md 并保留项目定制。日常任务直接遵循项目文件，不经过额外调度 skill。"
 metadata:
-  version: 0.3.3
+  version: 0.3.5
 ---
 
 # 项目入口生成与维护
 
 `AGENTS.md` 是项目日常工作的总控；本 skill 只负责把适合该项目的规则写进去。`design.md` 保存视觉设定，专业 skills 提供方法和执行能力，不再新增调度 skill。
+
+## 参考文件硬门槛
+
+本 skill 必须遵守 [参考文件读取硬门槛](../../assets/reference-loading-protocol.md)。规则包会登记本 skill `references/` 下的全部文件，再追加项目环境和当前项目文件；只有命中文件进入当前正文，读取完整规则包后才能生成、改写、部署钩子或补目录。
+
+开始初始化或维护前先运行当前插件目录的 `scripts/compile_reference_pack.ps1 -Skill d-init -Mode <init|maintain> -ProjectRoot <项目绝对路径>`，再读取脚本返回的 `output_path`。规则包没有成功生成或没有读完时，不写项目文件。
 
 ## 会话级自动更新
 

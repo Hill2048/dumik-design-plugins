@@ -2,12 +2,18 @@
 name: d-image-director
 description: "编写、修改图片提示词与改图指令，支持纯文字创作、多参考、材质追改、方向探索、高清和局部修复方案；连续短反馈沿用当前文字任务。实际生成交 d-image-runner，卖点排序与详情页策略交 d-visual-plan。"
 metadata:
-  version: 0.1.1
+  version: 0.1.3
 ---
 
 # 图片导演
 
 本 skill 提供图片专业方法，不承担项目总控。任务意图、有效决定、提问与确认方式由项目 `AGENTS.md` 给定；参考资料中的流程与展示范例不另设项目协作规则。
+
+## 参考文件硬门槛
+
+本 skill 必须遵守 [参考文件读取硬门槛](../../assets/reference-loading-protocol.md)。规则包会登记本 skill `references/` 下的全部文件，再追加本轮命中的条件文件；只有命中文件进入当前正文，读取完整规则包后才能分析画面或写 Prompt。不能把链接当目录，也不能以“当前上下文已经有”替代本轮读取。
+
+先运行当前插件目录的 `scripts/compile_reference_pack.ps1 -Skill d-image-director -Mode <edit|brief|direction|hd|repair> -Model <模型名>`，再读取脚本返回的 `output_path`。规则包没有成功生成或没有读完时，不进入画面分析。
 
 ## 会话级自动更新
 
@@ -39,14 +45,32 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 - 多参考图先短写每张图的真实职责；只出现实际存在并需要控制的内容。
 - 采用最小充分描述：不补写画面里没有的人物、手部、食材、厨具、火焰、声音或其他道具，也不为不存在的对象添加负面词。
 - 产品轮廓、比例、关键部件、材质和品牌区优先于风格描述。
+- 做风格或光影追改时，先把“更暗、更通透、更电影”等抽象判断翻译成曝光关系、光比、阴影边缘和材质反射。阴天不等于整体欠曝：要写明均匀漫射光、收窄光比、提亮暗部、软化投影并保留暗部细节。
+- 改色时优先保留主体材质的固有色，再写目标色彩如何进入暗部、中灰和高光；不要用“压低黄色、压低绿色、消除高光”这类单独的负向词把木材、植被或金属的真实颜色抽干。
+- 材质必须写光打在表面上的结果。户外金属要承接天空的宽面积冷白漫反射，木材保留真实暖色与纤维层次，地面和主体要有统一的环境反射、接触阴影和边缘光，不能只堆“油润、真实、高级”。
+- 写多图前复核目标图和参考图的实际状态，特别是原片、调色片和效果片混在一起时；目标图由本次要修改的素材决定，不由图号或画面明暗猜定。职责有冲突就指出并澄清，不能把已经调坏的效果片当成原始结构目标。
 - 只写提示词时不调用接口；明确生图、改图或批量生成时，将最终任务交给 `d-image-runner`。
+
+## 五维画面编译
+
+每次写图片提示词都按以下顺序检查，不能只描述风格结果：
+
+1. **职责解构**：先给每张输入绑定真实职责，分开结构、构图、光影、色调、材质和局部替换；主体轮廓、比例、关键部件与连接方式优先锁定。
+2. **抽象转具象**：把“高级、通透、有质感、电影感”翻译成厚度、倒角、粗糙度、反射形态、接触阴影、边缘光和中灰过渡。
+3. **光影按物理关系写**：明确光源位置与软硬，区分降曝光和改光比；需要阴天时写收窄光比、提亮暗部、软化投影和空间进深。
+4. **色彩保护固有色**：用正向色彩倾向描述暗部、中灰和高光，保留木材、植被、食材等主体的固有色，不用粗暴去色制造暗调。
+5. **动作闭环**：主指令明确写出保留什么、替换什么、移除什么、改善什么；只加画面中实际存在或用户明确要求的元素，不靠无关负面词填充。
 
 ## 模式资料
 
-- 所有最终图片提示词先读 [交付检查](references/prompt-contract.md)；`edit / brief` 同时读取 [详细写词规范](references/legacy/D-image-prompt.md)。已在当前上下文完整加载且版本未变可复用；更新或恢复后缺失时补读。[references/templates.md](references/templates.md) 按需读取。
-- `direction`：按需读取 [references/legacy/D-grid-prompt.md](references/legacy/D-grid-prompt.md)。
-- `hd`：按需读取 [references/legacy/D-image-HD.md](references/legacy/D-image-HD.md)，执行脚本位于 `scripts/hd/`。
-- `repair`：按需读取 [references/legacy/D-image-repair.md](references/legacy/D-image-repair.md)，局部脚本位于 `scripts/repair/`。
+进入本 skill 后，先在规则包中核对全部参考文件登记；再读 `references/prompt-contract.md` 和当前模式追加的命中文件正文：
+
+- `edit / brief`：`references/legacy/D-image-prompt.md`；涉及人物、模特、材质、返修、空间融合或模板块时，再读 `references/templates.md` 和对应章节。
+- `direction`：`references/legacy/D-grid-prompt.md`。
+- `hd`：`references/legacy/D-image-HD.md`，需要执行脚本时再读 `scripts/hd/` 中对应说明。
+- `repair`：`references/legacy/D-image-repair.md`，需要局部脚本时再读 `scripts/repair/` 中对应说明。
+
+没有完成上述 `reference_set` 的实际读取时，停在准备阶段，不输出最终 Prompt，也不交给 `d-image-runner`。
 
 统一输出比例、参考图职责、主指令和最小风险约束；不要让多个旧模式重复拼接整段提示词。
 

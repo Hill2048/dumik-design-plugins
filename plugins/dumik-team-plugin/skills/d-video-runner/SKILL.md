@@ -2,12 +2,18 @@
 name: d-video-runner
 description: "执行明确授权的视频生成、确认片和批量提交，查询已有任务并保存结果。只写视频提示词、分镜或提及模型时不提交；缺提示词交 d-video-director 准备，不能把模型名称当执行授权。"
 metadata:
-  version: 0.1.1
+  version: 0.1.3
 ---
 
 # 视频执行器
 
 图片引用遵循 [图片引用格式](../../assets/image-reference-format.md)，统一为 `@图1` 等。提交前核对图片顺序与素材映射；如平台需要专用标记，仅在执行适配层按实际绑定转换，不能改动素材职责或模型参数。
+
+## 参考文件硬门槛
+
+本 skill 必须遵守 [参考文件读取硬门槛](../../assets/reference-loading-protocol.md)。规则包会登记本 skill `references/` 下的全部文件，再追加本次模型、平台和素材命中的条件文件；只有命中文件进入当前正文，读取完整规则包后才能调用模型或提交任务。
+
+执行前先运行当前插件目录的 `scripts/compile_reference_pack.ps1 -Skill d-video-runner -Mode <generate|edit|extend> -Model <模型名>`，再读取脚本返回的 `output_path`。规则包没有成功生成或没有读完时，不调用模型、不提交任务。
 
 ## 会话级自动更新
 
@@ -42,4 +48,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 - 用户要求真实提交 Seedance 2.5 时，先按最新 `dreamina <subcommand> -h` 或目标连接器确认 2.5 入口；不可用时报告执行能力缺口，不静默改投 2.0。
 - 首帧/尾帧、关键帧、视频编辑和延长必须使用后端实际支持的对应接口；不能因为 Prompt 已经正确就宣称执行器支持。
 
-完整执行规则保存在 [references/legacy/D-video-run.md](references/legacy/D-video-run.md)，脚本位于 `scripts/`。
+完整执行规则保存在 [references/legacy/D-video-run.md](references/legacy/D-video-run.md)，每次提交前必须完整读取；脚本位于 `scripts/`。该文件引用的模型和平台规范必须继续沿引用链读取，不能只读主文件。
