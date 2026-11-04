@@ -1,8 +1,8 @@
 ---
 name: d-visual-plan
-description: "规划详情页结构、卖点顺序、视觉证据与视频转化策略。单图材质或颜色追改不重新策划；图片提示词交 d-image-director，视频分镜与提示词交 d-video-director，不执行生成。"
+description: "规划详情页结构、卖点顺序、视觉证据与视频转化策略。先做模糊需求五格拆解（目标/主体/关系/约束/标准），有 design.md 时强制读设计语言。单图材质或颜色追改不重新策划；图片提示词交 d-image-director，反推交 d-prompt-reverse，视频分镜交 d-video-director，不执行生成。"
 metadata:
-  version: 0.1.4
+  version: 0.2.0
 ---
 
 # 视觉策划
@@ -39,6 +39,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 - `image`：针对本次策略缺项整理详情页结构、卖点顺序、视觉证据或表达方向，不规定方向数量；需要画面展开时使用 `d-image-director`。
 - `video`：规划人群、痛点、卖点顺序、开头钩子、证据链、可见障碍和转化节奏。需要拆镜头时交给 `d-video-director`。
 
+## 任务拆解（强制）
+
+输出任何策略结论前，先按 `references/task-decompose.md` 填五格：**目标 / 主体 / 关系 / 约束 / 标准**。口语需求未拆清时只输出五格与待确认项，不编造卖点。
+
+项目根存在 `design.md` 时：用真实文件工具读取其中「设计语言」段，把允许/禁止风格、清晰度优先级、系列规则并入「约束」；均为待确认则在策略中显式列出，不自造品牌调性。
+
+Grok Bot / Linux：可跳过 `compile_reference_pack.ps1`，但必须 Read 本轮 mode 的 legacy + 本文件 `task-decompose.md`。
+
 ## 边界
 
 - 只输出策略、视觉设定和结构，不调用图片或视频接口。
@@ -53,4 +61,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 `video` 输出：目标人群、核心障碍、卖点顺序、证据链、开头钩子、节奏和下一步镜头需求。
 
-详细规则保存在 [references/legacy/D-detail-plan.md](references/legacy/D-detail-plan.md) 和 [references/legacy/D-video-plan.md](references/legacy/D-video-plan.md)，进入对应模式时必须读取，不得只看链接或依赖旧上下文。
+详细规则保存在 [references/task-decompose.md](references/task-decompose.md)、[references/legacy/D-detail-plan.md](references/legacy/D-detail-plan.md) 和 [references/legacy/D-video-plan.md](references/legacy/D-video-plan.md)。进入对应模式时必须读取拆解 + 对应 legacy，不得只看链接或依赖旧上下文。工作流可测标准见 [../../assets/workflow-chain.md](../../assets/workflow-chain.md)。

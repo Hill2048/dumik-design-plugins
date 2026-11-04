@@ -1,0 +1,4 @@
+interface:
+  display_name: "一致性验收"
+  short_description: "原图与生成图结构三态审稿"
+  default_prompt: "使用 $d-consistency-check 对比原产品图与生成图，按项输出一致/不一致/无法判断，不写提示词、不调接口。"

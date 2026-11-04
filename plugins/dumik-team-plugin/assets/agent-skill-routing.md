@@ -1,6 +1,6 @@
 # DUMIK 唯一路由合同
 
-本文件是 DUMIK Team Plugin 的唯一能力路由。项目根目录的 `AGENTS.md` 优先决定项目协作、授权、确认和目录；本文件只决定当前工作应进入哪个插件 skill。9 个 skill 是专业入口，不互相争夺总控，也不在没有明确条件时串联。
+本文件是 DUMIK Team Plugin 的唯一能力路由。项目根目录的 `AGENTS.md` 优先决定项目协作、授权、确认和目录；本文件只决定当前工作应进入哪个插件 skill。11 个 skill 是专业入口，不互相争夺总控，也不在没有明确条件时串联。
 
 ## 判定顺序
 
@@ -24,6 +24,16 @@ image.strategy
   详情页结构、卖点顺序、视觉证据或图片创意策略，且当前不是具体单图提示词
   -> d-visual-plan
 
+image.review
+  对比原产品图与 AI 生成图做结构/外观验收，输出一致/不一致/无法判断；审稿、一致性检查、结构验收
+  -> d-consistency-check
+  排除：写/改提示词（→ d-image-director）；卖点或详情策略（→ d-visual-plan）；调接口出图（→ d-image-runner）
+
+image.reverse
+  从参考图反推/拆解提示词；还原提示词结构；用户说反推、拆图、根据参考图生成提示词草稿
+  -> d-prompt-reverse
+  排除：人未判主次就当终稿交付（协议内禁止）；正式改图终稿编译（→ d-image-director）；策略（→ d-visual-plan）；出图（→ d-image-runner）；三态验收（→ d-consistency-check）
+
 image.execute
   明确要求生图、出图、改图执行、调用图片接口、批量候选、放大、超分、抠图或去背景
   -> d-image-runner
@@ -34,7 +44,7 @@ image.batch
   -> 按任务依赖交给 d-image-director / d-image-runner
 ```
 
-单图“给我提示词”不进入 `image.execute`；只说“改图”但没有明确执行动作时，先按 `image.prompt` 处理。用户明确说“现在执行 / 调接口 / 出图”时，才切换到 `image.execute`。
+单图“给我提示词”不进入 `image.execute`；只说“改图”但没有明确执行动作时，先按 `image.prompt` 处理。用户明确说“现在执行 / 调接口 / 出图”时，才切换到 `image.execute`。用户要“对照原图看看漂没漂 / 结构验收 / 一致性”时走 `image.review`，不要在 director 里用散文代替三态表。 用户要“反推参考图提示词 / 拆图写词”时走 `image.reverse`，先主次再草稿。
 
 ## 视频路由
 

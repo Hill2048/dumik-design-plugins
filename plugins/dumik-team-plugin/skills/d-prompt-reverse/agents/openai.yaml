@@ -1,0 +1,4 @@
+interface:
+  display_name: "提示词反推"
+  short_description: "人判主次后的参考图提示词拆解"
+  default_prompt: "使用 $d-prompt-reverse 对参考图做反推：先主次与控制区，再结构化草稿，禁止一键当终稿。"

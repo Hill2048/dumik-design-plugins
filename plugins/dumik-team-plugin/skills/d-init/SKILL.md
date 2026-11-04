@@ -2,7 +2,7 @@
 name: d-init
 description: "生成或维护 DUMIK 项目入口。初始化时按项目类型和已确认的协作方式生成 AGENTS.md、design.md；用户要求调整项目总控、确认方式或调用规则时，局部维护 AGENTS.md 并保留项目定制。日常任务直接遵循项目文件，不经过额外调度 skill。"
 metadata:
-  version: 0.3.5
+  version: 0.3.6
 ---
 
 # 项目入口生成与维护

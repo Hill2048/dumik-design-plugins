@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('d-init','d-image-director','d-image-runner','d-video-director','d-video-runner','d-visual-plan','d-project-pipeline','d-api-test','d-psb-install')]
+    [ValidateSet('d-init','d-image-director','d-image-runner','d-consistency-check','d-prompt-reverse','d-video-director','d-video-runner','d-visual-plan','d-project-pipeline','d-api-test','d-psb-install')]
     [string]$Skill,
     [string]$Mode = 'default',
     [string]$Model = '',
@@ -39,15 +39,46 @@ switch ($Skill) {
     'd-image-director' {
         Add-Ref 'assets/task-state-contract.md'
         Add-Ref 'assets/image-reference-format.md'
+        Add-Ref 'assets/workflow-chain.md'
+        Add-Ref 'skills/d-image-director/references/control-layer.md'
         Add-Ref 'skills/d-image-director/references/prompt-contract.md'
         Add-Ref 'skills/d-image-director/references/original.md'
         switch -Regex ($modeText) {
-            'edit|brief' { Add-Ref 'skills/d-image-director/references/legacy/D-image-prompt.md' }
-            'direction' { Add-Ref 'skills/d-image-director/references/legacy/D-grid-prompt.md' }
-            'hd' { Add-Ref 'skills/d-image-director/references/legacy/D-image-HD.md' }
+            'edit|brief' {
+                Add-Ref 'skills/d-image-director/references/prompt-segments.md'
+                Add-Ref 'skills/d-image-director/references/six-structure.md'
+                Add-Ref 'skills/d-image-director/references/legacy/D-image-prompt.md'
+            }
+            'direction' {
+                Add-Ref 'skills/d-image-director/references/prompt-segments.md'
+                Add-Ref 'skills/d-image-director/references/legacy/D-grid-prompt.md'
+            }
+            'hd' {
+                Add-Ref 'skills/d-image-director/references/prompt-segments.md'
+                Add-Ref 'skills/d-image-director/references/legacy/D-image-HD.md'
+            }
             'repair' { Add-Ref 'skills/d-image-director/references/legacy/D-image-repair.md' }
         }
         if ($modeText -match 'person|model|material|texture|repair|space|template|edit|brief') { Add-Ref 'skills/d-image-director/references/templates.md' }
+        if ($modeText -match 'white|scene|白底') { Add-Ref 'skills/d-image-director/references/white-to-scene.md' }
+        if ($modeText -match 'light|lighting|shadow|c4d|光影') { Add-Ref 'skills/d-image-director/references/lighting-control.md' }
+        if ($modeText -match 'camera|lens|focal|广角|机位') { Add-Ref 'skills/d-image-director/references/camera-language.md' }
+        if ($modeText -match 'realism|真实') { Add-Ref 'skills/d-image-director/references/realism.md' }
+        if ($modeText -match 'multiview|multi-view|logo|多视') { Add-Ref 'skills/d-image-director/references/multi-view-lock.md' }
+        if ($modeText -match 'model|talent|佩戴|模特') { Add-Ref 'skills/d-image-director/references/model-product.md' }
+        if ($modeText -match 'json|module|模块') { Add-Ref 'skills/d-image-director/references/prompt-json-modules.md' }
+    }
+    'd-prompt-reverse' {
+        Add-Ref 'assets/image-reference-format.md'
+        Add-Ref 'assets/workflow-chain.md'
+        Add-Ref 'skills/d-prompt-reverse/references/reverse-protocol.md'
+        Add-Ref 'skills/d-image-director/references/control-layer.md'
+        Add-Ref 'skills/d-image-director/references/prompt-segments.md'
+        Add-Ref 'skills/d-image-director/references/six-structure.md'
+    }
+    'd-consistency-check' {
+        Add-Ref 'assets/image-reference-format.md'
+        Add-Ref 'skills/d-consistency-check/references/checklist.md'
     }
     'd-image-runner' {
         Add-Ref 'assets/task-state-contract.md'
@@ -83,6 +114,8 @@ switch ($Skill) {
     }
     'd-visual-plan' {
         Add-Ref 'assets/task-state-contract.md'
+        Add-Ref 'assets/workflow-chain.md'
+        Add-Ref 'skills/d-visual-plan/references/task-decompose.md'
         if ($modeText -match 'video') {
             Add-Ref 'skills/d-visual-plan/references/legacy/D-video-plan.md'
             Add-Ref 'skills/d-visual-plan/references/original.md'

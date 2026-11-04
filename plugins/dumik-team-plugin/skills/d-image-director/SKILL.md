@@ -1,24 +1,54 @@
 ---
 name: d-image-director
-description: "编写、修改图片提示词与改图指令，支持纯文字创作、多参考、材质追改、方向探索、高清和局部修复方案；连续短反馈沿用当前文字任务。实际生成交 d-image-runner，卖点排序与详情页策略交 d-visual-plan。"
+description: "编写或修改图片提示词与改图指令（有图/纯文字均可）。五模式：edit=改图/多参考/洗图/KV/场景/材质；brief=构思视觉方向；direction=候选方向/四宫格；hd=线稿色稿高清重绘；repair=局部产品漂移。写词前过控制层（P0–P2/分段/条件模块）。反推参考图提示词→d-prompt-reverse；策略→d-visual-plan；生图→d-image-runner；三态验收→d-consistency-check。连续短反馈沿用当前文字任务。"
 metadata:
-  version: 0.1.3
+  version: 0.3.0
 ---
 
 # 图片导演
 
 本 skill 提供图片专业方法，不承担项目总控。任务意图、有效决定、提问与确认方式由项目 `AGENTS.md` 给定；参考资料中的流程与展示范例不另设项目协作规则。
 
+统一原 `D-image-prompt`、`D-image-HD`、`D-image-repair` 和 `D-grid-prompt` 的图片创作入口。
+
 ## 参考文件硬门槛
 
 本 skill 必须遵守 [参考文件读取硬门槛](../../assets/reference-loading-protocol.md)。规则包会登记本 skill `references/` 下的全部文件，再追加本轮命中的条件文件；只有命中文件进入当前正文，读取完整规则包后才能分析画面或写 Prompt。不能把链接当目录，也不能以“当前上下文已经有”替代本轮读取。
 
-先运行当前插件目录的 `scripts/compile_reference_pack.ps1 -Skill d-image-director -Mode <edit|brief|direction|hd|repair> -Model <模型名>`，再读取脚本返回的 `output_path`。规则包没有成功生成或没有读完时，不进入画面分析。
+Windows / 有 PowerShell 时：先运行当前插件目录的 `scripts/compile_reference_pack.ps1 -Skill d-image-director -Mode <edit|brief|direction|hd|repair> -Model <模型名>`，再读取脚本返回的 `output_path`。规则包没有成功生成或没有读完时，不进入画面分析。
+
+**Grok Bot / Linux：** 若 `compile_reference_pack.ps1` 或 PowerShell 不可用，跳过编译脚本，但必须用真实文件工具直接 `Read` Mode 路由表中本轮命中的全部文件（含 `control-layer.md` 与 `prompt-contract.md`）；不得因跳过脚本而跳过参考正文。读完命中文件后再写 Prompt。
+
+## Mode 路由表
+
+加载本 skill 后的**第一动作**：只选下表中的 **一个** mode，然后**只读**该 mode 命中的参考文件。默认禁止通读全部 `references/legacy/`。
+
+| Mode | 触发（用户说法/任务形态） | 必读命中文件 |
+| --- | --- | --- |
+| `edit` | 改图、多参考、洗图、KV、场景、材质/人物锁定、连续追改 | **核心**：`control-layer.md` + `prompt-contract.md` + `prompt-segments.md` + `six-structure.md` + `legacy/D-image-prompt.md`；人物/材质/返修/空间/模板再读 `templates.md` |
+| `brief` | 按任务构思视觉方向；尚未要完整可复制改图指令 | 同 edit 核心四件 + legacy prompt（edit/brief 共用） |
+| `direction` | 方向差异、候选发散、四宫格探索 | `control-layer.md` + `prompt-contract.md` + `prompt-segments.md` + `legacy/D-grid-prompt.md` |
+| `hd` | 线稿/色稿/高清重绘、结构锁后再上真实材质 | `control-layer.md` + `prompt-contract.md` + `prompt-segments.md` + `legacy/D-image-HD.md`；执行脚本时再读 `scripts/hd/` |
+| `repair` | 只修已选图局部产品漂移，不重做整图 | `control-layer.md` + `prompt-contract.md` + `legacy/D-image-repair.md`；局部脚本再读 `scripts/repair/` |
+
+### 条件命中（任务匹配再读；禁止无匹配时通读）
+
+| 条件 | 追加读取 |
+| --- | --- |
+| 白底转场景 / 白底进场景 | `white-to-scene.md` |
+| 光影专项、调性反差、实拍+C4D 分工 | `lighting-control.md` |
+| 机位/焦距/景深/广角风险 | `camera-language.md` |
+| 真实感、世界逻辑、轻微不完美 | `realism.md` |
+| 多角度成套、Logo 后期叠 | `multi-view-lock.md` |
+| 模特佩戴/持握同框 | `model-product.md`（可与 `templates.md` 人像段并用） |
+| 要 JSON/模块字段化 | `prompt-json-modules.md` |
+| 用户要反推/拆参考图提示词 | **不在本 skill 硬写终稿** → 交 `d-prompt-reverse` |
+
+选错 mode 时先改 mode 再读对应文件，不要把多个 legacy 拼成一份 Prompt。**禁止默认通读全部 legacy 与全部条件模块。**
 
 ## 会话级自动更新
 
 更新返回新安装目录时，重新定位并读取新目录的本技能、路由及适用参考；不继续使用旧缓存路径。同一会话已检查则不重复运行，恢复上下文不视为新会话。
-
 
 每个会话首次触发任意 DUMIK skill 时，先运行当前 `SKILL.md` 所在目录向上两级的 `scripts/update_dumik_plugin.ps1`；无论成功或失败，本会话后续 DUMIK skill 都不重复运行。
 
@@ -28,17 +58,30 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 返回 `current` 或 `updated` 时静默继续；返回 `skipped` 表示保留了本地定制、未拉取远端或重装，不得称为已更新。同一会话只提示一次“已保留本地定制，本次跳过自动更新”，继续任务，不自动提交、暂存或回退改动。失败时只提示 `本次未能自动更新 DUMIK Team Plugin，将按当前本地版本继续。`，随后继续当前任务。此动作只维护本地插件，不代表用户授权图片或视频生成，也不改变费用确认与批量闸门。
 
-统一原 `D-image-prompt`、`D-image-HD`、`D-image-repair` 和 `D-grid-prompt` 的图片创作入口。
+**Grok Bot / Linux：** 跳过上述 Windows 自动更新脚本；需要更新时按宿主约定更新插件仓库，不把跳过更新当成跳过参考读取。
 
 ## 模式
 
-选择遵循 [插件路由](../../assets/agent-skill-routing.md)；多轮追改读取 [任务状态合同](../../assets/task-state-contract.md)，先确定修改部件和当前有效属性，再写独立完整正文。
+选择遵循 [插件路由](../../assets/agent-skill-routing.md)；多轮追改读取 [任务状态合同](../../assets/task-state-contract.md)，先确定修改部件和当前有效属性，再写独立完整正文。模式细则以上方 **Mode 路由表** 为准。
 
 - `edit`：普通改图、多参考融合、洗图、KV、场景、材质和人物锁定。
 - `brief`：按任务要求构思图片视觉方向；确有策略缺项时才使用 `d-visual-plan`。
 - `direction`：把给定表达展开为有意义的候选差异；四宫格是可选表现形式，不规定方向数或确认关卡。
 - `hd`：线稿 → 色稿 → 真实画面提示词 → 高清重绘。
 - `repair`：只诊断和修复已选图片中真实存在的局部产品漂移。
+
+## 控制层检查（写 Prompt 前）
+
+选好 mode 并读完命中参考后、动笔写 Prompt 前，必须过一遍（细则见 `references/control-layer.md`）：
+
+1. **P0/P1/P2**：结构永不交易；品牌清晰次之；氛围可让步。
+2. **结构锁（P0）**：比例、轮廓、关键部件、接口/按键、材质固有色、Logo/丝印区 — 不得重设计；看不见的标「无法从当前图确认」，不瞎补。
+3. **去抽象化**：位置、机位、占比、光向、不可改项写清。
+4. **控制区 vs 自由区**：锁死与可发挥必须明示。
+5. **负面禁止项单独成段**：只写本任务真实风险。
+6. **系列规则 / design 设计语言**：有则强制读并继承；无则标待确认。
+7. **线稿分工**（有线稿时）：产品线稿锁结构，场景线稿锁构图。
+8. **分段顺序**：风格→主体锁→场景→机位→光影→材质→质量→禁止（见 `prompt-segments.md`）；需要叙事骨架时再用 `six-structure.md`。
 
 ## 共同规则
 
@@ -50,6 +93,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 - 材质必须写光打在表面上的结果。户外金属要承接天空的宽面积冷白漫反射，木材保留真实暖色与纤维层次，地面和主体要有统一的环境反射、接触阴影和边缘光，不能只堆“油润、真实、高级”。
 - 写多图前复核目标图和参考图的实际状态，特别是原片、调色片和效果片混在一起时；目标图由本次要修改的素材决定，不由图号或画面明暗猜定。职责有冲突就指出并澄清，不能把已经调坏的效果片当成原始结构目标。
 - 只写提示词时不调用接口；明确生图、改图或批量生成时，将最终任务交给 `d-image-runner`。
+- 用户只要「对比原图审结构 / 一致性验收」时交给 `d-consistency-check`，本 skill 不代替三态审稿。
+- 用户要「反推 / 拆参考图提示词」时交给 `d-prompt-reverse`（人判主次）；本 skill 不接一键终稿。
 
 ## 五维画面编译
 
@@ -63,14 +108,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 ## 模式资料
 
-进入本 skill 后，先在规则包中核对全部参考文件登记；再读 `references/prompt-contract.md` 和当前模式追加的命中文件正文：
+进入本 skill 后：先按 **Mode 路由表** 选定唯一 mode；再读该 mode **必读**文件；仅当任务匹配时追加**条件命中**文件。`references/original.md` 仅追溯旧口径时按需读。信息传递与可测标准见 [`../../assets/workflow-chain.md`](../../assets/workflow-chain.md)。
 
-- `edit / brief`：`references/legacy/D-image-prompt.md`；涉及人物、模特、材质、返修、空间融合或模板块时，再读 `references/templates.md` 和对应章节。
-- `direction`：`references/legacy/D-grid-prompt.md`。
-- `hd`：`references/legacy/D-image-HD.md`，需要执行脚本时再读 `scripts/hd/` 中对应说明。
-- `repair`：`references/legacy/D-image-repair.md`，需要局部脚本时再读 `scripts/repair/` 中对应说明。
+- `edit / brief`：核心四件（control-layer / prompt-contract / prompt-segments / six-structure）+ `legacy/D-image-prompt.md`；人物/材质等再读 `templates.md`；条件表按需。
+- `direction`：control-layer + prompt-contract + prompt-segments + `legacy/D-grid-prompt.md`。
+- `hd`：control-layer + prompt-contract + prompt-segments + `legacy/D-image-HD.md`，脚本见 `scripts/hd/`。
+- `repair`：control-layer + prompt-contract + `legacy/D-image-repair.md`，脚本见 `scripts/repair/`。
 
-没有完成上述 `reference_set` 的实际读取时，停在准备阶段，不输出最终 Prompt，也不交给 `d-image-runner`。
+没有完成必读命中文件的实际读取时，停在准备阶段，不输出最终 Prompt，也不交给 `d-image-runner`。
 
 统一输出比例、参考图职责、主指令和最小风险约束；不要让多个旧模式重复拼接整段提示词。
 
