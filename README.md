@@ -5,10 +5,21 @@
 ## 当前插件
 
 - `dumik-team-plugin`
-- 市场标签：`v0.1.12`
-- 插件版本：`0.1.12`
+- 市场标签：`v0.1.15`
+- 插件版本：`0.1.15`
 - 内容：项目 `AGENTS.md` 总控、`design.md` 与设定集事实层、图片与视频专业方法、成组任务执行、项目入口维护，以及统一的 `@图N` 素材引用合同
-- 更新公告：[v0.1.12 与 v0.1.10 对比](RELEASE_NOTES_0.1.12.md)
+- 更新公告：[v0.1.15 视频方法论扩充](RELEASE_NOTES_0.1.15.md)
+
+## v0.1.15 的新增
+
+`d-video-director` 吸收 Higgsfield《Hell Grind》生产方法论（源自 `OSideMedia/higgsfield-ai-prompt-skill`），
+只取方法论、剔除全部工具与执行层，新增三份参考：
+
+- `video-methodology-mcsla.md`：MCSLA 五层、T2V/I2V 双范式、身份块与动作块分离、角色资产家族、场景 GEO 锚定、禁令字典、单变量迭代、6 轮诊断、反套话
+- `video-directing-shotlist.md`：三层结构、15 秒信封密度判断、节奏预算算术闸门、单调性审计、双对比切镜、连续性清单、导演门禁
+- `video-acting-and-failure-modes.md`：表演五根柱子、眼睛必须有生命、状态而非过渡、12 种失败模式与对策、帧级复核
+
+注意：运行 `compile_reference_pack.ps1` 必须用 `pwsh`（PowerShell 7），用 `powershell` 5.1 会因无 BOM 中文按 ANSI 读取而解析失败。
 
 ## v0.1.12 的分工
 

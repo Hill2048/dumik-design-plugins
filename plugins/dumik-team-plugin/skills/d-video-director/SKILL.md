@@ -2,7 +2,7 @@
 name: d-video-director
 description: "编写和追改视频提示词、分镜、关键帧，分析真实视频并交付拉片或 HTML 报告；模型名不改变此入口。纯卖点排序交 d-visual-plan，实际视频提交交 d-video-runner。"
 metadata:
-  version: 0.1.4
+  version: 0.1.5
 ---
 
 # 视频导演
@@ -70,6 +70,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 所有视频任务先核对本 skill 全部参考文件的登记，再读 `references/prompt-compiler.md` 和 `references/directing-design.md` 的正文；然后按任务追加并完整读取命中文件：
 
+- 提示词构造方法论（MCSLA 五层、I2V 规则、身份块与动作块分离、角色资产家族、场景锚定、禁令字典、单变量迭代、6 轮诊断、反套话、镜头语言硬规则）：`references/video-methodology-mcsla.md`，所有提示词任务都读。
+- 分镜与序列组织（三层结构、15 秒信封、密度判断、节奏预算算术、单调性审计、双对比切镜、连续性清单、交付前导演门禁）：`references/video-directing-shotlist.md`，写分镜、镜头表、多镜序列时读。
+- 表演与故障诊断（五根柱子、从结局命名事件、眼睛必须有生命、状态而非过渡、失败模式表、帧级复核）：`references/video-acting-and-failure-modes.md`，有人物表演或需要诊断画面问题时读。
 - 已有视频分析或 HTML 报告：`references/report-data-schema.md`；需要交互回看时再读 `references/interactive-report.md`，脚本和模板按文件说明读取。
 - 故事板、关键帧或逐镜提示词：`references/templates.md`、`references/seedance-image-to-video.md`、`references/seedance-storyboard-driven.md`。
 - 深度视频：`references/depth-video.md`。

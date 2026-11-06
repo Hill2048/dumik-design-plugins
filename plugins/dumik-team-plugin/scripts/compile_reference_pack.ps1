@@ -103,6 +103,9 @@ switch ($Skill) {
         if ($modeText -match 'storyboard') { Add-Ref 'skills/d-video-director/references/seedance-storyboard-driven.md' }
         if ($modeText -match 'depth') { Add-Ref 'skills/d-video-director/references/depth-video.md' }
         if ($modeText -match 'camera|trajectory|track|orbit|compound') { Add-Ref 'skills/d-video-director/references/seedance-camera-codec.md' }
+        Add-Ref 'skills/d-video-director/references/video-methodology-mcsla.md'
+        if ($modeText -match 'storyboard|shot|shotlist|keyframe|scene|sequence|prompt|pipeline|director') { Add-Ref 'skills/d-video-director/references/video-directing-shotlist.md' }
+        if ($modeText -match 'acting|performance|character|dialogue|troubleshoot|diagnose|fix|failure|repair|report|analysis') { Add-Ref 'skills/d-video-director/references/video-acting-and-failure-modes.md' }
     }
     'd-video-runner' {
         Add-Ref 'assets/task-state-contract.md'
