@@ -31,4 +31,9 @@
 
 - 当用户要求更新并推送本插件到 GitHub 时，必须同步递增版本号（默认 `+0.0.1`，如 `0.2.2` → `0.2.3`，除非用户另行指定）并发行新的 GitHub Release。
 - 需同步更新 3 处版本字段：`plugins/dumik-team-plugin/.codex-plugin/plugin.json`（`version`）、`plugins/dumik-team-plugin/plugin.json`（`version`）、`plugins/dumik-team-plugin/assets/skill-versions.json`（`pluginVersion`）。
-- 优先执行 `plugins/dumik-team-plugin/scripts/release_dumik_plugin.ps1` 完成「版本号 `+0.0.1` → 提交 → 推送 `main` → `gh release create v<新版本>` 发行新版本」。
+- **必须编写更新公告并随 Release 发布**（禁止只用自动生成的 Full Changelog 空壳）：
+  - 标题格式：`# DUMIK Team Plugin v<版本号>`
+  - 开头一句话概括：用极简人话说明本版核心升级或解决的问题，不堆术语。
+  - 分类列出变更（按需选用 `## ✨ 新功能`、`## ⚡ 优化与改进`、`## 🐛 问题修复`）。
+  - 每条格式：`- **加粗人话小标题**：一两句讲清对使用者的实际变化，不列内部文件名、函数名或 commit hash。`
+- 优先执行 `plugins/dumik-team-plugin/scripts/release_dumik_plugin.ps1 -NotesFile "<公告文件>"` 完成「版本号 `+0.0.1` → 提交 → 推送 `main` → `gh release create v<新版本>` 发行新版本与公告」。

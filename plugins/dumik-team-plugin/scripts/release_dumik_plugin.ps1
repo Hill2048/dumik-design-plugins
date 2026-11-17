@@ -1,6 +1,8 @@
 param(
   [string]$Version = "",
   [string]$Message = "",
+  [string]$Notes = "",
+  [string]$NotesFile = "",
   [switch]$DryRun
 )
 
@@ -76,11 +78,41 @@ try {
   $existingTags = @(gh release list --limit 30 --json tagName --jq '.[].tagName')
   if ($LASTEXITCODE -ne 0) { throw "gh release list failed." }
 
-  if ($existingTags -contains $tag) {
-    Write-Host "GitHub release $tag already exists."
-  } else {
-    gh release create $tag --title "DUMIK Team Plugin $tag" --generate-notes
-    if ($LASTEXITCODE -ne 0) { throw "gh release create $tag failed." }
+  $releaseTitle = "DUMIK Team Plugin $tag"
+  $tempNotesFile = ""
+  try {
+    $resolvedNotesFile = ""
+    if (-not [string]::IsNullOrWhiteSpace($NotesFile)) {
+      if (-not (Test-Path -LiteralPath $NotesFile -PathType Leaf)) {
+        throw "NotesFile not found: $NotesFile"
+      }
+      $resolvedNotesFile = $NotesFile
+    } elseif (-not [string]::IsNullOrWhiteSpace($Notes)) {
+      $tempNotesFile = Join-Path $env:TEMP ("dumik-release-notes-$tag.md")
+      $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+      [IO.File]::WriteAllText($tempNotesFile, $Notes, $utf8NoBom)
+      $resolvedNotesFile = $tempNotesFile
+    }
+
+    if ($existingTags -contains $tag) {
+      if ($resolvedNotesFile) {
+        gh release edit $tag --title $releaseTitle --notes-file $resolvedNotesFile
+        if ($LASTEXITCODE -ne 0) { throw "gh release edit $tag failed." }
+      } else {
+        Write-Host "GitHub release $tag already exists."
+      }
+    } else {
+      if ($resolvedNotesFile) {
+        gh release create $tag --title $releaseTitle --notes-file $resolvedNotesFile
+      } else {
+        gh release create $tag --title $releaseTitle --generate-notes
+      }
+      if ($LASTEXITCODE -ne 0) { throw "gh release create $tag failed." }
+    }
+  } finally {
+    if ($tempNotesFile -and (Test-Path -LiteralPath $tempNotesFile)) {
+      Remove-Item -LiteralPath $tempNotesFile -Force -ErrorAction SilentlyContinue
+    }
   }
 } finally {
   Pop-Location
