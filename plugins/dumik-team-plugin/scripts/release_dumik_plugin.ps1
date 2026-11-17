@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$Version = "",
   [string]$Message = "",
   [string]$Notes = "",
@@ -77,20 +77,32 @@ try {
 
   $existingTags = @(gh release list --limit 30 --json tagName --jq '.[].tagName')
   if ($LASTEXITCODE -ne 0) { throw "gh release list failed." }
+  $prevTag = ($existingTags | Where-Object { $_ -ne $tag } | Select-Object -First 1)
 
   $releaseTitle = "DUMIK Team Plugin $tag"
   $tempNotesFile = ""
   try {
-    $resolvedNotesFile = ""
+    $rawNotes = ""
     if (-not [string]::IsNullOrWhiteSpace($NotesFile)) {
       if (-not (Test-Path -LiteralPath $NotesFile -PathType Leaf)) {
         throw "NotesFile not found: $NotesFile"
       }
-      $resolvedNotesFile = $NotesFile
+      $rawNotes = Get-Content -LiteralPath $NotesFile -Raw -Encoding UTF8
     } elseif (-not [string]::IsNullOrWhiteSpace($Notes)) {
+      $rawNotes = $Notes
+    }
+
+    $resolvedNotesFile = ""
+    if (-not [string]::IsNullOrWhiteSpace($rawNotes)) {
+      $cleanNotes = $rawNotes.TrimStart([char]0xFEFF).Trim()
+      # Strip duplicate leading H1 title if it repeats the Release title
+      $cleanNotes = [regex]::Replace($cleanNotes, '^\#\s+DUMIK\b[^\r\n]*(\r?\n)+', '')
+      if ($prevTag -and ($cleanNotes -notmatch 'https://github\.com/.+/compare/')) {
+        $cleanNotes = "$cleanNotes`n`n[查看与 $prevTag 的完整差异](https://github.com/Hill2048/dumik-codex-plugins/compare/$prevTag...$tag)"
+      }
       $tempNotesFile = Join-Path $env:TEMP ("dumik-release-notes-$tag.md")
       $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-      [IO.File]::WriteAllText($tempNotesFile, $Notes, $utf8NoBom)
+      [IO.File]::WriteAllText($tempNotesFile, $cleanNotes, $utf8NoBom)
       $resolvedNotesFile = $tempNotesFile
     }
 
