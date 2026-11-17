@@ -7,7 +7,7 @@
   "author": {
     "name": "DUMIK Team"
   },
-  "repository": "https://github.com/Hill2048/dumik-codex-plugins",
+  "repository": "https://github.com/Hill2048/dumik-design-plugins",
   "suggestedPrompts": [
     "用这个飞书链接一键初始化当前项目文件夹，生成 project.md、design.md 与 AGENTS.md",
     "先为视觉里程碑写好纯无字底图 prompt.md 并预留 PS 排版留白（默认 9:16）",

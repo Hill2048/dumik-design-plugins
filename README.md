@@ -1,4 +1,4 @@
-# DUMIK Codex 插件市场
+# DUMIK Design 插件市场
 
 DUMIK 团队共用的视觉工作流插件市场仓库，同时兼容 Codex 与 ZCode。
 
@@ -6,7 +6,7 @@ DUMIK 团队共用的视觉工作流插件市场仓库，同时兼容 Codex 与 
 
 - **插件名**：`dumik-team-plugin`（DUMIK Team Plugin）
 - **当前版本**：见 [plugin.json](plugins/dumik-team-plugin/.codex-plugin/plugin.json) 与 [skill-versions.json](plugins/dumik-team-plugin/assets/skill-versions.json)
-- **更新公告**：全部正式版本与变更说明统一发布在 [GitHub Releases](https://github.com/Hill2048/dumik-codex-plugins/releases)
+- **更新公告**：全部正式版本与变更说明统一发布在 [GitHub Releases](https://github.com/Hill2048/dumik-design-plugins/releases)
 
 ## 核心能力
 
@@ -22,7 +22,7 @@ DUMIK 团队共用的视觉工作流插件市场仓库，同时兼容 Codex 与 
 
 在 Codex 里打开「添加插件市场」：
 
-- 来源：`https://github.com/Hill2048/dumik-codex-plugins`
+- 来源：`https://github.com/Hill2048/dumik-design-plugins`
 - Git 引用：`main`
 - 稀疏路径：留空
 
@@ -30,7 +30,7 @@ DUMIK 团队共用的视觉工作流插件市场仓库，同时兼容 Codex 与 
 
 在 ZCode 里添加插件市场，来源填：
 
-- `Hill2048/dumik-codex-plugins`（或 `https://github.com/Hill2048/dumik-codex-plugins`）
+- `Hill2048/dumik-design-plugins`（或 `https://github.com/Hill2048/dumik-design-plugins`）
 
 安装后搜索 `DUMIK Team Plugin` 即可使用。
 

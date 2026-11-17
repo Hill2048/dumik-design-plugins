@@ -28,7 +28,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 把 DUMIK 插件里内置的 Photoshop 面板装到本机。用户只要说“更新 PSB 插件”“更新 psb 插件”“安装 PSB 智能对象工具”，就执行这个流程。
 
-更新时先查 GitHub `Hill2048/dumik-codex-plugins` 的 `main` 分支版本。远端 `pluginVersion` 更高时，下载 GitHub main zip 的插件资产来安装，不要只用本地旧缓存。
+更新时先查 GitHub `Hill2048/dumik-design-plugins` 的 `main` 分支版本。远端 `pluginVersion` 更高时，下载 GitHub main zip 的插件资产来安装，不要只用本地旧缓存。
 
 默认安装/打包 UXP。只有用户明确要求旧版时，才走 CEP。
 
@@ -46,8 +46,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 1. 先自动核对 GitHub 版本：
    - 读取本地 `assets/skill-versions.json` 的 `pluginVersion`
-   - 读取远端 `https://raw.githubusercontent.com/Hill2048/dumik-codex-plugins/main/plugins/dumik-team-plugin/assets/skill-versions.json`
-   - 如果远端版本更高，下载 `https://github.com/Hill2048/dumik-codex-plugins/archive/refs/heads/main.zip`
+   - 读取远端 `https://raw.githubusercontent.com/Hill2048/dumik-design-plugins/main/plugins/dumik-team-plugin/assets/skill-versions.json`
+   - 如果远端版本更高，下载 `https://github.com/Hill2048/dumik-design-plugins/archive/refs/heads/main.zip`
    - 从下载包里的 `plugins/dumik-team-plugin` 安装 PSB 工具
    - 如果网络失败，明确提示“GitHub 版本检查失败，继续使用本地版本”
 

@@ -4,7 +4,7 @@ param()
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$canonicalSource = 'https://github.com/Hill2048/dumik-codex-plugins.git'
+$canonicalSource = 'https://github.com/Hill2048/dumik-design-plugins.git'
 $scriptUnderTest = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\update_dumik_plugin.ps1'))
 $expectedSkills = @(
     'd-init',

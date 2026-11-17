@@ -1,4 +1,4 @@
-﻿param(
+param(
   [string]$Version = "",
   [string]$Message = "",
   [string]$Notes = "",
@@ -98,7 +98,7 @@ try {
       # Strip duplicate leading H1 title if it repeats the Release title
       $cleanNotes = [regex]::Replace($cleanNotes, '^\#\s+DUMIK\b[^\r\n]*(\r?\n)+', '')
       if ($prevTag -and ($cleanNotes -notmatch 'https://github\.com/.+/compare/')) {
-        $cleanNotes = "$cleanNotes`n`n[查看与 $prevTag 的完整差异](https://github.com/Hill2048/dumik-codex-plugins/compare/$prevTag...$tag)"
+        $cleanNotes = "$cleanNotes`n`n[查看与 $prevTag 的完整差异](https://github.com/Hill2048/dumik-design-plugins/compare/$prevTag...$tag)"
       }
       $tempNotesFile = Join-Path $env:TEMP ("dumik-release-notes-$tag.md")
       $utf8NoBom = New-Object System.Text.UTF8Encoding($false)

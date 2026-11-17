@@ -1,6 +1,6 @@
 # DUMIK 团队视觉工作流（Antigravity 规则）
 
-- 当前插件根目录为 `C:\Users\admin\.gemini\config\plugins\dumik`（通过 NTFS 软连接实时指向 `C:\Users\admin\Documents\Codex\dumik-codex-plugins\plugins\dumik-team-plugin`）。
+- 当前插件根目录为 `C:\Users\admin\.gemini\config\plugins\dumik`（通过 NTFS 软连接实时指向 `C:\Users\admin\Documents\Codex\dumik-design-plugins\plugins\dumik-team-plugin`）。
 - 能力路由唯一来源：`assets/agent-skill-routing.md`；项目文件夹结构与零垃圾协议：`assets/project-env-protocol.md`；单图状态约定：`assets/task-state-contract.md`。
 
 ## 一、一文件夹一项目（建档即完整上下文闭环）
@@ -36,5 +36,5 @@
   - **对比上一个发行版汇总全部更新**：必须基于 `git log <上一个发行tag>..HEAD` 汇总从上个正式发行版到本版的**全部**实际变化（不能只写最后一次提交）。
   - 分类列出变更（按需选用 `## ✨ 新功能`、`## ⚡ 优化与改进`、`## 🐛 问题修复`）。
   - 每条格式：`- **加粗人话小标题**：一两句讲清对使用者的实际变化，不列内部文件名、函数名或 commit hash。`
-  - 末尾附上完整对比链接：`[查看与 <上一个发行tag> 的完整差异](https://github.com/Hill2048/dumik-codex-plugins/compare/<上一个发行tag>...v<版本号>)`。
+  - 末尾附上完整对比链接：`[查看与 <上一个发行tag> 的完整差异](https://github.com/Hill2048/dumik-design-plugins/compare/<上一个发行tag>...v<版本号>)`。
 - 优先执行 `plugins/dumik-team-plugin/scripts/release_dumik_plugin.ps1 -NotesFile "<公告文件>"` 完成「版本号 `+0.0.1` → 提交 → 推送 `main` → `gh release create v<新版本>` 发行新版本与公告」。

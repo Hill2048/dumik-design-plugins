@@ -3,8 +3,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-REMOTE_VERSION_URL="https://raw.githubusercontent.com/Hill2048/dumik-codex-plugins/main/plugins/dumik-team-plugin/assets/skill-versions.json"
-REMOTE_ZIP_URL="https://github.com/Hill2048/dumik-codex-plugins/archive/refs/heads/main.zip"
+REMOTE_VERSION_URL="https://raw.githubusercontent.com/Hill2048/dumik-design-plugins/main/plugins/dumik-team-plugin/assets/skill-versions.json"
+REMOTE_ZIP_URL="https://github.com/Hill2048/dumik-design-plugins/archive/refs/heads/main.zip"
 
 plugin_version() {
   python3 - <<'PY' "$1"
@@ -53,10 +53,10 @@ PY
     echo "GitHub plugin version: $REMOTE_PLUGIN_VERSION"
     if [[ "$(version_newer "$REMOTE_PLUGIN_VERSION" "$LOCAL_PLUGIN_VERSION")" == "1" ]]; then
       TMP_ROOT="$(mktemp -d)"
-      ZIP_PATH="$TMP_ROOT/dumik-codex-plugins-main.zip"
+      ZIP_PATH="$TMP_ROOT/dumik-design-plugins-main.zip"
       curl -fsSL "$REMOTE_ZIP_URL" -o "$ZIP_PATH"
       unzip -q "$ZIP_PATH" -d "$TMP_ROOT"
-      REMOTE_PLUGIN_ROOT="$TMP_ROOT/dumik-codex-plugins-main/plugins/dumik-team-plugin"
+      REMOTE_PLUGIN_ROOT="$TMP_ROOT/dumik-design-plugins-main/plugins/dumik-team-plugin"
       if [[ ! -d "$REMOTE_PLUGIN_ROOT" ]]; then
         echo "Downloaded GitHub package does not contain plugins/dumik-team-plugin." >&2
         exit 1

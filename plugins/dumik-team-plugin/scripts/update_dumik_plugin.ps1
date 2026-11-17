@@ -7,7 +7,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$canonicalSource = 'https://github.com/Hill2048/dumik-codex-plugins.git'
+$canonicalSource = 'https://github.com/Hill2048/dumik-design-plugins.git'
 $pluginName = 'dumik-team-plugin'
 $expectedSkills = @(
     'd-init',

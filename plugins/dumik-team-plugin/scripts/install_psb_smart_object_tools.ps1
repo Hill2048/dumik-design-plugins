@@ -19,8 +19,8 @@ $BackupPattern = "psb-smart-object-tools.bak-*"
 $UxpPackageRoot = Join-Path $PluginRoot "dist"
 $UxpInstallMethod = ""
 $UxpInstallTarget = ""
-$GithubRawVersionUrl = "https://raw.githubusercontent.com/Hill2048/dumik-codex-plugins/main/plugins/dumik-team-plugin/assets/skill-versions.json"
-$GithubZipUrl = "https://github.com/Hill2048/dumik-codex-plugins/archive/refs/heads/main.zip"
+$GithubRawVersionUrl = "https://raw.githubusercontent.com/Hill2048/dumik-design-plugins/main/plugins/dumik-team-plugin/assets/skill-versions.json"
+$GithubZipUrl = "https://github.com/Hill2048/dumik-design-plugins/archive/refs/heads/main.zip"
 $RequiredFiles = @(
   "index.html",
   "js\main.js",
@@ -113,11 +113,11 @@ function Use-GithubPluginIfNewer {
 
     $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("dumik-psb-plugin-" + [guid]::NewGuid().ToString("N"))
     New-Item -ItemType Directory -Force -Path $tempRoot | Out-Null
-    $zipPath = Join-Path $tempRoot "dumik-codex-plugins-main.zip"
+    $zipPath = Join-Path $tempRoot "dumik-design-plugins-main.zip"
     Invoke-WebRequest -Uri $GithubZipUrl -UseBasicParsing -TimeoutSec 60 -OutFile $zipPath
     Expand-Archive -LiteralPath $zipPath -DestinationPath $tempRoot -Force
 
-    $remoteRoot = Join-Path $tempRoot "dumik-codex-plugins-main\plugins\dumik-team-plugin"
+    $remoteRoot = Join-Path $tempRoot "dumik-design-plugins-main\plugins\dumik-team-plugin"
     if (!(Test-Path -LiteralPath $remoteRoot -PathType Container)) {
       $remoteRoot = Get-ChildItem -LiteralPath $tempRoot -Directory -ErrorAction Stop |
         ForEach-Object { Join-Path $_.FullName "plugins\dumik-team-plugin" } |
