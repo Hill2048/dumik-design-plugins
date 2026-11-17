@@ -439,3 +439,15 @@ test('defaults to the Codex layout, and detects ZCode from the environment', (t)
   assert.equal(JSON.parse(withZCode.stdout).host, 'zcode');
   assert.ok(fs.existsSync(zcodeProject.config));
 });
+
+test('loads project.md alongside design.md when project.md exists', (t) => {
+  const f = fixture(t);
+  fs.writeFileSync(path.join(f.root, 'project.md'), '# 项目总账本\n- S04: 待写词\n');
+  assert.equal(install(f).status, 0);
+  const loaded = run(f);
+  assert.equal(loaded.status, 0, loaded.stderr);
+  const context = JSON.parse(loaded.stdout).hookSpecificOutput.additionalContext;
+  assert.match(context, /Product reference only/);
+  assert.match(context, /项目总账本/);
+  assert.doesNotMatch(context, /Preserve this/);
+});

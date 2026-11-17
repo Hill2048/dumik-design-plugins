@@ -2,7 +2,7 @@
 name: d-project-pipeline
 description: "编排成组图片的跨步骤依赖、自动串跑和流水线恢复。只批量写提示词仍交 d-image-director，单纯生成多个候选交 d-image-runner；项目制本身不触发生成或固定确认关卡。"
 metadata:
-  version: 0.1.3
+  version: 0.2.1
 ---
 
 # 项目流水线
@@ -13,7 +13,7 @@ metadata:
 
 本 skill 必须遵守 [参考文件读取硬门槛](../../assets/reference-loading-protocol.md)。规则包会登记本 skill `references/` 下的全部文件，再追加当前项目状态和任务命中的导演/Runner 规则；只有命中文件进入当前正文，读取完整规则包后才能创建任务行、推进状态、提交执行或恢复断点。
 
-进入流水线前先运行当前插件目录的 `scripts/compile_reference_pack.ps1 -Skill d-project-pipeline -Mode <image|video|mixed>`，再读取脚本返回的 `output_path`。导演和 Runner 的任务包仍需按各自 skill 重新编译，不能把流水线包当成执行包。
+进入流水线前先运行当前插件目录的 `scripts/compile_reference_pack.ps1 -Skill d-project-pipeline -Mode <image|canvas|video|mixed>`，再读取脚本返回的 `output_path`。导演和 Runner 的任务包仍需按各自 skill 重新编译，不能把流水线包当成执行包。
 
 ## 会话级自动更新
 
@@ -30,14 +30,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 本 skill 提供批量组织与断点恢复方法，不是项目总控。策略、确认节点、反馈范围和交付标准由项目 `AGENTS.md` 与当前任务给定。
 
-## 编排方法
+## 编排方法（无状态调度 + 零本地 JSON 尾气）
 
-1. 把本次已明确的画面需求整理为独立任务，保留各自输入、输出名和依赖。
-2. 缺少本次确需的策略或提示词时，调用对应专业方法，不重做已经确定的阶段。
-3. 将依赖已满足且获准执行的任务交给 `d-image-runner`，记录状态，恢复时先核实已有提交。
-4. 依据项目总控给出的留用、修复或重做决定推进相应任务；互不依赖的部分无需全量等待。
-5. 按项目确认结果交付。是否先试跑、展示几张、在哪里等待，不由本 skill 固定规定。
+1. **以根目录 `project.md` 与磁盘真实文件为唯一真相**：严禁在项目目录内生成 `run-state.json`、`wave*.json` 或 `运行记录.json/.md`。随时可用 `scripts/build_canvas_pipeline.py --project-root <项目> --status` 扫描 `制作/<编号_名称>/prompt.md`、候选图、`设定集/里程碑/` 与 `成品/`，自动校准 `project.md` 状态列。
+2. **仅读取已写好的 `制作/<编号_名称>/prompt.md`**：禁止用草稿偷跑接口；若某批缺少 `prompt.md`，先交 `d-image-director` 编写最新完整纯无字底图提示词并就地覆盖写入 `prompt.md`。
+3. **`%TEMP%` 临时组包执行**：仅当用户明确下令「开始生图 / 出图 / 批量跑图」时，才加 `--execute` 经系统 `%TEMP%\dumik-runs\` 组装一次性批次调 `d-image-runner` 生图，结束后立即删除临时 JSON 并自动刷新 `project.md`。
+4. **定稿晋升归档**：候选图确认通过后，使用 `--promote <编号> --file <候选图>` 复制归档进 `设定集/里程碑/`（`MS*`）或 `成品/`（`S*`/`M*`/`E*`），同时刷新状态并在第 1 批详情定稿时提醒同步派生关联 `3:4` 主图。
 
-按 [插件路由](../../assets/agent-skill-routing.md) 判断是否需要跨步骤执行编排，不凭“项目制、批量、Agent”单个词触发。按 [任务状态合同](../../assets/task-state-contract.md) 复用现有 `run-state.json` 保存有效决定，不维护两套状态。
+按 [插件路由](../../assets/agent-skill-routing.md) 判断是否需要跨步骤执行编排，不凭“项目制、批量、Agent”单个词触发。单图追改就地覆盖 `制作/<编号_名称>/prompt.md`，详见 [任务状态合同](../../assets/task-state-contract.md)。
 
-任务状态与批量执行方法见 [references/legacy/D-detail-auto.md](references/legacy/D-detail-auto.md)，进入流水线前必须完整读取；任务行引用的导演和 runner 规则也必须沿引用链读取。
+无状态流水线脚本与定稿晋升用法见 [references/canvas-auto-pipeline.md](references/canvas-auto-pipeline.md)（脚本 `scripts/build_canvas_pipeline.py`），通用批量参考见 [references/legacy/D-detail-auto.md](references/legacy/D-detail-auto.md)。进入流水线前必须完整读取；实际调图时导演与 runner 规则也必须沿引用链读取。

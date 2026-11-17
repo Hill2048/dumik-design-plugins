@@ -1,8 +1,8 @@
 {
   "family_id": "proof-by-structure-callout",
-  "version": "1.0.0",
-  "name_cn": "结构指示",
-  "intent": "用拆解、指示线、局部特写讲清结构和设计巧思，证明「想得周到」。",
+  "version": "1.1.0",
+  "name_cn": "结构微距与拆解纯画面",
+  "intent": "用高清微距特写或真实拆解结构纯画面展示巧思与工艺细节，文字与指示线全部留给后期 PS 确定性叠加。",
   "suits_selling_points": [
     "结构设计",
     "细节巧思",
@@ -10,36 +10,36 @@
     "易清洁结构",
     "人体工学握感"
   ],
-  "visual_evidence": "局部放大 + 指示引线 + 关键结构特写；可拆解展开或爆炸图，让结构一目了然。",
+  "visual_evidence": "纯无字高清结构特写、真实部件拆分并置或截面剖视；不让 AI 画指示引线、放大圆框与数字标注，只在构图对应侧预留 25%~30% 干净低反差负空间给后期 PS 拉线排字。",
   "composition_variables": [
-    "指示线密度（克制 / 详尽）",
-    "拆解 or 整体局部放大",
-    "机位（正面工程感 / 微俯立体）",
-    "标注留白区位置"
+    "特写局部（倒角 / 接缝 / 底部结构 / 拆分部件）",
+    "机位（正面工程平视 / 微俯立体特写）",
+    "后期标注留白区位置（左 / 右 / 顶部净底）",
+    "掠射光与轮廓高光表达"
   ],
   "common_drift": [
-    "指示线乱、压到产品",
-    "拆解后零件比例错",
-    "文字标注 OCR 乱码（文字应后期叠加，AI 图不写死）"
+    "AI 私自画乱码指示线、标尺箭头或伪放大镜圆框",
+    "拆解后零件比例或数量失真",
+    "背景太花导致后期 PS 排卖点字看不清"
   ],
   "fits_stage1_2x2": false,
   "needs_white_bg_ref": true,
   "routes": [
     {
-      "route_id": "structure_callout_lines",
+      "route_id": "structure_clean_closeup",
       "camera_route": "front-engineering",
-      "note": "正面 + 指示引线，留文字位"
+      "note": "工程正面纯画面结构特写，明确一侧预留净底供 PS 拉线"
     },
     {
-      "route_id": "structure_exploded",
+      "route_id": "structure_exploded_clean",
       "camera_route": "exploded-view",
-      "note": "爆炸拆解图"
+      "note": "纯无字真实部件拆分陈列图，无箭头无引线"
     },
     {
-      "route_id": "structure_local_zoom",
+      "route_id": "structure_local_macro",
       "camera_route": "detail-zoom",
-      "note": "关键结构局部放大"
+      "note": "关键结构高清微距全幅特写，供后期 PS 截取放大细节"
     }
   ],
-  "card_direction_seed": "围绕结构给 3-4 个表达：换指示密度、换拆解与否。注意文字和参数留给后期确定性叠加，AI 图只画结构和留白位，不写死文字。"
+  "card_direction_seed": "围绕结构给纯无字物理特写或真实拆分画面：严禁生成箭头、引线、圆框、数字标尺或排版文字，只在指定区域留出整洁低反差负空间。"
 }

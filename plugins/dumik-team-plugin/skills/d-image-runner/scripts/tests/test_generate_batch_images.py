@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import base64
 import importlib.util
 from pathlib import Path
@@ -133,6 +134,72 @@ class GptImage25Tests(unittest.TestCase):
                 self.assertEqual(captured["data"]["output_format"], "png")
                 self.assertNotIn("response_format", captured["data"])
                 self.assertTrue(output.exists())
+        finally:
+            MODULE.requests.post = original_post
+
+
+class AspectRatioSizePresetTests(unittest.TestCase):
+    def test_standard_ratio_presets_for_bananapro_and_image25(self):
+        cases = {
+            "9:16": "1152x2048",
+            "9:16-2k": "1152x2048",
+            "9:16-4k": "2160x3840",
+            "3:4": "1536x2048",
+            "3:4-4k": "2400x3200",
+            "1:1": "2048x2048",
+            "1:1-4k": "2880x2880",
+        }
+        for preset, expected in cases.items():
+            for model in ("bananapro", "gpt-image-2.5-sunburst"):
+                item = MODULE.PromptItem(
+                    id="size-check",
+                    file=None,
+                    reference_files=[],
+                    task="size preset check",
+                    count=1,
+                    output_name="out.png",
+                    final_instruction="test",
+                    output_size=preset,
+                )
+                self.assertEqual(
+                    MODULE.api_size_for_item(item, image_model=model),
+                    expected,
+                    msg=f"{preset} on {model}",
+                )
+
+
+class RunRecordLoggingTests(unittest.TestCase):
+    def test_run_single_skips_run_record_by_default_and_writes_when_enabled(self):
+        original_post = MODULE.requests.post
+        MODULE.requests.post = lambda *args, **kwargs: FakeResponse()
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                out_dir = Path(temp_dir) / "默认无日志"
+                args_default = argparse.Namespace(
+                    prompt="clean titanium spoon photo",
+                    prompt_file=None,
+                    output_dir=str(out_dir),
+                    out=str(out_dir / "candidate.png"),
+                    image=None,
+                    reference=[],
+                    count=1,
+                    id="s04",
+                    task="test",
+                    output_size="1:1",
+                    image_model=MODULE.BANANA2_IMAGE_MODEL,
+                    write_run_record=False,
+                )
+                MODULE.run_single(args_default, "https://example.invalid", "test-key")
+                self.assertTrue((out_dir / "candidate.png").exists())
+                self.assertFalse((out_dir / "运行记录.json").exists())
+                self.assertFalse((out_dir / "运行记录.md").exists())
+
+                out_dir_rec = Path(temp_dir) / "开启日志"
+                args_rec = argparse.Namespace(**{**vars(args_default), "output_dir": str(out_dir_rec), "out": str(out_dir_rec / "candidate.png"), "write_run_record": True})
+                MODULE.run_single(args_rec, "https://example.invalid", "test-key")
+                self.assertTrue((out_dir_rec / "candidate.png").exists())
+                self.assertTrue((out_dir_rec / "运行记录.json").exists())
+                self.assertTrue((out_dir_rec / "运行记录.md").exists())
         finally:
             MODULE.requests.post = original_post
 

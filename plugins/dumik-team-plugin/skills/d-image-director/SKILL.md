@@ -1,8 +1,8 @@
 ---
 name: d-image-director
-description: "编写或修改图片提示词与改图指令（有图/纯文字均可）。五模式：edit=改图/多参考/洗图/KV/场景/材质；brief=构思视觉方向；direction=候选方向/四宫格；hd=线稿色稿高清重绘；repair=局部产品漂移。写词前过控制层（P0–P2/分段/条件模块）。反推参考图提示词→d-prompt-reverse；策略→d-visual-plan；生图→d-image-runner；三态验收→d-consistency-check。连续短反馈沿用当前文字任务。"
+description: "编写或修改图片提示词与改图指令（有图/纯文字均可）。六模式：detail=项目制里程碑与详情/主图纯无字底图（直连白底/光影/相机/真实感与证据包）；edit=改图/多参考/洗图/KV/场景/材质；brief=构思视觉方向；direction=候选方向/四宫格；hd=线稿色稿高清重绘；repair=局部产品漂移。写词前过控制层（P0–P2/分段/条件模块）。反推参考图提示词→d-prompt-reverse；策略→d-visual-plan；生图→d-image-runner；三态验收→d-consistency-check。连续短反馈沿用当前文字任务。"
 metadata:
-  version: 0.3.0
+  version: 0.4.1
 ---
 
 # 图片导演
@@ -15,7 +15,7 @@ metadata:
 
 本 skill 必须遵守 [参考文件读取硬门槛](../../assets/reference-loading-protocol.md)。规则包会登记本 skill `references/` 下的全部文件，再追加本轮命中的条件文件；只有命中文件进入当前正文，读取完整规则包后才能分析画面或写 Prompt。不能把链接当目录，也不能以“当前上下文已经有”替代本轮读取。
 
-Windows / 有 PowerShell 时：先运行当前插件目录的 `scripts/compile_reference_pack.ps1 -Skill d-image-director -Mode <edit|brief|direction|hd|repair> -Model <模型名>`，再读取脚本返回的 `output_path`。规则包没有成功生成或没有读完时，不进入画面分析。
+Windows / 有 PowerShell 时：先运行当前插件目录的 `scripts/compile_reference_pack.ps1 -Skill d-image-director -Mode <detail|detail-macro|detail-contrast|detail-scene|edit|brief|direction|hd|repair> -Model <模型名>`，再读取脚本返回的 `output_path`。规则包没有成功生成或没有读完时，不进入画面分析。
 
 **Grok Bot / Linux：** 若 `compile_reference_pack.ps1` 或 PowerShell 不可用，跳过编译脚本，但必须用真实文件工具直接 `Read` Mode 路由表中本轮命中的全部文件（含 `control-layer.md` 与 `prompt-contract.md`）；不得因跳过脚本而跳过参考正文。读完命中文件后再写 Prompt。
 
@@ -25,6 +25,7 @@ Windows / 有 PowerShell 时：先运行当前插件目录的 `scripts/compile_r
 
 | Mode | 触发（用户说法/任务形态） | 必读命中文件 |
 | --- | --- | --- |
+| `detail` | 项目制 `project.md` 里程碑定调（`MS*`）与详情页/主图/入口纯无字底图 `prompt.md`（支持后缀细分如 `detail-macro`、`detail-contrast`、`detail-scene`、`detail-structure`、`detail-poster`） | **项目导演套组**：`control-layer.md` + `prompt-contract.md` + `prompt-segments.md` + `six-structure.md` + `white-to-scene.md` + `lighting-control.md` + `camera-language.md` + `realism.md` + `../d-visual-plan/references/visual-selling-translation.md` + `../../assets/detail-page-prompt-packs/README.md` 及命中证据包 JSON |
 | `edit` | 改图、多参考、洗图、KV、场景、材质/人物锁定、连续追改 | **核心**：`control-layer.md` + `prompt-contract.md` + `prompt-segments.md` + `six-structure.md` + `legacy/D-image-prompt.md`；人物/材质/返修/空间/模板再读 `templates.md` |
 | `brief` | 按任务构思视觉方向；尚未要完整可复制改图指令 | 同 edit 核心四件 + legacy prompt（edit/brief 共用） |
 | `direction` | 方向差异、候选发散、四宫格探索 | `control-layer.md` + `prompt-contract.md` + `prompt-segments.md` + `legacy/D-grid-prompt.md` |
@@ -64,6 +65,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 选择遵循 [插件路由](../../assets/agent-skill-routing.md)；多轮追改读取 [任务状态合同](../../assets/task-state-contract.md)，先确定修改部件和当前有效属性，再写独立完整正文。模式细则以上方 **Mode 路由表** 为准。
 
+- `detail`：项目制里程碑（`MS*`）及第 1~3 批详情页/主图/入口纯无字底图编写与追改（覆盖写入 `制作/<编号_名称>/prompt.md`）。必须完成四项动作：① **先睁眼读参考再动笔**：若 `project.md` 对应行附有 `素材/飞书画布/<编号>_参考.*`，动笔前先读取看清其构图斜率、对比张力与压字底色明暗并参考原主副标题体量定留白，但**严禁将该竞品/带字参考截图写入 `@图N` 喂给生图 API**；② 绑定自有基准图保真级（`@图1 [结构锁死]` 自有白底图、`@图2 [属性迁移：仅迁光影色温与台面质感，禁抄构图]` 自有里程碑、`@图3 [动作引导]` 仅限用户自有线稿草图）；③ 严格落实 `project.md` 指定的 `机位景别`（相邻屏不重样）与 `PS留白要求`；④ 设计视线从留白压字区落向物理证据瞬态，严禁强广角畸变与任何排字/标尺/引线。
 - `edit`：普通改图、多参考融合、洗图、KV、场景、材质和人物锁定。
 - `brief`：按任务要求构思图片视觉方向；确有策略缺项时才使用 `d-visual-plan`。
 - `direction`：把给定表达展开为有意义的候选差异；四宫格是可选表现形式，不规定方向数或确认关卡。
@@ -87,6 +89,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 - 多参考图先短写每张图的真实职责；只出现实际存在并需要控制的内容。
 - 采用最小充分描述：不补写画面里没有的人物、手部、食材、厨具、火焰、声音或其他道具，也不为不存在的对象添加负面词。
+- **纯无字底图与 PS 负空间预留**：进入电商项目出图写词时，优先读取根目录 `design.md`（白底结构锁与里程碑光影材质母体）和 `project.md` 对应行。只描写物理画面主体、证据动作、光影材质与给后期 PS 排版预留的低反差留白区；严禁要求生图模型画任何标题文案、价格角标、数字标尺、指示引线或放大圆框（仅按白底图保留产品本体原生刻字/丝印）。完成提示词后按编号就地覆盖写入 `制作/<编号_名称>/prompt.md`（未动工不预建）。
 - 产品轮廓、比例、关键部件、材质和品牌区优先于风格描述。
 - 做风格或光影追改时，先把“更暗、更通透、更电影”等抽象判断翻译成曝光关系、光比、阴影边缘和材质反射。阴天不等于整体欠曝：要写明均匀漫射光、收窄光比、提亮暗部、软化投影并保留暗部细节。
 - 改色时优先保留主体材质的固有色，再写目标色彩如何进入暗部、中灰和高光；不要用“压低黄色、压低绿色、消除高光”这类单独的负向词把木材、植被或金属的真实颜色抽干。
@@ -110,6 +113,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 进入本 skill 后：先按 **Mode 路由表** 选定唯一 mode；再读该 mode **必读**文件；仅当任务匹配时追加**条件命中**文件。`references/original.md` 仅追溯旧口径时按需读。信息传递与可测标准见 [`../../assets/workflow-chain.md`](../../assets/workflow-chain.md)。
 
+- `detail`：white-to-scene + lighting-control + camera-language + realism + `d-visual-plan/visual-selling-translation.md` + `detail-page-prompt-packs` 对应证据包。
 - `edit / brief`：核心四件（control-layer / prompt-contract / prompt-segments / six-structure）+ `legacy/D-image-prompt.md`；人物/材质等再读 `templates.md`；条件表按需。
 - `direction`：control-layer + prompt-contract + prompt-segments + `legacy/D-grid-prompt.md`。
 - `hd`：control-layer + prompt-contract + prompt-segments + `legacy/D-image-HD.md`，脚本见 `scripts/hd/`。

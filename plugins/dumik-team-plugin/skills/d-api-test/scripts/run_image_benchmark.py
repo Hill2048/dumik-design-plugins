@@ -117,6 +117,7 @@ def run_model(
         base_url,
         "--concurrency",
         str(concurrency),
+        "--write-run-record",
     ]
     child_env = os.environ.copy()
     if api_key:

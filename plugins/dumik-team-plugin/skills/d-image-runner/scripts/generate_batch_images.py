@@ -406,6 +406,21 @@ def parse_output_size(value: str | None, *, image_model: str | None = None) -> t
         "storyboard-3:4-panel": DEFAULT_STORYBOARD_SIZES["9:16"],
         "9:16-storyboard": DEFAULT_STORYBOARD_SIZES["9:16"],
         "storyboard-9:16": DEFAULT_STORYBOARD_SIZES["9:16"],
+        "9:16": (1152, 2048),
+        "9:16-2k": (1152, 2048),
+        "2k-9:16": (1152, 2048),
+        "9:16-4k": (2160, 3840),
+        "4k-9:16": (2160, 3840),
+        "3:4": (1536, 2048),
+        "3:4-2k": (1536, 2048),
+        "2k-3:4": (1536, 2048),
+        "3:4-4k": (2400, 3200),
+        "4k-3:4": (2400, 3200),
+        "1:1": (2048, 2048),
+        "1:1-2k": (2048, 2048),
+        "2k-1:1": (2048, 2048),
+        "1:1-4k": (2880, 2880),
+        "4k-1:1": (2880, 2880),
         "2k": (DEFAULT_BATCH_LONG_EDGE, DEFAULT_BATCH_LONG_EDGE),
     }
     if normalized in presets:
@@ -1112,8 +1127,9 @@ def run_single(args: argparse.Namespace, base_url: str, api_key: str) -> None:
         api_key=api_key,
         image_model=args.image_model,
     )
-    write_json(output_dir / "运行记录.json", [row])
-    write_markdown(output_dir / "运行记录.md", [row])
+    if getattr(args, "write_run_record", False):
+        write_json(output_dir / "运行记录.json", [row])
+        write_markdown(output_dir / "运行记录.md", [row])
     if row.get("error"):
         die(str(row["error"]))
     if row.get("timing"):
@@ -1182,8 +1198,14 @@ def run_batch(args: argparse.Namespace, base_url: str, api_key: str) -> None:
 
     rows = [rows_by_id[item.id] for item in prompt_items]
 
-    write_json(output_dir / "运行记录.json", rows)
-    write_markdown(output_dir / "运行记录.md", rows)
+    if getattr(args, "write_run_record", False):
+        write_json(output_dir / "运行记录.json", rows)
+        write_markdown(output_dir / "运行记录.md", rows)
+    failed_rows = [r for r in rows if r.get("error")]
+    if failed_rows:
+        print(f"Completed with {len(failed_rows)} error(s):")
+        for err_row in failed_rows:
+            print(f"  - {err_row['id']}: {err_row['error']}")
     print(f"Done. Results written to: {output_dir}")
 
 
@@ -1238,6 +1260,11 @@ def main() -> None:
         type=int,
         default=DEFAULT_CONCURRENCY,
         help="Number of prompt rows to generate concurrently in batch mode.",
+    )
+    parser.add_argument(
+        "--write-run-record",
+        action="store_true",
+        help="Optionally write 运行记录.json and 运行记录.md into output_dir (off by default to keep projects clean).",
     )
     args = parser.parse_args()
     try:

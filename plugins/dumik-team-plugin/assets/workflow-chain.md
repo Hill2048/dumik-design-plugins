@@ -47,6 +47,12 @@ d-visual-plan（拆解+策略）
 3. Pipeline 自动连跑但中间 Prompt 未完整落盘。  
 4. 反推草稿未标人确认就被 runner 拿去出图。
 
+## 飞书画布与单项目文件夹成套流水线补充标准
+
+- **建档拆解输出**：由 `d-init`（`scripts/init_dumik_project.py`）与 `d-visual-plan`（`canvas` 模式）直接生成根目录精炼 `project.md`、`design.md` 与 `AGENTS.md`，项目内严禁残留 `.json` 队列、`拆解清单.md` 或 `运行记录`。
+- **单图写词载体**：`d-image-director` 按 `project.md` 编号为已动工的画面在 `制作/<编号_名称>/prompt.md` 覆盖维护最新完整无字底图提示词与 `@图N` 绑定；纯报告/规格屏跳过不建目录。
+- **无状态批次与授权**：`build_canvas_pipeline.py` 只在用户明确下令「开始生图 / 出图 / 批量跑图」时，才于系统 `%TEMP%` 组批次并调用 `d-image-runner` 提交，跑完立即删掉临时文件并依真实文件刷新 `project.md`。
+
 ## 一句话
 
 **每一步留下下一双眼睛（人或下一个 skill）不靠聊天记忆也能继续的东西。**

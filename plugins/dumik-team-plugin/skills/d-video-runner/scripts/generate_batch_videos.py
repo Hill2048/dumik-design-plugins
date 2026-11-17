@@ -704,6 +704,11 @@ def main() -> None:
     parser.add_argument("--provider", choices=["dreamina", "veo"], help="Override provider for all rows.")
     parser.add_argument("--base-url", help="Veo business API base URL. Overrides local Codex cache.")
     parser.add_argument("--api-key", help="Veo API key. Overrides local Codex cache.")
+    parser.add_argument(
+        "--write-run-record",
+        action="store_true",
+        help="Optionally write 运行记录.json and 运行记录.md into output_dir.",
+    )
     args = parser.parse_args()
 
     input_path = Path(args.results_input).resolve()
@@ -745,8 +750,9 @@ def main() -> None:
             result["final_instruction"] = current.final_instruction
             results.append(result)
 
-    write_json(output_dir / "运行记录.json", results)
-    write_markdown(output_dir / "运行记录.md", results)
+    if getattr(args, "write_run_record", False):
+        write_json(output_dir / "运行记录.json", results)
+        write_markdown(output_dir / "运行记录.md", results)
     print(json.dumps(results, ensure_ascii=False, indent=2))
 
 

@@ -2,7 +2,7 @@
 name: d-visual-plan
 description: "规划详情页结构、卖点顺序、视觉证据与视频转化策略。先做模糊需求五格拆解（目标/主体/关系/约束/标准），有 design.md 时强制读设计语言。单图材质或颜色追改不重新策划；图片提示词交 d-image-director，反推交 d-prompt-reverse，视频分镜交 d-video-director，不执行生成。"
 metadata:
-  version: 0.2.0
+  version: 0.3.2
 ---
 
 # 视觉策划
@@ -13,7 +13,7 @@ metadata:
 
 本 skill 必须遵守 [参考文件读取硬门槛](../../assets/reference-loading-protocol.md)。规则包会登记本 skill `references/` 下的全部文件，再追加本次图片、视频或 Seedance 模式命中的条件文件；只有命中文件进入当前正文，读取完整规则包后才能输出策略结论。
 
-先运行当前插件目录的 `scripts/compile_reference_pack.ps1 -Skill d-visual-plan -Mode <image|video|seedance>`，再读取脚本返回的 `output_path`。规则包没有成功生成或没有读完时，不输出策略结论。
+先运行当前插件目录的 `scripts/compile_reference_pack.ps1 -Skill d-visual-plan -Mode <image|canvas|video|seedance>`，再读取脚本返回的 `output_path`。规则包没有成功生成或没有读完时，不输出策略结论。
 
 本 skill 是按需使用的策略方法，不是项目必经入口。是否探索、复用哪些决定、怎样确认与回写，均由项目 `AGENTS.md` 决定；已有策略作为输入，不重新策划。
 
@@ -36,7 +36,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 按 [插件路由](../../assets/agent-skill-routing.md) 处理明确的策略需求或专业入口指出的必要策略缺口；单图追改保持原路线，不因出现“质感、创意”就重开策划。多轮决定按 [任务状态合同](../../assets/task-state-contract.md) 维护。
 
-- `image`：针对本次策略缺项整理详情页结构、卖点顺序、视觉证据或表达方向，不规定方向数量；需要画面展开时使用 `d-image-director`。
+- `image`：针对本次策略缺项整理卖点去重顺序、物理画面证据翻译与纯净 PS 负空间构图建议（必读 `references/visual-selling-translation.md`），不规定方向数量；需要写提示词时交 `d-image-director`。
+- `canvas`：自动拆解飞书文档与飞书画布（`scripts/parse_feishu_canvas.py`，或由 `d-init` 一键建档时自动调用），过滤纯竞品图、剥离纯检测报告/规格参数排版屏，将卖点翻译为物理画面方向与 PS 留白建议后直接写入五段式嵌图 `project.md`（不落本地 `.json` 或冗余清单），并在启用 `--download-assets` 时下载各槽位参考缩略图进 `素材/飞书画布/` 供 Agent 睁眼读图理解构图与留白；详情页按买家真实下滑阅读顺序一表顺排（标出 `★第1批（同源 Mxx）` vs `第2批` vs `后期排版`），严禁将画布竞品/带字参考截图喂入生图 API 垫图。详细规范见 `references/feishu-canvas-decompose.md` 与 `references/visual-selling-translation.md`。
 - `video`：规划人群、痛点、卖点顺序、开头钩子、证据链、可见障碍和转化节奏。需要拆镜头时交给 `d-video-director`。
 
 ## 任务拆解（强制）

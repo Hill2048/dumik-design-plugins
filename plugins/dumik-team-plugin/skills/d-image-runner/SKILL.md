@@ -2,7 +2,7 @@
 name: d-image-runner
 description: "执行用户明确要求的图片生成、实际改图、多候选和 RunningHub 放大、超分、抠图、去背景。仅写提示词或在文字任务中追改材质时不触发执行；缺完整提示词交 d-image-director 准备后继续。"
 metadata:
-  version: 0.1.4
+  version: 0.2.0
 ---
 
 # 图片执行器
@@ -37,12 +37,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 ## 执行规则
 
-- 按 [插件路由](../../assets/agent-skill-routing.md) 区分文字修改与真实执行；恢复时按 [任务状态合同](../../assets/task-state-contract.md) 核对已提交任务与剩余授权，不重做已完成提交。
+- 按 [插件路由](../../assets/agent-skill-routing.md) 区分文字修改与真实执行；项目制多图执行优先通过 `d-project-pipeline` 在 `%TEMP%` 组批次并从 `制作/<编号_名称>/prompt.md` 读取正文；单图追改核对授权后不重做已完成提交。
 
 - 提示词图片引用遵循 [图片引用格式](../../assets/image-reference-format.md)。`@图1` 对应第一张实际输入，具体职责由角色说明决定，不强制是目标图；模型名与 API 字段不改名。
 
 - 用户只要提示词时不调用接口。
-- 用户明确生图、改图、放大或后处理时才执行，并保存提交状态和结果。
+- 用户明确生图、改图、放大或后处理时才执行，图片直接落入对应 `制作/<编号_名称>/`（或指定目录）。**默认不写出 `运行记录.json` 与 `运行记录.md`**（零本地运行垃圾），仅基准测试或显式排错时才传 `--write-run-record`。
 - 多候选拆成独立 `count: 1` 任务，不把候选串联垫图。
 - `generate` 必须完整读取 `references/legacy/D-image-run.md`；脚本位于 `scripts/`。
 - 使用 `gpt-image-2.5-flare` / `gpt-image-2.5-sunburst` 时，必须读取 `references/model-image2.5.md`；用户只说 `image2.5` 时路由到质量优先的 Sunburst。
