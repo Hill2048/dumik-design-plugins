@@ -26,3 +26,9 @@
 
 - 默认只停在项目建档、拆解清单与 `prompt.md` 中文提示词，**绝不自动调用付费生图接口**；只有用户明确下令「开始生图 / 出图 / 批量跑图 / 调用接口」时，才由 `d-project-pipeline` + `d-image-runner` 执行真实生图；出图后可用 `d-consistency-check` 对照白底原图与画面纯净度验收。
 - 向用户汇报与输出清单保持极简中文人话，不出现多余分层字母代号，不擅自新建 Git 分支、提交 PR 或推送远端。
+
+## 五、插件更新与发版规则
+
+- 当用户要求更新并推送本插件到 GitHub 时，必须同步递增版本号（默认 `+0.0.1`，如 `0.2.2` → `0.2.3`，除非用户另行指定）并发行新的 GitHub Release。
+- 需同步更新 3 处版本字段：`plugins/dumik-team-plugin/.codex-plugin/plugin.json`（`version`）、`plugins/dumik-team-plugin/plugin.json`（`version`）、`plugins/dumik-team-plugin/assets/skill-versions.json`（`pluginVersion`）。
+- 优先执行 `plugins/dumik-team-plugin/scripts/release_dumik_plugin.ps1` 完成「版本号 `+0.0.1` → 提交 → 推送 `main` → `gh release create v<新版本>` 发行新版本」。
