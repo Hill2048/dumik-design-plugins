@@ -73,8 +73,10 @@ try {
     throw "gh CLI not found; cannot publish GitHub release $tag."
   }
 
-  $existing = gh release view $tag --json tagName 2>$null
-  if ($LASTEXITCODE -eq 0 -and $existing) {
+  $existingTags = @(gh release list --limit 30 --json tagName --jq '.[].tagName')
+  if ($LASTEXITCODE -ne 0) { throw "gh release list failed." }
+
+  if ($existingTags -contains $tag) {
     Write-Host "GitHub release $tag already exists."
   } else {
     gh release create $tag --title "DUMIK Team Plugin $tag" --generate-notes
