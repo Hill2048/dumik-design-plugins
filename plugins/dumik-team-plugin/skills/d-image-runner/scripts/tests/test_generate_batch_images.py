@@ -204,5 +204,12 @@ class RunRecordLoggingTests(unittest.TestCase):
             MODULE.requests.post = original_post
 
 
+class Banana21Tests(unittest.TestCase):
+    def test_aliases_route_to_banana21(self):
+        for alias in ("banana2.1", "banana-2.1", "banana21", "nano-banana-2.1", "gemini-nano-banana-2.1"):
+            self.assertEqual(MODULE.normalize_image_model(alias), MODULE.BANANA21_IMAGE_MODEL)
+        self.assertIn(MODULE.BANANA21_IMAGE_MODEL, MODULE.CHAT_IMAGE_MODELS)
+
+
 if __name__ == "__main__":
     unittest.main()

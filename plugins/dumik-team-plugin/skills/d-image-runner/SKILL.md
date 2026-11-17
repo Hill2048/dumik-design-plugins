@@ -46,6 +46,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 - 多候选拆成独立 `count: 1` 任务，不把候选串联垫图。
 - `generate` 必须完整读取 `references/legacy/D-image-run.md`；脚本位于 `scripts/`。
 - 使用 `gpt-image-2.5-flare` / `gpt-image-2.5-sunburst` 时，必须读取 `references/model-image2.5.md`；用户只说 `image2.5` 时路由到质量优先的 Sunburst。
-- 使用 Banana2 时必须读取 `references/model-banana2.md`。
+- 使用 Banana2 / Banana2.1 / Banana Pro 时必须读取 `references/model-banana2.md`。
 - `postprocess` 必须完整读取 `references/legacy/D-rh.md`；RunningHub 脚本位于 `scripts/`。
 - 没有完成本次 `reference_set` 的读取，停在执行前，不发送请求。

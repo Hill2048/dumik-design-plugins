@@ -35,12 +35,14 @@ DEFAULT_OUTPUT_DIR = Path.cwd() / "制作" / "图片"
 DEFAULT_BASE_URL = "https://sub.juaihub.cn"
 DEFAULT_IMAGE_MODEL = "banana2"
 BANANA2_IMAGE_MODEL = "gemini-3.1-flash-image-preview"
+BANANA21_IMAGE_MODEL = "gemini-nano-banana-2.1"
 BANANAPRO_IMAGE_MODEL = "gemini-3-pro-image-preview"
 IMAGE2_IMAGE_MODEL = "gpt-image-2"
 IMAGE25_FLARE_MODEL = "gpt-image-2.5-flare"
 IMAGE25_SUNBURST_MODEL = "gpt-image-2.5-sunburst"
 CHAT_IMAGE_MODELS = {
     BANANA2_IMAGE_MODEL,
+    BANANA21_IMAGE_MODEL,
     BANANAPRO_IMAGE_MODEL,
 }
 GPT_IMAGE_25_MODELS = {
@@ -62,6 +64,11 @@ IMAGE_MODEL_ALIASES = {
     "image25": IMAGE25_SUNBURST_MODEL,
     "banana": BANANA2_IMAGE_MODEL,
     "banana2": BANANA2_IMAGE_MODEL,
+    "banana2.1": BANANA21_IMAGE_MODEL,
+    "banana-2.1": BANANA21_IMAGE_MODEL,
+    "banana21": BANANA21_IMAGE_MODEL,
+    "nano-banana-2.1": BANANA21_IMAGE_MODEL,
+    "gemini-nano-banana-2.1": BANANA21_IMAGE_MODEL,
     "gemini-3.1-flash-image": BANANA2_IMAGE_MODEL,
     "gemini-3.1-flash-image-preview": BANANA2_IMAGE_MODEL,
     "bananapro": BANANAPRO_IMAGE_MODEL,

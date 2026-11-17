@@ -1,8 +1,8 @@
 # Banana 系列参数规范
 
-适用模型：Banana2、Banana Pro。请求结构按 G-AISC Gemini 原生接口执行。
+适用模型：Banana2、Banana2.1、Banana Pro。请求结构按 G-AISC Gemini 原生接口执行。
 
-使用时机：用户明确说用 `banana`、`banana2`、`bananapro` 或 `Banana Pro`，或上游明确要求 Banana 系列生成 / 改图。
+使用时机：用户明确说用 `banana`、`banana2`、`banana2.1`、`bananapro` 或 `Banana Pro`，或上游明确要求 Banana 系列生成 / 改图。
 
 ## 模型路由
 
@@ -11,6 +11,7 @@
 | 用户意图 | 实际提交模型 | 默认输出 |
 | --- | --- | --- |
 | `banana` / `banana2` | `gemini-3.1-flash-image-preview` | `2K` |
+| `banana2.1` / `banana-2.1` | `gemini-nano-banana-2.1` | `2K` |
 | `bananapro` / `banana-pro` | `gemini-3-pro-image-preview` | `2K` |
 
 如果用户没有指定任何模型，整个普通生图 skill 默认使用 `banana2`，即 `gemini-3.1-flash-image-preview`。

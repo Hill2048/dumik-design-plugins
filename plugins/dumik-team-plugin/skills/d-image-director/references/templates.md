@@ -69,6 +69,8 @@ The cookware body should read as mirror stainless steel with broad silver-white 
 
 ### 钛
 
+- **纯钛概念 / 大牌杂志质感写法（中文高频复用）**：`产品为具有纯钛纹理自然反射柔和周围环境的全金属材质`，配合干净光影与艺术留白，让金属吃进柔和环境光色而不发死发黑；探索概念图时避开俗套大理石台面与细碎摆件堆砌。
+
 ```text
 The cookware should read as pure titanium or titanium-inspired metal with restrained silver-gray color, lower saturation than ordinary steel, and a calm industrial sheen. Keep the reflection controlled and refined, with a cooler metal tone, clean edges, and a strong but quiet premium feel. Avoid yellow cast, fake chrome shine, and noisy mirror reflections.
 ```

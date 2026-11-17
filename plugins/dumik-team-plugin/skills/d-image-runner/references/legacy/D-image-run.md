@@ -31,6 +31,7 @@ description: "普通图片接口执行方法：核对当前输入，按已授权
 - 供应商：`https://sub.juaihub.cn`；Key 从本机缓存读取，不写进插件或运行记录。
 - 未指定模型：`banana2`，即 `gemini-3.1-flash-image-preview`。
 - `banana / banana2`：`gemini-3.1-flash-image-preview`。
+- `banana2.1 / banana-2.1`：`gemini-nano-banana-2.1`。
 - `bananapro / banana-pro`：`gemini-3-pro-image-preview`。
 - 未指定尺寸：`2K`；明确 4K 就用 `4K` 或 `source-4k`。
 - 改图默认跟随目标图比例：2K 用 `source-2k`，4K 用 `source-4k`。
