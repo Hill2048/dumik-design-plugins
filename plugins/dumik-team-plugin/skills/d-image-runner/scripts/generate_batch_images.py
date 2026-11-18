@@ -33,7 +33,8 @@ from PIL import Image
 
 DEFAULT_OUTPUT_DIR = Path.cwd() / "制作" / "图片"
 DEFAULT_BASE_URL = "https://sub.juaihub.cn"
-DEFAULT_IMAGE_MODEL = "banana2"
+DEFAULT_IMAGE_MODEL = "banana2.1"
+DEFAULT_THINKING_LEVEL = "high"
 BANANA2_IMAGE_MODEL = "gemini-3.1-flash-image-preview"
 BANANA21_IMAGE_MODEL = "gemini-nano-banana-2.1"
 BANANAPRO_IMAGE_MODEL = "gemini-3-pro-image-preview"
@@ -44,6 +45,11 @@ CHAT_IMAGE_MODELS = {
     BANANA2_IMAGE_MODEL,
     BANANA21_IMAGE_MODEL,
     BANANAPRO_IMAGE_MODEL,
+}
+THINKING_LEVELS_BY_MODEL = {
+    BANANA2_IMAGE_MODEL: ("minimal", "high"),
+    BANANA21_IMAGE_MODEL: ("minimal", "medium", "high"),
+    BANANAPRO_IMAGE_MODEL: ("minimal", "high"),
 }
 GPT_IMAGE_25_MODELS = {
     IMAGE25_FLARE_MODEL,
@@ -257,6 +263,7 @@ class PromptItem:
     output_name: str
     final_instruction: str
     output_size: str | None
+    thinking_level: str | None = None
 
 
 def die(message: str, code: int = 1) -> None:
@@ -271,6 +278,32 @@ def normalize_image_model(value: str) -> str:
         choices = ", ".join(IMAGE_MODEL_ALIASES)
         raise BatchImageError(f"Unsupported image model: {value}. Use one of: {choices}.")
     return model
+
+
+def normalize_thinking_level(value: str | None, *, image_model: str) -> str | None:
+    if value is None or not str(value).strip():
+        return None
+    normalized = str(value).strip().lower()
+    if normalized in {"off", "none", "disable", "disabled"}:
+        return None
+    if image_model not in CHAT_IMAGE_MODELS:
+        raise BatchImageError(
+            f"--thinking-level is only supported for Banana / Gemini image models, not {image_model}."
+        )
+    allowed = THINKING_LEVELS_BY_MODEL.get(image_model, ("minimal", "high"))
+    if normalized not in allowed:
+        raise BatchImageError(
+            f"Unsupported thinking level '{value}' for {image_model}. Allowed: {', '.join(allowed)}."
+        )
+    return normalized
+
+
+def resolve_thinking_level(value: str | None, *, image_model: str) -> str | None:
+    if value is not None and str(value).strip():
+        return normalize_thinking_level(value, image_model=image_model)
+    if image_model in CHAT_IMAGE_MODELS:
+        return DEFAULT_THINKING_LEVEL
+    return None
 
 
 def resolve_image_model_for_size(value: str, size: str) -> str:
@@ -334,6 +367,7 @@ def single_prompt_item(args: argparse.Namespace) -> tuple[PromptItem, Path]:
             output_name=output_name,
             final_instruction=prompt,
             output_size=args.output_size,
+            thinking_level=getattr(args, "thinking_level", None),
         ),
         output_dir,
     )
@@ -381,6 +415,11 @@ def load_prompt_items(path: Path) -> list[PromptItem]:
                 output_name=str(row.get("output_name") or f"{item_id}.png").strip(),
                 final_instruction=final_instruction,
                 output_size=str(row.get("output_size")).strip() if row.get("output_size") else None,
+                thinking_level=(
+                    str(row.get("thinking_level") or row.get("thinkingLevel")).strip()
+                    if (row.get("thinking_level") or row.get("thinkingLevel"))
+                    else None
+                ),
             )
         )
     return items
@@ -679,6 +718,25 @@ def save_chat_response_images(body: dict[str, Any], output_paths: list[Path]) ->
     raise BatchImageError(f"Chat image API returned no image data: {snippet}")
 
 
+def build_chat_generation_config(
+    *,
+    size: str,
+    image_model: str,
+    thinking_level: str | None = None,
+) -> dict[str, Any]:
+    config: dict[str, Any] = {
+        "responseModalities": ["TEXT", "IMAGE"],
+        "imageConfig": {
+            "aspectRatio": aspect_ratio_for_size(size),
+            "imageSize": image_size_label(size),
+        },
+    }
+    normalized_thinking = resolve_thinking_level(thinking_level, image_model=image_model)
+    if normalized_thinking:
+        config["thinkingConfig"] = {"thinkingLevel": normalized_thinking}
+    return config
+
+
 def generate_chat_images(
     *,
     base_url: str,
@@ -690,6 +748,7 @@ def generate_chat_images(
     count: int,
     size: str,
     output_paths: list[Path],
+    thinking_level: str | None = None,
     timing: TimingLog | None = None,
 ) -> list[str]:
     image_inputs = [source_file] if source_file else []
@@ -703,13 +762,11 @@ def generate_chat_images(
     url = root_api_endpoint(base_url, f"/v1beta/models/{image_model}:generateContent")
     payload = {
         "contents": [{"role": "user", "parts": parts}],
-        "generationConfig": {
-            "responseModalities": ["TEXT", "IMAGE"],
-            "imageConfig": {
-                "aspectRatio": aspect_ratio_for_size(size),
-                "imageSize": image_size_label(size),
-            },
-        },
+        "generationConfig": build_chat_generation_config(
+            size=size,
+            image_model=image_model,
+            thinking_level=thinking_level,
+        ),
     }
     def request_one(index: int) -> tuple[int, list[str], float, float]:
         started = time.perf_counter()
@@ -873,6 +930,7 @@ def generate_images(
     count: int,
     size: str,
     output_paths: list[Path],
+    thinking_level: str | None = None,
     timing: TimingLog | None = None,
 ) -> list[str]:
     headers = {"Authorization": f"Bearer {api_key}"}
@@ -888,8 +946,10 @@ def generate_images(
             count=count,
             size=size,
             output_paths=output_paths,
+            thinking_level=thinking_level,
             timing=timing,
         )
+    normalize_thinking_level(thinking_level, image_model=image_model)
     model_options = image_model_payload_options(image_model, size)
     image_inputs = [source_file] if source_file else []
     image_inputs.extend(reference_files)
@@ -1030,12 +1090,17 @@ def run_prompt_item(
     base_url: str,
     api_key: str,
     image_model: str,
+    default_thinking_level: str | None = None,
 ) -> dict[str, Any]:
     try:
         total_started = time.perf_counter()
         timing = TimingLog({})
         size = api_size_for_item(item, image_model=image_model)
         resolved_image_model = resolve_image_model_for_size(image_model, size)
+        resolved_thinking = resolve_thinking_level(
+            item.thinking_level if item.thinking_level is not None else default_thinking_level,
+            image_model=resolved_image_model,
+        )
         images = generate_images(
             base_url=base_url,
             api_key=api_key,
@@ -1046,6 +1111,7 @@ def run_prompt_item(
             count=item.count,
             size=size,
             output_paths=build_output_paths(output_dir, item.output_name, item.count),
+            thinking_level=resolved_thinking,
             timing=timing,
         )
         started = time.perf_counter()
@@ -1057,7 +1123,7 @@ def run_prompt_item(
         )
         timing.add("standardize_seconds", time.perf_counter() - started)
         timing.add("total_seconds", time.perf_counter() - total_started)
-        return {
+        row_result = {
             "id": item.id,
             "file": item.file,
             "reference_files": item.reference_files,
@@ -1076,6 +1142,9 @@ def run_prompt_item(
             "final_instruction": item.final_instruction,
             "generated_files": images,
         }
+        if resolved_thinking:
+            row_result["thinking_level"] = resolved_thinking
+        return row_result
     except BatchImageError as exc:
         try:
             size = api_size_for_item(item)
@@ -1133,6 +1202,7 @@ def run_single(args: argparse.Namespace, base_url: str, api_key: str) -> None:
         base_url=base_url,
         api_key=api_key,
         image_model=args.image_model,
+        default_thinking_level=getattr(args, "thinking_level", None),
     )
     if getattr(args, "write_run_record", False):
         write_json(output_dir / "运行记录.json", [row])
@@ -1171,6 +1241,7 @@ def run_batch(args: argparse.Namespace, base_url: str, api_key: str) -> None:
                 base_url=base_url,
                 api_key=api_key,
                 image_model=args.image_model,
+                default_thinking_level=getattr(args, "thinking_level", None),
             )
             future_to_item[future] = item
 
@@ -1249,8 +1320,8 @@ def main() -> None:
         "--image-model",
         default=DEFAULT_IMAGE_MODEL,
         help=(
-            "Image model name. Default banana2. GPT Image aliases include image2, "
-            "image2.5, flare, and sunburst."
+            "Image model name. Default banana2.1. Other Banana aliases include banana2, bananapro; "
+            "GPT Image aliases include image2, image2.5, flare, and sunburst."
         ),
     )
     parser.add_argument(
@@ -1269,6 +1340,10 @@ def main() -> None:
         help="Number of prompt rows to generate concurrently in batch mode.",
     )
     parser.add_argument(
+        "--thinking-level",
+        help="Optional thinking depth for Banana models (default high; banana2: minimal/high; banana2.1: minimal/medium/high; off to omit).",
+    )
+    parser.add_argument(
         "--write-run-record",
         action="store_true",
         help="Optionally write 运行记录.json and 运行记录.md into output_dir (off by default to keep projects clean).",
@@ -1276,6 +1351,8 @@ def main() -> None:
     args = parser.parse_args()
     try:
         args.image_model = normalize_image_model(args.image_model)
+        if args.thinking_level:
+            args.thinking_level = normalize_thinking_level(args.thinking_level, image_model=args.image_model)
     except BatchImageError as exc:
         die(str(exc))
     base_url, api_key = resolve_api_settings(args)

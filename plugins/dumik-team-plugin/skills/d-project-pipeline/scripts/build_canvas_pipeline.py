@@ -405,7 +405,8 @@ def prepare_or_execute_batch(
     wave: int | None = None,
     ids: list[str] | None = None,
     quality: str = "2k",
-    image_model: str = "banana2",
+    image_model: str = "banana2.1",
+    thinking_level: str | None = None,
     count: int = 1,
     concurrency: int = 3,
     execute: bool = False,
@@ -505,6 +506,8 @@ def prepare_or_execute_batch(
             "--concurrency",
             str(concurrency),
         ]
+        if thinking_level:
+            cmd.extend(["--thinking-level", thinking_level])
         proc = subprocess.run(cmd, check=False, text=True)
         if proc.returncode != 0:
             raise PipelineError(f"批量生图执行失败（exit={proc.returncode}）。")
@@ -580,7 +583,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--wave", type=int, choices=(0, 1, 2, 3), default=None, help="指定波次：0=里程碑 1=主图共用 2=详情其余 3=独立1:1")
     parser.add_argument("--ids", default=None, help="手动指定编号列表，逗号分隔，如 S04,S16")
     parser.add_argument("--quality", choices=("2k", "4k"), default="2k", help="清晰度档位，默认 2k")
-    parser.add_argument("--image-model", default="banana2", help="生图模型，默认 banana2")
+    parser.add_argument("--image-model", default="banana2.1", help="生图模型，默认 banana2.1")
+    parser.add_argument("--thinking-level", default=None, help="Banana 思考深度（默认 high；支持 minimal/medium/high/off）")
     parser.add_argument("--count", type=int, default=1, help="每项生成候选数，默认 1")
     parser.add_argument("--concurrency", type=int, default=3, help="并发数，默认 3")
     parser.add_argument("--promote", default=None, help="将某编号候选图定稿晋升到 设定集/里程碑 或 成品/")
@@ -606,6 +610,7 @@ def main(argv: list[str] | None = None) -> int:
                 ids=ids,
                 quality=args.quality,
                 image_model=args.image_model,
+                thinking_level=args.thinking_level,
                 count=args.count,
                 concurrency=args.concurrency,
                 execute=bool(args.execute),

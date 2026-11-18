@@ -24,7 +24,7 @@ python "<插件根目录>\skills\d-project-pipeline\scripts\build_canvas_pipelin
 python "<插件根目录>\skills\d-project-pipeline\scripts\build_canvas_pipeline.py" --project-root "<项目根目录>" --prepare-batch --wave 1
 
 # 3. 仅在用户明确下令「开始生图 / 出图 / 批量跑图」后执行真实批量提交（支持 --ids MS02,S04）
-python "<插件根目录>\skills\d-project-pipeline\scripts\build_canvas_pipeline.py" --project-root "<项目根目录>" --execute --wave 1 --quality 2k --image-model banana2
+python "<插件根目录>\skills\d-project-pipeline\scripts\build_canvas_pipeline.py" --project-root "<项目根目录>" --execute --wave 1 --quality 2k --image-model banana2.1 --thinking-level high
 
 # 4. 定稿晋升：把选中候选图拷入 设定集/里程碑/ 或 成品/ 并自动更新 project.md
 python "<插件根目录>\skills\d-project-pipeline\scripts\build_canvas_pipeline.py" --project-root "<项目根目录>" --promote S04 --file "制作/S04_钛好舀/候选_01.png"

@@ -14,7 +14,7 @@
 | `banana2.1` / `banana-2.1` | `gemini-nano-banana-2.1` | `2K` |
 | `bananapro` / `banana-pro` | `gemini-3-pro-image-preview` | `2K` |
 
-如果用户没有指定任何模型，整个普通生图 skill 默认使用 `banana2`，即 `gemini-3.1-flash-image-preview`。
+如果用户没有指定任何模型，整个普通生图 skill 默认使用 `banana2.1`，即 `gemini-nano-banana-2.1`，默认思考深度 `high`。
 
 ## 调用入口
 
@@ -49,6 +49,9 @@ Juaihub 与 808Relay 的客户端发包格式相同，只替换 Base URL 和 Key
     "imageConfig": {
       "aspectRatio": "1:1",
       "imageSize": "2K"
+    },
+    "thinkingConfig": {
+      "thinkingLevel": "high"
     }
   }
 }
@@ -62,6 +65,7 @@ Juaihub 与 808Relay 的客户端发包格式相同，只替换 Base URL 和 Key
 - `generationConfig.responseModalities`：图片任务固定 `['TEXT', 'IMAGE']`。
 - `generationConfig.imageConfig.aspectRatio`：脚本从 `1:1`、`3:2`、`2:3`、`3:4`、`1:4`、`4:1`、`4:3`、`4:5`、`5:4`、`1:8`、`8:1`、`9:16`、`16:9`、`21:9`、`9:21` 中选择最接近目标尺寸的一项。
 - `generationConfig.imageConfig.imageSize`：默认 `2K`；明确 4K 输出时写 `4K`；小尺寸才写 `1K`。
+- `generationConfig.thinkingConfig.thinkingLevel`（默认 `high`，可通过 `--thinking-level` 或批次行 `thinking_level` 覆盖；传 `off` 可省略该字段）：`banana2` 支持 `minimal` / `high`；`banana2.1` 支持 `minimal` / `medium` / `high`。
 - Banana 系列的 `output_size` 用来选择比例和 `imageSize` 档位，不承诺返回精确像素；脚本会记录实际尺寸，并校验返回比例不能明显偏离请求比例。
 - 参考图改图：目标图和参考图按 `contents[].parts[]` 顺序分别作为多个 `inlineData` 部分发送，不能放进 `images`、`image` 或 multipart 字段。
 - 多张候选：每张图使用独立 `count: 1` 请求；需要并发时只并发任务行，不把多张候选合并到一个请求里。

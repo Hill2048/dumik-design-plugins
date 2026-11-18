@@ -210,6 +210,45 @@ class Banana21Tests(unittest.TestCase):
             self.assertEqual(MODULE.normalize_image_model(alias), MODULE.BANANA21_IMAGE_MODEL)
         self.assertIn(MODULE.BANANA21_IMAGE_MODEL, MODULE.CHAT_IMAGE_MODELS)
 
+    def test_thinking_level_validation_and_payload(self):
+        for level in ("minimal", "medium", "high"):
+            cfg = MODULE.build_chat_generation_config(
+                size="1152x2048",
+                image_model=MODULE.BANANA21_IMAGE_MODEL,
+                thinking_level=level,
+            )
+            self.assertEqual(cfg["thinkingConfig"], {"thinkingLevel": level})
+
+        cfg_b2 = MODULE.build_chat_generation_config(
+            size="1152x2048",
+            image_model=MODULE.BANANA2_IMAGE_MODEL,
+            thinking_level="high",
+        )
+        self.assertEqual(cfg_b2["thinkingConfig"], {"thinkingLevel": "high"})
+
+        with self.assertRaises(MODULE.BatchImageError):
+            MODULE.normalize_thinking_level("medium", image_model=MODULE.BANANA2_IMAGE_MODEL)
+
+        self.assertEqual(
+            MODULE.normalize_image_model(MODULE.DEFAULT_IMAGE_MODEL),
+            MODULE.BANANA21_IMAGE_MODEL,
+        )
+        cfg_default = MODULE.build_chat_generation_config(
+            size="1152x2048",
+            image_model=MODULE.BANANA21_IMAGE_MODEL,
+        )
+        self.assertEqual(cfg_default["thinkingConfig"], {"thinkingLevel": "high"})
+
+        cfg_off = MODULE.build_chat_generation_config(
+            size="1152x2048",
+            image_model=MODULE.BANANA21_IMAGE_MODEL,
+            thinking_level="off",
+        )
+        self.assertNotIn("thinkingConfig", cfg_off)
+
+        with self.assertRaises(MODULE.BatchImageError):
+            MODULE.normalize_thinking_level("high", image_model="gpt-image-2.5-sunburst")
+
 
 if __name__ == "__main__":
     unittest.main()

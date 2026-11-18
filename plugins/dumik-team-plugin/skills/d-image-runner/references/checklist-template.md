@@ -10,7 +10,7 @@
 输出路径：
 每张生成几张：2
 参考图作用：
-图片模型：gpt-image-2 / banana2
+图片模型：gpt-image-2 / banana2.1（默认 high）
 API：默认读取本机缓存；特殊情况再填
 ```
 

@@ -89,7 +89,7 @@ switch ($Skill) {
         if ($modeText -match 'person|model|material|texture|repair|space|template|edit|brief') { Add-Ref 'skills/d-image-director/references/templates.md' }
         if ($modeText -match 'white|scene|白底') { Add-Ref 'skills/d-image-director/references/white-to-scene.md' }
         if ($modeText -match 'light|lighting|shadow|c4d|光影') { Add-Ref 'skills/d-image-director/references/lighting-control.md' }
-        if ($modeText -match 'camera|lens|focal|广角|机位') { Add-Ref 'skills/d-image-director/references/camera-language.md' }
+        if ($modeText -match 'camera|lens|focal|composition|framing|广角|机位|构图|视角') { Add-Ref 'skills/d-image-director/references/camera-language.md' }
         if ($modeText -match 'realism|真实') { Add-Ref 'skills/d-image-director/references/realism.md' }
         if ($modeText -match 'multiview|multi-view|logo|多视') { Add-Ref 'skills/d-image-director/references/multi-view-lock.md' }
         if ($modeText -match 'model|talent|佩戴|模特') { Add-Ref 'skills/d-image-director/references/model-product.md' }
