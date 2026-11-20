@@ -85,9 +85,9 @@ IMAGE_MODEL_ALIASES = {
 }
 DEFAULT_STORYBOARD_RATIO = "9:16"
 DEFAULT_STORYBOARD_SIZES = {
-    "16:9": (3840, 2160),
-    "3:4": (2880, 3840),
-    "9:16": (2160, 3840),
+    "16:9": (2048, 1152),
+    "3:4": (1536, 2048),
+    "9:16": (1152, 2048),
 }
 DEFAULT_2K_SIZE = (2048, 2048)
 DEFAULT_BATCH_LONG_EDGE = 2048
@@ -442,8 +442,10 @@ def parse_output_size(value: str | None, *, image_model: str | None = None) -> t
         return None
     normalized = value.lower().replace("×", "x").strip()
     presets = {
-        "4k": DEFAULT_STORYBOARD_SIZES[DEFAULT_STORYBOARD_RATIO],
-        "storyboard-4k": DEFAULT_STORYBOARD_SIZES[DEFAULT_STORYBOARD_RATIO],
+        "4k": (2160, 3840),
+        "storyboard-4k": (2160, 3840),
+        "16:9-4k": (3840, 2160),
+        "4k-16:9": (3840, 2160),
         "16:9-storyboard": DEFAULT_STORYBOARD_SIZES["16:9"],
         "storyboard-16:9": DEFAULT_STORYBOARD_SIZES["16:9"],
         "3:4-storyboard": DEFAULT_STORYBOARD_SIZES["9:16"],
@@ -452,6 +454,9 @@ def parse_output_size(value: str | None, *, image_model: str | None = None) -> t
         "storyboard-3:4-panel": DEFAULT_STORYBOARD_SIZES["9:16"],
         "9:16-storyboard": DEFAULT_STORYBOARD_SIZES["9:16"],
         "storyboard-9:16": DEFAULT_STORYBOARD_SIZES["9:16"],
+        "16:9": DEFAULT_STORYBOARD_SIZES["16:9"],
+        "16:9-2k": DEFAULT_STORYBOARD_SIZES["16:9"],
+        "2k-16:9": DEFAULT_STORYBOARD_SIZES["16:9"],
         "9:16": (1152, 2048),
         "9:16-2k": (1152, 2048),
         "2k-9:16": (1152, 2048),
@@ -1133,7 +1138,7 @@ def run_prompt_item(
             "image_model": resolved_image_model,
             "output_size": item.output_size
             or (
-                "4K storyboard 9:16 2160x3840, 3:4 panels"
+                "2K storyboard 9:16 1152x2048, 3:4 panels"
                 if is_storyboard_item(item)
                 else "2K long edge 2048"
             ),
