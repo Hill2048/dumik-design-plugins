@@ -107,7 +107,7 @@ def register_white_bg_files(project_root: Path, paths: list[str]) -> list[str]:
 
 
 def render_project_agents_md(project_name: str) -> str:
-    """Keep root AGENTS.md under ~1.2KB with native @-includes for project.md and design.md."""
+    """Keep root AGENTS.md under ~1.2KB and inline only design.md to avoid 24KB rule truncation."""
     return f"""# {project_name} — 项目工作规约
 
 - 本目录即独立项目根，不建跨项目指针或历史日志。
@@ -115,10 +115,10 @@ def render_project_agents_md(project_name: str) -> str:
 - **零运行垃圾**：禁写 `.json` 队列、`拆解清单.md` 或运行记录；制作只按需建 `制作/<编号_名称>/prompt.md` 覆盖维护最新版。
 - **参考与授权**：白底只锁结构固有色；光色从 `design.md` 与 `设定集/`；飞书参考图只读不喂 API；未收「开始生图/出图」绝不调付费接口。
 - **汇报带短卖点**：列编号必附4~6字卖点（如 `S01 健康对比`），一眼扫完，忌裸号或长句。
+- **防截断按需读账本**：`project.md` 体量大，不整本内联，按当前编号按需读取或跑 `--status`。
 
 ## 项目上下文自动挂载
 
-@[project.md](project.md)
 @[design.md](design.md)
 """
 

@@ -16,6 +16,7 @@ import argparse
 import ast
 import base64
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import io
 import json
 import mimetypes
 import os
@@ -615,17 +616,33 @@ def image_size_label(size: str) -> str:
     return "1K"
 
 
+MAX_RAW_REF_BYTES = 6 * 1024 * 1024
+MAX_COMPRESSED_EDGE = 2560
+
+
+def _read_normalized_ref_bytes(path: Path) -> tuple[str, bytes]:
+    raw_bytes = path.read_bytes()
+    with Image.open(path) as image:
+        detected_mime = Image.MIME.get(image.format or "")
+        if len(raw_bytes) <= MAX_RAW_REF_BYTES:
+            mime = detected_mime or mimetypes.guess_type(path.name)[0] or "image/png"
+            return mime, raw_bytes
+        rgb = image.convert("RGB")
+        rgb.thumbnail((MAX_COMPRESSED_EDGE, MAX_COMPRESSED_EDGE), Image.Resampling.LANCZOS)
+        buf = io.BytesIO()
+        rgb.save(buf, format="JPEG", quality=90)
+        return "image/jpeg", buf.getvalue()
+
+
 def image_path_to_data_url(path: Path) -> str:
-    mime = mimetypes.guess_type(path.name)[0] or "image/png"
-    encoded = base64.b64encode(path.read_bytes()).decode("ascii")
+    mime, data = _read_normalized_ref_bytes(path)
+    encoded = base64.b64encode(data).decode("ascii")
     return f"data:{mime};base64,{encoded}"
 
 
 def image_path_to_inline_data(path: Path) -> dict[str, str]:
-    with Image.open(path) as image:
-        mime = Image.MIME.get(image.format or "")
-    mime = mime or mimetypes.guess_type(path.name)[0] or "image/png"
-    encoded = base64.b64encode(path.read_bytes()).decode("ascii")
+    mime, data = _read_normalized_ref_bytes(path)
+    encoded = base64.b64encode(data).decode("ascii")
     return {"mimeType": mime, "data": encoded}
 
 

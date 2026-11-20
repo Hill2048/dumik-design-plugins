@@ -1,6 +1,6 @@
 ---
 name: d-visual-plan
-description: "规划详情页结构、卖点顺序、视觉证据与视频转化策略。先做模糊需求五格拆解（目标/主体/关系/约束/标准），有 design.md 时强制读设计语言。单图材质或颜色追改不重新策划；图片提示词交 d-image-director，反推交 d-prompt-reverse，视频分镜交 d-video-director，不执行生成。"
+description: "策划整页详情结构、卖点顺序、物理视觉证据、场景错峰与逐屏人物判定（含飞书画布翻译入 project.md）。写单图提示词交 d-image-director，不执行生成。"
 metadata:
   version: 0.3.2
 ---

@@ -1,6 +1,6 @@
 ---
 name: d-prompt-reverse
-description: "从参考图反推/拆解提示词草稿：用户要反推、拆参考图、还原提示词结构时使用。必须先由人判定主次与控制区，再结构化整理；禁止一键交卷当最终交付。不写卖点策略（→d-visual-plan）；不代替正式改图终稿流程时可交回 d-image-director 编译；不调生图接口（→d-image-runner）；不做三态结构验收（→d-consistency-check）。"
+description: "反推参考图结构为可控草稿（须先由人判定主次与控制区，再交 d-image-director 编译终稿）。不直接当最终提示词也不调生图。"
 metadata:
   version: 0.1.0
 ---

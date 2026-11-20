@@ -1,6 +1,6 @@
 ---
 name: d-image-runner
-description: "执行用户明确要求的图片生成、实际改图、多候选和 RunningHub 放大、超分、抠图、去背景。仅写提示词或在文字任务中追改材质时不触发执行；缺完整提示词交 d-image-director 准备后继续。"
+description: "仅在用户明确下令生图/出图/重抽/放大/抠图时调用接口或 DesignFlow 执行并保存结果。只写词或改材质不触发执行。"
 metadata:
   version: 0.2.0
 ---
@@ -32,7 +32,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 ## 模式
 
-- `generate`：普通图片生成、改图、单图和独立多候选并发。上游提示词来自 `d-image-director`。
+- `generate`：普通图片生成、改图、单图和独立多候选并发（默认 `banana2.1`，`2K`，`thinkingLevel: high`，超 `6MB` 大图脚本内自动在内存压缩不落项目垃圾）。
 - `postprocess`：RunningHub 放大、超分、抠图、去背景和固定工作流后处理。
 
 ## 执行规则
@@ -43,8 +43,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 - 用户只要提示词时不调用接口。
 - 用户明确生图、改图、放大或后处理时才执行，图片直接落入对应 `制作/<编号_名称>/`（或指定目录）。**默认不写出 `运行记录.json` 与 `运行记录.md`**（零本地运行垃圾），仅基准测试或显式排错时才传 `--write-run-record`。
-- 多候选拆成独立 `count: 1` 任务，不把候选串联垫图。
-- `generate` 必须完整读取 `references/legacy/D-image-run.md`；脚本位于 `scripts/`。
+- 多候选拆成独立 `count: 1` 任务并发提交，不把候选串联垫图；单图调用优先走 `python scripts/generate_batch_images.py --batch`（`Banana2.1` 直连规范见 `references/model-banana2.md`）。
+- **使用 DesignFlow MCP 生图时的硬规范**（当项目 `AGENTS.md` 指定或用户要求走 DesignFlow 且画布在线时）：
+  1. **严禁并发多发写请求**：同一画布多次调用 `designflow_generate_image` 会因 `expectedRevision` 递增触发 `stale_context` 拒单；必须**逐条串行调用 `designflow_generate_image` 后立即 `designflow_wait_command` 等完成**，再发下一条。
+  2. **禁拿预览图当成片落盘**：`designflow_view_image` 返回的是约 `320px` 宽的低清缩略预览；导出落盘时必须通过 `designflow_list_assets` 核对原图分辨率（如 `1536×2752`）与生成时间戳，从本地 DesignFlow 工作区 `assets/originals/` 取回完整原图写入 `制作/<编号_名称>/` 并用 PIL 核验宽高后再送检；若画布离线或持续冲突，再切回同源 `generate_batch_images.py` 直连接口兜底。
 - 使用 `gpt-image-2.5-flare` / `gpt-image-2.5-sunburst` 时，必须读取 `references/model-image2.5.md`；用户只说 `image2.5` 时路由到质量优先的 Sunburst。
 - 使用 Banana2 / Banana2.1 / Banana Pro 时必须读取 `references/model-banana2.md`。
 - `postprocess` 必须完整读取 `references/legacy/D-rh.md`；RunningHub 脚本位于 `scripts/`。

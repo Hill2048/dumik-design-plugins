@@ -1,6 +1,6 @@
 ---
 name: d-image-director
-description: "编写或修改图片提示词与改图指令（有图/纯文字均可）。六模式：detail=项目制里程碑与详情/主图纯无字底图（直连白底/光影/相机/真实感与证据包）；edit=改图/多参考/洗图/KV/场景/材质；brief=构思视觉方向；direction=候选方向/四宫格；hd=线稿色稿高清重绘；repair=局部产品漂移。写词前过控制层（P0–P2/分段/条件模块）。反推参考图提示词→d-prompt-reverse；策略→d-visual-plan；生图→d-image-runner；三态验收→d-consistency-check。连续短反馈沿用当前文字任务。"
+description: "编写或追改纯无字底图 prompt.md（里程碑/详情/主图 detail、改图 edit、方向 direction、高清 hd、局部修 repair）。仅交付提示词文本，不调付费生图接口。"
 metadata:
   version: 0.4.1
 ---
@@ -25,9 +25,9 @@ Windows / 有 PowerShell 时：先运行当前插件目录的 `scripts/compile_r
 
 | Mode | 触发（用户说法/任务形态） | 必读命中文件 |
 | --- | --- | --- |
-| `detail` | 项目制 `project.md` 里程碑定调（`MS*`）与详情页/主图/入口纯无字底图 `prompt.md`（支持后缀细分如 `detail-macro`、`detail-contrast`、`detail-scene`、`detail-structure`、`detail-poster`） | **项目导演套组**：`control-layer.md` + `prompt-contract.md` + `prompt-segments.md` + `six-structure.md` + `white-to-scene.md` + `lighting-control.md` + `camera-language.md` + `realism.md` + `../d-visual-plan/references/visual-selling-translation.md` + `../../assets/detail-page-prompt-packs/README.md` 及命中证据包 JSON |
-| `edit` | 改图、多参考、洗图、KV、场景、材质/人物锁定、连续追改 | **核心**：`control-layer.md` + `prompt-contract.md` + `prompt-segments.md` + `six-structure.md` + `legacy/D-image-prompt.md`；人物/材质/返修/空间/模板再读 `templates.md` |
-| `brief` | 按任务构思视觉方向；尚未要完整可复制改图指令 | 同 edit 核心四件 + legacy prompt（edit/brief 共用） |
+| `detail` | 项目制 `project.md` 里程碑定调（`MS*`）与详情页/主图/入口纯无字底图 `prompt.md`（支持后缀细分如 `detail-macro`、`detail-contrast`、`detail-scene`、`detail-structure`、`detail-poster`、`detail-person`） | **轻量项目导演套组**：`control-layer.md` + `prompt-contract.md` + `prompt-segments.md` + `lighting-control.md` + `camera-language.md` + `realism.md` + `../../assets/detail-page-prompt-packs/README.md`（按后缀按需追加对应 `proof-by-*.json` / `model-product.md` / `white-to-scene.md`） |
+| `edit` | 改图、多参考、洗图、KV、场景、材质/人物锁定、连续追改 | **核心**：`control-layer.md` + `prompt-contract.md` + `prompt-segments.md` + `six-structure.md`；含人/材质/返修再读 `templates.md` / `model-product.md` |
+| `brief` | 按任务构思视觉方向；尚未要完整可复制改图指令 | 同 edit 核心（加 `six-structure.md`） |
 | `direction` | 方向差异、候选发散、四宫格探索 | `control-layer.md` + `prompt-contract.md` + `prompt-segments.md` + `legacy/D-grid-prompt.md` |
 | `hd` | 线稿/色稿/高清重绘、结构锁后再上真实材质 | `control-layer.md` + `prompt-contract.md` + `prompt-segments.md` + `legacy/D-image-HD.md`；执行脚本时再读 `scripts/hd/` |
 | `repair` | 只修已选图局部产品漂移，不重做整图 | `control-layer.md` + `prompt-contract.md` + `legacy/D-image-repair.md`；局部脚本再读 `scripts/repair/` |
@@ -114,8 +114,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 进入本 skill 后：先按 **Mode 路由表** 选定唯一 mode；再读该 mode **必读**文件；仅当任务匹配时追加**条件命中**文件。`references/original.md` 仅追溯旧口径时按需读。信息传递与可测标准见 [`../../assets/workflow-chain.md`](../../assets/workflow-chain.md)。
 
-- `detail`：white-to-scene + lighting-control + camera-language + realism + `d-visual-plan/visual-selling-translation.md` + `detail-page-prompt-packs` 对应证据包。
-- `edit / brief`：核心四件（control-layer / prompt-contract / prompt-segments / six-structure）+ `legacy/D-image-prompt.md`；人物/材质等再读 `templates.md`；条件表按需。
+- `detail`：control-layer + prompt-contract + prompt-segments + lighting-control + camera-language + realism + `detail-page-prompt-packs/README.md`（后缀细分按需加载对应包/`model-product.md`/`white-to-scene.md`）。
+- `edit / brief`：control-layer / prompt-contract / prompt-segments / six-structure；人物/材质再读 `templates.md`、`model-product.md`；仅追查旧口径时再传 `-Mode edit-legacy`。
 - `direction`：control-layer + prompt-contract + prompt-segments + `legacy/D-grid-prompt.md`。
 - `hd`：control-layer + prompt-contract + prompt-segments + `legacy/D-image-HD.md`，脚本见 `scripts/hd/`。
 - `repair`：control-layer + prompt-contract + `legacy/D-image-repair.md`，脚本见 `scripts/repair/`。

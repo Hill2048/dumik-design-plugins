@@ -1,0 +1,25 @@
+{
+  "dumik-project-harness": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "python ./hooks/agy_dumik_hooks.py",
+        "timeout": 10
+      }
+    ],
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "python ./hooks/agy_dumik_hooks.py",
+        "timeout": 10
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "python ./hooks/agy_dumik_hooks.py",
+        "timeout": 10
+      }
+    ]
+  }
+}

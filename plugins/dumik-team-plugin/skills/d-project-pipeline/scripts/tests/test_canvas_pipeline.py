@@ -231,6 +231,67 @@ class CanvasPipelineTests(unittest.TestCase):
             self.assertIn('<img src="制作/S03_钛耐用/候选_01.png" width="110">', pm_synced)
             self.assertIn("| 候选已出(1张) |", pm_synced)
 
+    def test_backtick_spaced_paths_person_card_gate_subshot_and_count_split(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "mug_pro"
+            _write_sample_project(root)
+            (root / "设定集" / "人物身份卡").mkdir(parents=True, exist_ok=True)
+            (root / "设定集" / "人物身份卡" / "01_主角模特.png").write_bytes(b"person-card")
+            eagle_file = root / "素材" / "实拍原图" / "Eagle Shot With Space 01.jpg"
+            eagle_file.write_bytes(b"eagle-jpg")
+
+            # Add S03 row to project.md
+            pm = root / "project.md"
+            pm.write_text(
+                pm.read_text(encoding="utf-8") + "| S03 | **★第1批**（同源 M01） | — | 防烫 | 手握杯 | 平视 | — | 待写词 |\n",
+                encoding="utf-8",
+            )
+
+            s04_dir = root / "制作" / "S04_钛好舀"
+            s04_dir.mkdir(parents=True)
+            # Negative mention of 人物正脸 only -> should NOT trigger person card error; backticks & spaced path MUST parse
+            neg_only_prompt = """# S04_钛好舀
+- `@图1`：`设定集/白底图/spoon-white.png`（[结构锁]）
+- `@图2`：`素材/实拍原图/Eagle Shot With Space 01.jpg`（[实拍基底]）
+
+```text
+比例：9:16
+
+桌面静物微距，绝无多余物体。
+禁止：人物正脸、文字水印。
+```
+"""
+            (s04_dir / "prompt.md").write_text(neg_only_prompt, encoding="utf-8")
+            prep_split = PIPELINE_MOD.prepare_or_execute_batch(project_root=root, ids=["S04"], count=2, execute=False)
+            self.assertEqual(prep_split["itemsCount"], 2)
+            self.assertEqual(prep_split["items"][0]["referenceCount"], 2)
+            self.assertEqual([it["outputName"] for it in prep_split["items"]], ["S04_钛好舀/候选_01.png", "S04_钛好舀/候选_02.png"])
+
+            # Positive hand/sleeve description WITHOUT person card -> MUST raise PipelineError
+            s03_dir = root / "制作" / "S03_握把"
+            s03_dir.mkdir(parents=True)
+            missing_person_prompt = """# S03_握把
+- @图1：设定集/白底图/spoon-white.png
+
+```text
+比例：9:16
+
+右手四指穿握把手，露出真丝袖口。
+```
+"""
+            (s03_dir / "prompt.md").write_text(missing_person_prompt, encoding="utf-8")
+            with self.assertRaises(PIPELINE_MOD.PipelineError) as p_err:
+                PIPELINE_MOD.prepare_or_execute_batch(project_root=root, ids=["S03"], execute=False)
+            self.assertIn("人物身份卡", str(p_err.exception))
+
+            # Sub-shot directory S04-1 should resolve cleanly when --ids S04-1 is passed, without breaking S04 exact match
+            sub_dir = root / "制作" / "S04-1_子镜"
+            sub_dir.mkdir(parents=True)
+            (sub_dir / "prompt.md").write_text(neg_only_prompt, encoding="utf-8")
+            self.assertEqual(PIPELINE_MOD._find_matching_work_dir(root, "S04").name, "S04_钛好舀")
+            prep_sub = PIPELINE_MOD.prepare_or_execute_batch(project_root=root, ids=["S04-1"], execute=False)
+            self.assertEqual(prep_sub["items"][0]["outputName"], "S04-1_子镜/候选_01.png")
+
 
 if __name__ == "__main__":
     unittest.main()

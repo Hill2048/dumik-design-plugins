@@ -1,6 +1,6 @@
 ---
 name: d-init
-description: "一键初始化或增量同步 DUMIK 项目文件夹：整理散放实拍图、注册白底基准、拆解飞书画布写入 project.md，生成 AGENTS.md（原生挂载上下文）与 design.md；支持 --sync 增量同步与局部规则维护，不在项目内沉淀 JSON 或运行记录。"
+description: "建档或维护单个 DUMIK 产品项目文件夹（初始化、--sync 增量同步飞书画布、维护 AGENTS.md / design.md 规则）。写单屏提示词交 d-image-director，调生图交 d-image-runner。"
 metadata:
   version: 0.4.2
 ---
@@ -23,8 +23,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\c
 
 ```text
 <项目文件夹>/
-├── AGENTS.md                 # 极简规约 + @[project.md](project.md) & @[design.md](design.md)
-├── project.md                # 唯一项目总账本：飞书源、卖点提纯、第0~3批清单与实时状态
+├── AGENTS.md                 # 极简规约 + @[design.md](design.md)（防超 24KB 截断）
+├── project.md                # 唯一项目总账本：飞书源、卖点提纯、第0~3批清单与实时状态（按需查阅）
 ├── design.md                 # 全案视觉宪法：白底结构锁、材质光学公式、光影母体、硬禁令
 ├── 素材/
 │   ├── 实拍原图/             # 根目录散放实拍图自动归整至此
@@ -60,7 +60,7 @@ python "<插件根目录>\skills\d-init\scripts\init_dumik_project.py" `
 2. 将顶层散放的实拍图自动移入 `素材/实拍原图/`（重名自动避让，不覆盖）；将显式传入的白底图拷入 `设定集/白底图/`；
 3. 若传入飞书链接或画板 token，直接调用 `d-visual-plan/scripts/parse_feishu_canvas.py` 拆解多画布并生成精炼版 `project.md`（若同时传 `--download-assets`，下载关键非竞品图进 `素材/飞书画布/`）；
 4. 若暂未传飞书链接，生成含实拍盘点与第 0~3 批骨架的初始 `project.md`；
-5. 补齐 `AGENTS.md`（内置 `@[project.md](project.md)` 与 `@[design.md](design.md)` 原生上下文挂载，体量控制在 1.2KB 内）与 `design.md`。
+5. 补齐 `AGENTS.md`（仅原生内联 `@[design.md](design.md)` 防爆 `24KB` 上限，体量控制在 1.2KB 内；`project.md` 按需读取）与 `design.md`（建议锁定后精简保持在 `15KB` 内）。
 
 ### 2. 飞书画布增量同步（`--sync`）
 

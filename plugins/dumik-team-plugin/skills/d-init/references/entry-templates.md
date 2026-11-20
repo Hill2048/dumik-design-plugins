@@ -3,7 +3,7 @@
 `init_dumik_project.py` 会基于本规范自动生成与维护项目根目录三文档。维护已有项目时，先读原文件再做局部修改，保留项目差异，不整份覆盖已有设定。
 
 - 根目录永远只放 `AGENTS.md`、`project.md`、`design.md` 三份文件，不新建 `CLAUDE.md`、`CURRENT_PROJECT.md`、`CONTEXT.md`、`拆解清单.md` 或任何 `.json` 状态队列。
-- `AGENTS.md` 通过 `@[project.md](project.md)` 与 `@[design.md](design.md)` 让支持内联引用的宿主原生加载项目全貌，体量务必精炼（约 1KB）。
+- `AGENTS.md` 仅内联 `@[design.md](design.md)`（保证展开总字节远低于 `24KB` 截断线，视觉宪法永不丢失）；`project.md` 作为大账本按编号用 `read_file` 或 `--status` 按需读取。
 
 ## 一、根目录 `AGENTS.md` 模板（`init_dumik_project.py` 默认生成）
 
@@ -15,10 +15,10 @@
 - **零运行垃圾**：禁写 `.json` 队列、`拆解清单.md` 或运行记录；制作只按需建 `制作/<编号_名称>/prompt.md` 覆盖维护最新版。
 - **参考与授权**：白底只锁结构固有色；光色从 `design.md` 与 `设定集/`；飞书参考图只读不喂 API；未收「开始生图/出图」绝不调付费接口。
 - **汇报带短卖点**：列编号必附4~6字卖点（如 `S01 健康对比`），一眼扫完，忌裸号或长句。
+- **防截断按需读账本**：`project.md` 体量大，不整本内联，按当前编号按需读取或跑 `--status`。
 
 ## 项目上下文自动挂载
 
-@[project.md](project.md)
 @[design.md](design.md)
 ```
 

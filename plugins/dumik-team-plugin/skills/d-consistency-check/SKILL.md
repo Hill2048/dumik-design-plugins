@@ -1,6 +1,6 @@
 ---
 name: d-consistency-check
-description: "对比原产品图与 AI 生成图，按项输出一致/不一致/无法判断三态；用于电商产品结构验收与出图审稿。不写提示词、不调用生图接口；策略交 d-visual-plan，写修复指令交 d-image-director，实际出图交 d-image-runner。"
+description: "对照白底原图与生成图做三态结构验收与无字纯净度审稿（输出一致/不一致/无法判断表）。不写词、不重策划、不调生图。"
 metadata:
   version: 0.2.0
 ---

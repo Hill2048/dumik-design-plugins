@@ -51,13 +51,14 @@ class InitDumikProjectTests(unittest.TestCase):
             self.assertEqual(list(root.rglob("*.json")), [])
 
             agents_txt = (root / "AGENTS.md").read_text(encoding="utf-8")
-            self.assertIn("@[project.md](project.md)", agents_txt)
+            self.assertNotIn("@[project.md](project.md)", agents_txt)
             self.assertIn("@[design.md](design.md)", agents_txt)
             self.assertIn("纯无字画面底图", agents_txt)
             self.assertLess(len(agents_txt.encode("utf-8")), 1500)
 
             design_txt = (root / "design.md").read_text(encoding="utf-8")
             self.assertIn("`设定集/白底图/external-white-bg.png`", design_txt)
+            self.assertLess(len((agents_txt + design_txt).encode("utf-8")), 24000)
 
             project_txt = (root / "project.md").read_text(encoding="utf-8")
             self.assertIn("设定集/白底图/external-white-bg.png", project_txt)

@@ -1,6 +1,6 @@
 ---
 name: d-project-pipeline
-description: "编排成组图片的跨步骤依赖、自动串跑和流水线恢复。只批量写提示词仍交 d-image-director，单纯生成多个候选交 d-image-runner；项目制本身不触发生成或固定确认关卡。"
+description: "使用 build_canvas_pipeline.py 做 --status 状态校准、--prepare-batch 校验、%TEMP% 批量出图与 --promote 定稿归档。单图写词交 d-image-director。"
 metadata:
   version: 0.2.1
 ---
@@ -39,4 +39,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 按 [插件路由](../../assets/agent-skill-routing.md) 判断是否需要跨步骤执行编排，不凭“项目制、批量、Agent”单个词触发。单图追改就地覆盖 `制作/<编号_名称>/prompt.md`，详见 [任务状态合同](../../assets/task-state-contract.md)。
 
-无状态流水线脚本与定稿晋升用法见 [references/canvas-auto-pipeline.md](references/canvas-auto-pipeline.md)（脚本 `scripts/build_canvas_pipeline.py`），通用批量参考见 [references/legacy/D-detail-auto.md](references/legacy/D-detail-auto.md)。进入流水线前必须完整读取；实际调图时导演与 runner 规则也必须沿引用链读取。
+无状态流水线脚本与定稿晋升用法见 [references/canvas-auto-pipeline.md](references/canvas-auto-pipeline.md)（脚本 `scripts/build_canvas_pipeline.py`）；旧断点格式见 `references/legacy/D-detail-auto.md`（仅 `-Mode legacy` 按需读取）。实际调图时导演与 runner 规则继续按需读取。

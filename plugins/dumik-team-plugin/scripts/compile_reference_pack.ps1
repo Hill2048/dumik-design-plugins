@@ -39,42 +39,32 @@ switch ($Skill) {
     'd-image-director' {
         Add-Ref 'assets/task-state-contract.md'
         Add-Ref 'assets/image-reference-format.md'
-        Add-Ref 'assets/workflow-chain.md'
         Add-Ref 'skills/d-image-director/references/control-layer.md'
         Add-Ref 'skills/d-image-director/references/prompt-contract.md'
-        if ($modeText -notmatch '^(detail|milestone)') {
+        if ($modeText -match 'legacy' -and $modeText -notmatch '^(detail|milestone)') {
             Add-Ref 'skills/d-image-director/references/original.md'
         }
         switch -Regex ($modeText) {
             '^(detail|milestone)' {
                 Add-Ref 'skills/d-image-director/references/prompt-segments.md'
-                Add-Ref 'skills/d-image-director/references/six-structure.md'
-                Add-Ref 'skills/d-image-director/references/white-to-scene.md'
                 Add-Ref 'skills/d-image-director/references/lighting-control.md'
                 Add-Ref 'skills/d-image-director/references/camera-language.md'
                 Add-Ref 'skills/d-image-director/references/realism.md'
-                Add-Ref 'skills/d-visual-plan/references/visual-selling-translation.md'
                 Add-Ref 'assets/detail-page-prompt-packs/README.md'
-                $matchedPack = $false
-                if ($modeText -match 'contrast|对比') { Add-Ref 'assets/detail-page-prompt-packs/proof-by-contrast.json'; $matchedPack = $true }
-                if ($modeText -match 'macro|material|材质|微距') { Add-Ref 'assets/detail-page-prompt-packs/proof-by-material-macro.json'; $matchedPack = $true }
-                if ($modeText -match 'scene|场景') { Add-Ref 'assets/detail-page-prompt-packs/proof-by-scene.json'; $matchedPack = $true }
-                if ($modeText -match 'structure|callout|结构') { Add-Ref 'assets/detail-page-prompt-packs/proof-by-structure-callout.json'; $matchedPack = $true }
-                if ($modeText -match 'lifestyle|生活') { Add-Ref 'assets/detail-page-prompt-packs/proof-by-lifestyle.json'; $matchedPack = $true }
-                if ($modeText -match 'poster|ad|海报|主图|kv') { Add-Ref 'assets/detail-page-prompt-packs/proof-by-ad-poster.json'; $matchedPack = $true }
-                if (-not $matchedPack) {
-                    Add-Ref 'assets/detail-page-prompt-packs/proof-by-contrast.json'
-                    Add-Ref 'assets/detail-page-prompt-packs/proof-by-material-macro.json'
-                    Add-Ref 'assets/detail-page-prompt-packs/proof-by-scene.json'
-                    Add-Ref 'assets/detail-page-prompt-packs/proof-by-structure-callout.json'
-                    Add-Ref 'assets/detail-page-prompt-packs/proof-by-lifestyle.json'
-                    Add-Ref 'assets/detail-page-prompt-packs/proof-by-ad-poster.json'
+                if ($modeText -match 'plan|strategy|translate|策划|翻译') {
+                    Add-Ref 'skills/d-visual-plan/references/visual-selling-translation.md'
                 }
+                if ($modeText -match 'contrast|对比') { Add-Ref 'assets/detail-page-prompt-packs/proof-by-contrast.json' }
+                if ($modeText -match 'macro|material|材质|微距') { Add-Ref 'assets/detail-page-prompt-packs/proof-by-material-macro.json' }
+                if ($modeText -match 'scene|场景') { Add-Ref 'assets/detail-page-prompt-packs/proof-by-scene.json' }
+                if ($modeText -match 'structure|callout|结构') { Add-Ref 'assets/detail-page-prompt-packs/proof-by-structure-callout.json' }
+                if ($modeText -match 'lifestyle|生活') { Add-Ref 'assets/detail-page-prompt-packs/proof-by-lifestyle.json' }
+                if ($modeText -match 'poster|ad|海报|主图|kv') { Add-Ref 'assets/detail-page-prompt-packs/proof-by-ad-poster.json' }
             }
             'edit|brief' {
                 Add-Ref 'skills/d-image-director/references/prompt-segments.md'
                 Add-Ref 'skills/d-image-director/references/six-structure.md'
-                Add-Ref 'skills/d-image-director/references/legacy/D-image-prompt.md'
+                if ($modeText -match 'legacy') { Add-Ref 'skills/d-image-director/references/legacy/D-image-prompt.md' }
             }
             'direction' {
                 Add-Ref 'skills/d-image-director/references/prompt-segments.md'
@@ -86,13 +76,14 @@ switch ($Skill) {
             }
             'repair' { Add-Ref 'skills/d-image-director/references/legacy/D-image-repair.md' }
         }
-        if ($modeText -match 'person|model|material|texture|repair|space|template|edit|brief') { Add-Ref 'skills/d-image-director/references/templates.md' }
+        if ($modeText -match 'six') { Add-Ref 'skills/d-image-director/references/six-structure.md' }
+        if ($modeText -match 'person|model|talent|material|texture|repair|space|template|袖|手|人') { Add-Ref 'skills/d-image-director/references/templates.md' }
         if ($modeText -match 'white|scene|白底') { Add-Ref 'skills/d-image-director/references/white-to-scene.md' }
         if ($modeText -match 'light|lighting|shadow|c4d|光影') { Add-Ref 'skills/d-image-director/references/lighting-control.md' }
         if ($modeText -match 'camera|lens|focal|composition|framing|广角|机位|构图|视角') { Add-Ref 'skills/d-image-director/references/camera-language.md' }
         if ($modeText -match 'realism|真实') { Add-Ref 'skills/d-image-director/references/realism.md' }
         if ($modeText -match 'multiview|multi-view|logo|多视') { Add-Ref 'skills/d-image-director/references/multi-view-lock.md' }
-        if ($modeText -match 'model|talent|佩戴|模特') { Add-Ref 'skills/d-image-director/references/model-product.md' }
+        if ($modeText -match 'model|talent|person|hand|wrist|sleeve|佩戴|模特|人|手|腕|袖') { Add-Ref 'skills/d-image-director/references/model-product.md' }
         if ($modeText -match 'json|module|模块') { Add-Ref 'skills/d-image-director/references/prompt-json-modules.md' }
     }
     'd-prompt-reverse' {
@@ -110,13 +101,16 @@ switch ($Skill) {
     'd-image-runner' {
         Add-Ref 'assets/task-state-contract.md'
         Add-Ref 'assets/image-reference-format.md'
-        Add-Ref 'skills/d-image-runner/references/legacy/D-image-run.md'
+        if ($modeText -match 'legacy') { Add-Ref 'skills/d-image-runner/references/legacy/D-image-run.md' }
         if ($modeText -match 'batch|json|results') { Add-Ref 'skills/d-image-runner/references/results-input-example.json' }
-        if ($modeText -match 'postprocess|rh|upscale|remove-bg|cutout') { Add-Ref 'skills/d-image-runner/references/legacy/D-rh.md' }
+        if ($modeText -match 'postprocess|rh|upscale|remove-bg|cutout') {
+            Add-Ref 'skills/d-image-runner/references/legacy/D-rh.md'
+            Add-Ref 'skills/d-image-runner/references/model-runninghub-workflow.md'
+        }
         if ($modelText -match 'image2\.5|flare|sunburst') { Add-Ref 'skills/d-image-runner/references/model-image2.5.md' }
         elseif ($modelText -match 'banana|gemini-3|flash-image|pro-image') { Add-Ref 'skills/d-image-runner/references/model-banana2.md' }
         elseif ($modelText -match 'image2') { Add-Ref 'skills/d-image-runner/references/model-image2.md' }
-        else { Add-Ref 'skills/d-image-runner/references/model-banana2.md' }
+        elseif ($modeText -notmatch 'postprocess|rh|upscale|remove-bg|cutout') { Add-Ref 'skills/d-image-runner/references/model-banana2.md' }
     }
     'd-video-director' {
         Add-Ref 'assets/task-state-contract.md'
@@ -144,14 +138,15 @@ switch ($Skill) {
     }
     'd-visual-plan' {
         Add-Ref 'assets/task-state-contract.md'
-        Add-Ref 'assets/workflow-chain.md'
         Add-Ref 'skills/d-visual-plan/references/task-decompose.md'
         if ($modeText -match 'video') {
-            Add-Ref 'skills/d-visual-plan/references/legacy/D-video-plan.md'
+            if ($modeText -match 'legacy') { Add-Ref 'skills/d-visual-plan/references/legacy/D-video-plan.md' }
+        }
+        elseif ($modeText -match 'original') {
             Add-Ref 'skills/d-visual-plan/references/original.md'
         }
         else {
-            Add-Ref 'skills/d-visual-plan/references/legacy/D-detail-plan.md'
+            if ($modeText -match 'legacy') { Add-Ref 'skills/d-visual-plan/references/legacy/D-detail-plan.md' }
             Add-Ref 'skills/d-visual-plan/references/visual-selling-translation.md'
         }
         if ($modeText -match 'canvas|feishu') { Add-Ref 'skills/d-visual-plan/references/feishu-canvas-decompose.md' }
@@ -159,9 +154,9 @@ switch ($Skill) {
     }
     'd-project-pipeline' {
         Add-Ref 'assets/task-state-contract.md'
-        Add-Ref 'skills/d-project-pipeline/references/legacy/D-detail-auto.md'
-        if ($modeText -match 'canvas|feishu') { Add-Ref 'skills/d-project-pipeline/references/canvas-auto-pipeline.md' }
-        if ($modeText -match 'canvas|feishu|detail|image') { Add-Ref 'skills/d-visual-plan/references/visual-selling-translation.md' }
+        Add-Ref 'skills/d-project-pipeline/references/canvas-auto-pipeline.md'
+        if ($modeText -match 'legacy') { Add-Ref 'skills/d-project-pipeline/references/legacy/D-detail-auto.md' }
+        if ($modeText -match 'canvas|feishu') { Add-Ref 'skills/d-visual-plan/references/visual-selling-translation.md' }
     }
     'd-api-test' {
         Add-Ref 'skills/d-api-test/references/image-benchmark.md'

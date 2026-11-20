@@ -1,41 +1,25 @@
-# DUMIK 团队视觉工作流（Antigravity 规则）
+# DUMIK 团队视觉工作流（Antigravity 全局规则）
 
-- 当前插件根目录为 `C:\Users\admin\.gemini\config\plugins\dumik`（通过 NTFS 软连接实时指向 `C:\Users\admin\Documents\Codex\dumik-design-plugins\plugins\dumik-team-plugin`）。
-- 能力路由唯一来源：`assets/agent-skill-routing.md`；项目文件夹结构与零垃圾协议：`assets/project-env-protocol.md`；单图状态约定：`assets/task-state-contract.md`。
+- 插件根目录：`C:\Users\admin\.gemini\config\plugins\dumik`（实时映射 `plugins\dumik-team-plugin`），已启用 `hooks.json` 生命周期检查；详细路由表见 `assets/agent-skill-routing.md`。
 
-## 一、一文件夹一项目（建档即完整上下文闭环）
+## 一、技能按需激活表（禁止绕开 Skill 硬干）
 
-1. **一键建档（`d-init`，脚本 `skills/d-init/scripts/init_dumik_project.py`）**：新建一个项目文件夹后，可用实拍图 + 飞书链接（或先用纯实拍图）直接初始化，自动整理根目录散放实拍图进 `素材/实拍原图/`、注册白底图进 `设定集/白底图/`、拆解飞书文档写入根目录 `project.md`，并生成 `AGENTS.md`（原生 `@` 内联挂载 `project.md` 与 `design.md`）与 `design.md`。
-2. **增量同步（`--sync`）**：飞书画布有修改时直接重拉对比更新 `project.md`，自动保留已锁定里程碑、已定稿状态与 `design.md` 已确认设定；日常打开项目文件夹直接读根目录三文档即可续做，无需用户重述背景。
+| 用户需求 | 激活 Skill | 关键动作 |
+| --- | --- | --- |
+| 新建项目目录、关联/增量同步飞书（`--sync`）、改项目规约 | `d-init` | 先要飞书链接；跑 `init_dumik_project.py`，生成三文档后抛场景拍板清单；`AGENTS.md` 仅 `@` 内联 `design.md`（防超 24KB 截断，`project.md` 按需查阅） |
+| 飞书拆解策划、卖点去重翻译、全页场景与人物判定 | `d-visual-plan` | 提炼每屏核心物理证明与场景错峰矩阵；纯报告/规格屏标 `无需生图（后期排版）` |
+| 写/改里程碑或详情主图 `prompt.md`、四宫格/高清重绘/局部修复 | `d-image-director` | `detail` 模式跑 `compile_reference_pack.ps1`；覆盖写入 `制作/<编号_名称>/prompt.md`；不触发付费生图 |
+| 明确下令生成/出图/重抽/放大/抠图（或按波次批量跑与晋升定稿） | `d-image-runner` / `d-project-pipeline` | 优先通过 `build_canvas_pipeline.py` 走 `%TEMP%\dumik-runs\` 拆 `count: 1` 并发；默认 **DesignFlow MCP**（离线/冲突时直连兜底），锁定 **`Banana 2.1` · `9:16` · `2K` · `x2`**，非明确申明不切模型 |
+| 对照白底图做结构与画面纯净度审稿 | `d-consistency-check` | 输出一致/不一致/无法判断三态表 |
+| 从参考图反推结构化草稿 / 视频分镜与生成 | `d-prompt-reverse` / `d-video-director` / `d-video-runner` | 反推先人判主次；视频提及模型名不代表生图授权 |
 
-## 二、零本地运行垃圾铁律
+## 二、全案不可破底线
 
-- **项目内禁止沉淀过程文件**：严禁在项目目录生成 `.json` 队列、`canvas-manifest.json`、`拆解清单.md`、`run-state.json`、`wave*.json` 或 `运行记录.json/.md`。批量执行参数走系统 `%TEMP%\dumik-runs\` 用完即毁，技能参考拼装包继续只走 `%TEMP%`。
-- **制作目录按需创建、单版覆盖**：`制作/` 下不预建空目录；正在动工或返修的画面只在 `制作/<编号_名称>/prompt.md` 覆盖维护**当前最新生效的一版完整提示词**与 `@图N` 绑定；是否定稿以 `设定集/里程碑/` 与 `成品/` 里的真实图片为准，通过 `build_canvas_pipeline.py --status` 校准进 `project.md`。
+1. **纯无字底图 + 真实参考隔离**：除产品本体原生丝印/刻字或用户明确指定画内结构字外，严禁标题、卖点字、标尺、引线、圆框；带水印/UI 的 `素材/飞书画布/` 截图仅作写词前看图用，**严禁喂入 API**；实景生活屏优先直垫干净真机实拍图，**凡出现任何人物（含仅露手/腕/袖/肩背特写）必须无例外垫入人物身份卡**。
+2. **零本地运行垃圾**：项目内禁止落盘 `.json` 队列、`拆解清单.md`、`.pytest_cache` 或 `运行记录`；生图结束立刻 `--status` 同步 `project.md` 并清理 `%TEMP%\dumik-runs\`。
+3. **授权与汇报**：未收到用户本轮明确下令「开始生图 / 出图 / 生成 / 跑图」前绝不调付费接口；列举任何编号必须写成 **`编号 4~6字卖点`**（如 `S01 健康对比`），极简中文人话，不自建 PR/分支。
 
-## 三、卖点四层纯视觉翻译 + 纯无字底图 + 9:16 分批交付
+## 三、插件发版与公告规则
 
-1. **卖点翻译与导演控制（`d-visual-plan` + `d-image-director` `detail` 模式）**：
-   - 先过「第一眼爽点 → 信任硬证据 → 日常顾虑兜底」去重排主次；
-   - 把抽象卖点强转为物理画面证据（参照物满载 / 光学微距 / 极端动作对比）；纯检测报告与纯规格参数直接标 `无需生图（后期排版）`；
-   - 将第 0 批里程碑定调的「材质光学公式与光影空间母体」锁进 `design.md`；拆解与写词同步遵循整页一体导演法则——**规划多使用/饮用场景矩阵（防全案挤在同一桌面）**、**逐屏明确人物判定**（无人纯概念 / 刚离席生活余温 / 局部手袖交互 / 真人半身大片）并自动交替 `机位景别` 防相邻重样；
-   - **参考与人物锁边界**：带水印/UI 的飞书脏截图仅作写词前读图理解用、严禁喂入 API；**实景生活屏优先直接垫干净真机实拍图（如 Eagle 库）借真实 35mm 光学与大景深，避免反复垫带 AI 磨皮感的场景卡**；**凡画面出现任何人物（含半身、侧颜，以及任何仅露手部、手腕、衣袖、肩背的特写）必须无例外强制垫入人物身份卡**（超 20MB 时于 `%TEMP%` 临时压缩后照常传入）；纯平面或 C4D 概念对比屏只迁项目配色风格、不强带室内或百叶窗场景；
-   - **AI 只出纯无字画面底图，排版全部人工 PS 完成**：`project.md` 内保留运营原主副标题与批注供判断留白密度及 PS 直接复制，但画面正片除产品真实原生丝印/刻字或用户明确指定画内结构字外，严禁标题、卖点字、数字标尺、角标、图标、指示引线与放大圆框，并按文案密度预留干净低反差负空间。
-2. **四批出图与 `9:16` 同源母版**：第 0 批视觉里程碑定调 → 第 1 批（最优先）主图共用的详情核心屏（一图通吃 `790xn` / `3:4` 主图 / `1:1` 入口）→ 第 2 批详情其余分屏 → 第 3 批无法复用的独立 `1:1` 入口/SKU；默认生图画幅统一 `9:16`、**默认分辨率统一 `2K`（`9:16-2k` `1152x2048`，需要时再显式指定 `4K`）、抽卡默认 `x2`（`count: 2`）、默认模型 `Banana 2.1`（非用户明确申明不主动切用其他模型）**。
-
-## 四、授权边界与表达要求
-
-- 默认只停在项目建档、拆解清单与 `prompt.md` 中文提示词，**绝不自动调用付费生图接口**；只有用户明确下令「开始生图 / 出图 / 批量跑图 / 调用接口」时，才由 `d-project-pipeline` + `d-image-runner` 执行真实生图；出图后可用 `d-consistency-check` 对照白底原图与画面纯净度验收。
-- 向用户汇报进度、统计或列举分屏/主图/里程碑编号（如 `S01`、`M01`、`E01`、`MS01`）时，必须采用**`编号 4~6字核心卖点`**极简短标签（如 `S01 健康对比`、`S03 品牌售后`），同组精简成行、能一眼扫完——既严禁甩裸编号，也严禁每条展开成整段解释；语言保持极简中文人话，不出现多余分层字母代号，不擅自新建 Git 分支、提交 PR 或推送远端。
-
-## 五、插件更新与发版规则
-
-- 当用户要求更新并推送本插件到 GitHub 时，必须同步递增版本号（默认 `+0.0.1`，如 `0.2.2` → `0.2.3`，除非用户另行指定）并发行新的 GitHub Release。
-- 需同步更新 3 处版本字段：`plugins/dumik-team-plugin/.codex-plugin/plugin.json`（`version`）、`plugins/dumik-team-plugin/plugin.json`（`version`）、`plugins/dumik-team-plugin/assets/skill-versions.json`（`pluginVersion`）。
-- **必须编写更新公告并随 Release 发布**（禁止只用自动生成的 Full Changelog 空壳）：
-  - **禁止标题重复**：GitHub Release 标题固定为 `DUMIK Team Plugin v<版本号>`，公告正文**禁止再写 `# DUMIK Team Plugin v<版本号>` 一级标题**，直接从一句话概括开头。
-  - **对比上一个发行版汇总全部更新**：必须基于 `git log <上一个发行tag>..HEAD` 汇总从上个正式发行版到本版的**全部**实际变化（不能只写最后一次提交）。
-  - 分类列出变更（按需选用 `## ✨ 新功能`、`## ⚡ 优化与改进`、`## 🐛 问题修复`）。
-  - 每条格式：`- **加粗人话小标题**：一两句讲清对使用者的实际变化，不列内部文件名、函数名或 commit hash。`
-  - 末尾附上完整对比链接：`[查看与 <上一个发行tag> 的完整差异](https://github.com/Hill2048/dumik-design-plugins/compare/<上一个发行tag>...v<版本号>)`。
-- 优先执行 `plugins/dumik-team-plugin/scripts/release_dumik_plugin.ps1 -NotesFile "<公告文件>"` 完成「版本号 `+0.0.1` → 提交 → 推送 `main` → `gh release create v<新版本>` 发行新版本与公告」。
+- 用户要求更新并推送本插件到 GitHub 时，递增版本号（默认 `+0.0.1`）同步更新 `.codex-plugin/plugin.json`、`plugin.json`、`assets/skill-versions.json`，并运行 `scripts/release_dumik_plugin.ps1 -NotesFile "<公告>"` 发新 GitHub Release。
+- 公告必须基于 `git log <上个tag>..HEAD` 汇总**全部**实际变化，**禁止写 `# DUMIK Team Plugin v...` 重复一级标题**，按 `✨ 新功能 / ⚡ 优化与改进 / 🐛 问题修复` 列 `- **加粗人话小标题**：一两句讲清变化`，末尾附 `compare/<上个tag>...v<新版本>` 链接。

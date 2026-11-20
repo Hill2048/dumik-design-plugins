@@ -30,8 +30,16 @@ IMAGE_RUNNER_SCRIPT = PLUGIN_ROOT / "skills" / "d-image-runner" / "scripts" / "g
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp"}
 ROW_ID_RE = re.compile(r"^(MS\d+|S\d+|M\d+|E\d+)\b")
 RATIO_LINE_RE = re.compile(r"比例\s*[:：]\s*([0-9]+:[0-9]+|[0-9]+x[0-9]+|source-[0-9a-z-]+)", re.IGNORECASE)
-AT_IMAGE_PATH_RE = re.compile(r"@图(\d+)\s*[:：]\s*([^\s（(]+)")
-TARGET_FILE_RE = re.compile(r"(?:^|[-*\s])目标图\s*[:：]\s*([^\s（(]+)", re.MULTILINE)
+AT_IMAGE_PATH_RE = re.compile(
+    r"`?@图(\d+)`?\s*[:：]\s*(?:`([^`]+)`|\"([^\"]+)\"|'([^']+)'|([^\r\n（(]+?))(?=\s*[（(]|\s*$)",
+    re.MULTILINE,
+)
+TARGET_FILE_RE = re.compile(
+    r"(?:^|[-*\s])`?目标图`?\s*[:：]\s*(?:`([^`]+)`|\"([^\"]+)\"|([^\r\n（(]+?))(?=\s*[（(]|\s*$)",
+    re.MULTILINE,
+)
+PERSON_SIGNAL_RE = re.compile(r"(手腕|手指|四指|两指|单手|双手|手掌|手背|拎着|穿握|端握|握把|真丝袖|袖口|小臂|肩背|侧颜|半身|女主|模特)")
+PERSON_EXCLUSION_RE = re.compile(r"(无人物|无人·|无人|不出现人物|绝不露脸|不露正脸|严禁露脸)")
 CANDIDATE_NUM_RE = re.compile(r"候选[_-](\d+)")
 FENCE_RE = re.compile(r"```(?:[^\n`]*)\n(.*?)```", re.DOTALL)
 
@@ -187,9 +195,13 @@ def _find_matching_work_dir(project_root: Path, row_id: str) -> Path | None:
     make_dir = project_root / "制作"
     if not make_dir.is_dir():
         return None
-    pattern = re.compile(rf"^{re.escape(row_id)}(?:$|[_-])")
-    matches = [p for p in sorted(make_dir.iterdir()) if p.is_dir() and pattern.match(p.name)]
-    return matches[0] if matches else None
+    exact_pattern = re.compile(rf"^{re.escape(row_id)}(?:$|_)")
+    exact_matches = [p for p in sorted(make_dir.iterdir()) if p.is_dir() and exact_pattern.match(p.name)]
+    if exact_matches:
+        return exact_matches[0]
+    sub_pattern = re.compile(rf"^{re.escape(row_id)}-")
+    sub_matches = [p for p in sorted(make_dir.iterdir()) if p.is_dir() and sub_pattern.match(p.name)]
+    return sub_matches[0] if sub_matches else None
 
 
 def _find_matching_image(directory: Path, row_id: str, *, recursive: bool = False) -> Path | None:
@@ -347,21 +359,23 @@ def parse_prompt_md(prompt_path: Path, project_root: Path) -> dict[str, Any]:
     ratio_match = RATIO_LINE_RE.search(code_block) or RATIO_LINE_RE.search(raw_text)
     ratio = ratio_match.group(1).lower() if ratio_match else "9:16"
 
-    # Extract @图N -> path bindings (primarily from meta_block, falling back to full text if path-like)
+    # Extract @图N -> path bindings (supports backticks, quotes, and spaces e.g. Eagle paths)
     at_map: dict[int, str] = {}
     search_sources = [meta_block] if meta_block.strip() else []
     search_sources.append(code_block)
     for src_text in search_sources:
-        for num_str, raw_val in AT_IMAGE_PATH_RE.findall(src_text):
-            num = int(num_str)
+        for match in AT_IMAGE_PATH_RE.finditer(src_text):
+            num = int(match.group(1))
             if num in at_map:
                 continue
+            raw_val = next((g for g in match.groups()[1:] if g is not None), "").strip()
             looks_like_path = "/" in raw_val or "\\" in raw_val or any(raw_val.lower().endswith(ext) for ext in IMAGE_EXTS) or raw_val.startswith(("http://", "https://"))
             if looks_like_path:
                 at_map[num] = _resolve_project_file(raw_val, project_root)
 
     target_match = TARGET_FILE_RE.search(meta_block or raw_text)
-    target_resolved = _resolve_project_file(target_match.group(1), project_root) if target_match else None
+    target_raw = next((g for g in target_match.groups() if g is not None), "").strip() if target_match else ""
+    target_resolved = _resolve_project_file(target_raw, project_root) if target_raw else None
 
     ordered_nums = sorted(at_map)
     source_file: str | None = None
@@ -388,7 +402,7 @@ def parse_prompt_md(prompt_path: Path, project_root: Path) -> dict[str, Any]:
     }
 
 
-def _next_candidate_name(work_dir: Path) -> str:
+def _next_candidate_index(work_dir: Path) -> int:
     max_num = 0
     if work_dir.is_dir():
         for p in work_dir.iterdir():
@@ -396,7 +410,40 @@ def _next_candidate_name(work_dir: Path) -> str:
                 m = CANDIDATE_NUM_RE.search(p.stem)
                 if m:
                     max_num = max(max_num, int(m.group(1)))
-    return f"候选_{max_num + 1:02d}.png"
+    return max_num + 1
+
+
+def _strip_negative_lines_for_person_check(text: str) -> str:
+    kept: list[str] = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith(("禁止：", "禁止:", "明确不采用：", "明确不采用:", "- 明确不采用：", "- 明确不采用:")):
+            continue
+        cleaned = PERSON_EXCLUSION_RE.sub("", line)
+        kept.append(cleaned)
+    return "\n".join(kept)
+
+
+def _validate_person_card_binding(project_root: Path, row_id: str, final_instruction: str, ref_paths: list[str]) -> None:
+    card_dir = project_root / "设定集" / "人物身份卡"
+    if not card_dir.is_dir():
+        return
+    cards = [p for p in card_dir.iterdir() if p.is_file() and p.suffix.lower() in IMAGE_EXTS]
+    if not cards:
+        return
+    positive_body = _strip_negative_lines_for_person_check(final_instruction)
+    if not PERSON_SIGNAL_RE.search(positive_body):
+        return
+    has_person_ref = any(
+        ("人物身份卡" in Path(r).as_posix() or "模特" in Path(r).name)
+        for r in ref_paths
+    )
+    if not has_person_ref:
+        sample_rel = cards[0].resolve().relative_to(project_root.resolve()).as_posix()
+        raise PipelineError(
+            f"{row_id} 画面正文包含人物/手腕/衣袖描述，但未垫入人物身份卡！"
+            f"请先在 制作/{row_id}_*/prompt.md 中绑定 @图N：{sample_rel}"
+        )
 
 
 def prepare_or_execute_batch(
@@ -418,11 +465,26 @@ def prepare_or_execute_batch(
     selected_rows: list[ProjectRow] = []
     if requested_ids:
         by_id = {r.id: r for r in rows}
-        unknown = [i for i in requested_ids if i not in by_id]
-        if unknown:
-            raise PipelineError(f"在 project.md 中找不到编号：{', '.join(unknown)}")
         for rid in requested_ids:
-            row = by_id[rid]
+            row = by_id.get(rid)
+            if row is None and "-" in rid:
+                base_id = rid.split("-", 1)[0]
+                base_row = by_id.get(base_id)
+                if base_row is not None and _find_matching_work_dir(project_root, rid) is not None:
+                    row = ProjectRow(
+                        id=rid,
+                        wave=base_row.wave,
+                        title=base_row.title,
+                        linked_main=base_row.linked_main,
+                        source_mode=base_row.source_mode,
+                        status="提示词就绪",
+                        asset_path=base_row.asset_path,
+                        line_index=base_row.line_index,
+                        headers=base_row.headers,
+                        cells=base_row.cells,
+                    )
+            if row is None:
+                raise PipelineError(f"在 project.md 中找不到编号：{rid}")
             if row.status.startswith("无需生图"):
                 raise PipelineError(f"{rid} 标记为「{row.status}」，属于纯后期排版屏，不进入生图。")
             selected_rows.append(row)
@@ -450,20 +512,27 @@ def prepare_or_execute_batch(
             continue
 
         parsed = parse_prompt_md(prompt_path, project_root)
-        cand_name = _next_candidate_name(work_dir)
-        out_rel = f"{work_dir.name}/{cand_name}"
-        batch_items.append(
-            {
-                "id": row.id,
-                "file": parsed["file"],
-                "reference_files": parsed["reference_files"],
-                "task": f"第{row.wave}批 | {row.id} {row.title}",
-                "count": count,
-                "output_name": out_rel,
-                "output_size": resolve_output_size(parsed["ratio"], quality),
-                "final_instruction": parsed["final_instruction"],
-            }
-        )
+        all_refs = list(parsed["reference_files"]) + ([parsed["file"]] if parsed["file"] else [])
+        _validate_person_card_binding(project_root, row.id, parsed["final_instruction"], all_refs)
+        next_idx = _next_candidate_index(work_dir)
+        safe_count = max(1, int(count))
+        for cand_offset in range(safe_count):
+            cand_name = f"候选_{next_idx + cand_offset:02d}.png"
+            out_rel = f"{work_dir.name}/{cand_name}"
+            item_id = row.id if safe_count == 1 else f"{row.id}-c{cand_offset + 1}"
+            task_title = f"第{row.wave}批 | {row.id} {row.title}" + (f" #{cand_offset + 1}" if safe_count > 1 else "")
+            batch_items.append(
+                {
+                    "id": item_id,
+                    "file": parsed["file"],
+                    "reference_files": parsed["reference_files"],
+                    "task": task_title,
+                    "count": 1,
+                    "output_name": out_rel,
+                    "output_size": resolve_output_size(parsed["ratio"], quality),
+                    "final_instruction": parsed["final_instruction"],
+                }
+            )
 
     if missing_prompts:
         raise PipelineError("以下编号尚未准备 prompt.md，禁止用草稿偷跑生图：\n- " + "\n- ".join(missing_prompts))

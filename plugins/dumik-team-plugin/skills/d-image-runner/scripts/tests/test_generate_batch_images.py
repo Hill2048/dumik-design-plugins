@@ -254,5 +254,26 @@ class Banana21Tests(unittest.TestCase):
             MODULE.normalize_thinking_level("high", image_model="gpt-image-2.5-sunburst")
 
 
+class LargeReferenceCompressionTests(unittest.TestCase):
+    def test_oversized_png_reference_is_compressed_to_jpeg(self):
+        from PIL import Image
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            big_png = root / "big.png"
+            # Generate noisy RGB > 6MB raw PNG so compression branch activates
+            import os
+
+            raw_pixels = os.urandom(2800 * 2800 * 3)
+            img = Image.frombytes("RGB", (2800, 2800), raw_pixels)
+            img.save(big_png, format="PNG", compress_level=0)
+            self.assertGreater(big_png.stat().st_size, MODULE.MAX_RAW_REF_BYTES)
+
+            inline = MODULE.image_path_to_inline_data(big_png)
+            self.assertEqual(inline["mimeType"], "image/jpeg")
+            decoded = base64.b64decode(inline["data"])
+            self.assertLess(len(decoded), MODULE.MAX_RAW_REF_BYTES)
+
+
 if __name__ == "__main__":
     unittest.main()
