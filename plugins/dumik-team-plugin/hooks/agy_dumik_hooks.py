@@ -196,6 +196,8 @@ def classify_user_intent(user_text: str, project_root: Path) -> dict[str, Any]:
         skill, mode = "d-image-director -> d-project-pipeline/d-image-runner", "detail + execute"
     elif auth == "authorized":
         skill, mode = "d-image-runner", "generate"
+    elif any(k in text for k in ("身份卡", "摆件", "选样", "四视图")):
+        skill, mode = "d-image-director", "edit-prop"
     elif mentioned_ids or any(k in text for k in ("提示词", "prompt", "改图", "重绘", "四宫格", "场景", "构图")):
         skill, mode = "d-image-director", "detail"
     else:

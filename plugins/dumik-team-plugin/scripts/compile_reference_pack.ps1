@@ -82,7 +82,7 @@ switch ($Skill) {
         if ($modeText -match 'light|lighting|shadow|c4d|光影') { Add-Ref 'skills/d-image-director/references/lighting-control.md' }
         if ($modeText -match 'camera|lens|focal|composition|framing|广角|机位|构图|视角') { Add-Ref 'skills/d-image-director/references/camera-language.md' }
         if ($modeText -match 'realism|真实') { Add-Ref 'skills/d-image-director/references/realism.md' }
-        if ($modeText -match 'multiview|multi-view|logo|多视') { Add-Ref 'skills/d-image-director/references/multi-view-lock.md' }
+        if ($modeText -match 'multiview|multi-view|logo|identity|card|prop|swatch|多视|身份卡|摆件|选样') { Add-Ref 'skills/d-image-director/references/multi-view-lock.md' }
         if ($modeText -match 'model|talent|person|hand|wrist|sleeve|佩戴|模特|人|手|腕|袖') { Add-Ref 'skills/d-image-director/references/model-product.md' }
         if ($modeText -match 'json|module|模块') { Add-Ref 'skills/d-image-director/references/prompt-json-modules.md' }
     }

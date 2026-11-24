@@ -40,7 +40,7 @@ Windows / 有 PowerShell 时：先运行当前插件目录的 `scripts/compile_r
 | 光影专项、调性反差、实拍+C4D 分工 | `lighting-control.md` |
 | 机位/焦距/景深/广角风险 | `camera-language.md` |
 | 真实感、世界逻辑、轻微不完美 | `realism.md` |
-| 多角度成套、Logo 后期叠、产品身份卡 / 场景身份卡 | `multi-view-lock.md` |
+| 多角度成套、Logo 后期叠、产品/场景/摆件身份卡与目录选样 | `multi-view-lock.md` |
 | 模特佩戴/持握同框、人物身份卡 / 手模四视图 | `model-product.md`（与 `templates.md` 身份卡及人像段并用） |
 | 白膜渲染 / 扩图补全 / 分层 3D 字 / 锤纹与钛陶瓷材质 | `templates.md` |
 | 要 JSON/模块字段化 | `prompt-json-modules.md` |
