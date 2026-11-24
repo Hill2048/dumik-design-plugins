@@ -9,7 +9,7 @@
 | 新建项目目录、关联/增量同步飞书（`--sync`）、改项目规约 | `d-init` | 先要飞书链接；跑 `init_dumik_project.py`，生成三文档后抛场景拍板清单；`AGENTS.md` 仅 `@` 内联 `design.md`（防超 24KB 截断，`project.md` 按需查阅） |
 | 飞书拆解策划、卖点去重翻译、全页场景与人物判定 | `d-visual-plan` | 提炼每屏核心物理证明与场景错峰矩阵；纯报告/规格屏标 `无需生图（后期排版）` |
 | 写/改里程碑或详情主图 `prompt.md`、四宫格/高清重绘/局部修复 | `d-image-director` | `detail` 模式跑 `compile_reference_pack.ps1`；覆盖写入 `制作/<编号_名称>/prompt.md`；不触发付费生图 |
-| 明确下令生成/出图/重抽/放大/抠图（或按波次批量跑与晋升定稿） | `d-image-runner` / `d-project-pipeline` | 优先通过 `build_canvas_pipeline.py` 走 `%TEMP%\dumik-runs\` 拆 `count: 1` 并发；默认 **DesignFlow MCP**（离线/冲突时直连兜底），锁定 **`Banana 2.1` · `9:16` · `2K` · `x2`**，非明确申明不切模型 |
+| 明确下令生成/出图/重抽/放大/抠图（或按波次批量跑与晋升定稿） | `d-image-runner` / `d-project-pipeline` | 区分 **DesignFlow 模式（默认，画布在线）** 与 **API 直连模式（离线/指定兜底）**：DesignFlow 走 `designflow_generate_image`（同提示词多张单节点传 `count: 1..4`、跨模型传 `models`、多屏批量传 `items` 并发，`designflow_export_image` 落盘）；API 直连走 `build_canvas_pipeline.py --engine api --execute` 经 `%TEMP%\dumik-runs\` 拆 `count: 1` 并发；默认锁定 **`Banana 2.1` · `9:16` · `2K` · `x2`**，非明确申明不切模型 |
 | 对照白底图做结构与画面纯净度审稿 | `d-consistency-check` | 输出一致/不一致/无法判断三态表 |
 | 从参考图反推结构化草稿 / 视频分镜与生成 | `d-prompt-reverse` / `d-video-director` / `d-video-runner` | 反推先人判主次；视频提及模型名不代表生图授权 |
 

@@ -292,6 +292,55 @@ class CanvasPipelineTests(unittest.TestCase):
             prep_sub = PIPELINE_MOD.prepare_or_execute_batch(project_root=root, ids=["S04-1"], execute=False)
             self.assertEqual(prep_sub["items"][0]["outputName"], "S04-1_子镜/候选_01.png")
 
+    def test_designflow_engine_preserves_single_node_count_and_rejects_direct_execute(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "mug_df"
+            _write_sample_project(root)
+            eagle_file = root / "素材" / "实拍原图" / "Eagle Shot With Space 01.jpg"
+            eagle_file.write_bytes(b"eagle-jpg")
+
+            s04_dir = root / "制作" / "S04_钛好舀"
+            s04_dir.mkdir(parents=True)
+            prompt = """# S04_钛好舀
+- `@图1`：`设定集/白底图/spoon-white.png`（[结构锁]）
+- `@图2`：`素材/实拍原图/Eagle Shot With Space 01.jpg`（[实拍基底]）
+
+```text
+比例：9:16
+
+桌面静物微距，绝无多余物体。
+```
+"""
+            (s04_dir / "prompt.md").write_text(prompt, encoding="utf-8")
+
+            df_prep = PIPELINE_MOD.prepare_or_execute_batch(
+                project_root=root,
+                ids=["S04"],
+                count=2,
+                engine="designflow",
+                execute=False,
+            )
+            self.assertEqual(df_prep["mode"], "designflow_prepared")
+            self.assertEqual(df_prep["engine"], "designflow")
+            self.assertEqual(df_prep["itemsCount"], 1)
+            self.assertEqual(df_prep["totalImages"], 2)
+            item = df_prep["designflowItems"][0]
+            self.assertEqual(item["count"], 2)
+            self.assertEqual(item["sizePreset"], "2K")
+            self.assertEqual(item["thinkingLevel"], "HIGH")
+            self.assertEqual(Path(item["referenceFiles"][0]).name, "spoon-white.png")
+            self.assertEqual(Path(item["referenceFiles"][1]).name, "Eagle Shot With Space 01.jpg")
+            self.assertEqual(item["outputNames"], ["S04_钛好舀/候选_01.png", "S04_钛好舀/候选_02.png"])
+
+            with self.assertRaises(PIPELINE_MOD.PipelineError):
+                PIPELINE_MOD.prepare_or_execute_batch(
+                    project_root=root,
+                    ids=["S04"],
+                    count=2,
+                    engine="designflow",
+                    execute=True,
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

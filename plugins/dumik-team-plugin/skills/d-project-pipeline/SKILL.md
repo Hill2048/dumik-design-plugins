@@ -34,7 +34,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 1. **以根目录 `project.md` 与磁盘真实文件为唯一真相**：严禁在项目目录内生成 `run-state.json`、`wave*.json` 或 `运行记录.json/.md`。随时可用 `scripts/build_canvas_pipeline.py --project-root <项目> --status` 扫描 `制作/<编号_名称>/prompt.md`、候选图、`设定集/里程碑/` 与 `成品/`，自动校准 `project.md` 状态列。
 2. **仅读取已写好的 `制作/<编号_名称>/prompt.md`**：禁止用草稿偷跑接口；若某批缺少 `prompt.md`，先交 `d-image-director` 编写最新完整纯无字底图提示词并就地覆盖写入 `prompt.md`。
-3. **`%TEMP%` 临时组包执行**：仅当用户明确下令「开始生图 / 出图 / 批量跑图」时，才加 `--execute` 经系统 `%TEMP%\dumik-runs\` 组装一次性批次调 `d-image-runner` 生图，结束后立即删除临时 JSON 并自动刷新 `project.md`。
+3. **双模式无状态批量执行（禁止项目内落盘队列）**：仅当用户明确下令「开始生图 / 出图 / 批量跑图」时执行：
+   - **DesignFlow 模式（默认，画布在线）**：先跑 `scripts/build_canvas_pipeline.py --project-root <项目> --prepare-batch --engine designflow --wave <N> --count <1-4>` 校验 `prompt.md` 与人物卡并生成 `designflowItems`（单屏保留单节点 `count`），交 Agent 一次调 `designflow_generate_image({ items: [...] })` 并发跑图；完成后用 `designflow_export_image` 落盘，再跑 `--status` 刷新 `project.md`。
+   - **API 直连模式（离线或指定直连）**：跑 `--execute --engine api` 经系统 `%TEMP%\dumik-runs\` 拆 `count: 1` 并发调 `d-image-runner`，结束后立即删除临时 JSON 并自动刷新 `project.md`。
 4. **定稿晋升归档**：候选图确认通过后，使用 `--promote <编号> --file <候选图>` 复制归档进 `设定集/里程碑/`（`MS*`）或 `成品/`（`S*`/`M*`/`E*`），同时刷新状态并在第 1 批详情定稿时提醒同步派生关联 `3:4` 主图。
 
 按 [插件路由](../../assets/agent-skill-routing.md) 判断是否需要跨步骤执行编排，不凭“项目制、批量、Agent”单个词触发。单图追改就地覆盖 `制作/<编号_名称>/prompt.md`，详见 [任务状态合同](../../assets/task-state-contract.md)。

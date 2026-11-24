@@ -68,7 +68,7 @@ Juaihub 与 808Relay 的客户端发包格式相同，只替换 Base URL 和 Key
 - `generationConfig.thinkingConfig.thinkingLevel`（默认 `high`，可通过 `--thinking-level` 或批次行 `thinking_level` 覆盖；传 `off` 可省略该字段）：`banana2` 支持 `minimal` / `high`；`banana2.1` 支持 `minimal` / `medium` / `high`。
 - Banana 系列的 `output_size` 用来选择比例和 `imageSize` 档位，不承诺返回精确像素；脚本会记录实际尺寸，并校验返回比例不能明显偏离请求比例。
 - 参考图改图：目标图和参考图按 `contents[].parts[]` 顺序分别作为多个 `inlineData` 部分发送，不能放进 `images`、`image` 或 multipart 字段。
-- 多张候选：每张图使用独立 `count: 1` 请求；需要并发时只并发任务行，不把多张候选合并到一个请求里。
+- 多张候选（仅 **API 直连模式**，走 Gemini `:generateContent` 协议时）：每张图使用独立 `count: 1` 请求，并发任务行，不串联垫图；若走 **DesignFlow 模式**，应在单节点传 `count: 2..4` 并发，不拆多节点。
 - 返回图片可能是 PNG 或 JPEG，统一从 Gemini 响应的 inline data 解码保存，不按文件扩展名判断格式。
 
 ## 返回结构
@@ -101,7 +101,7 @@ Juaihub 与 808Relay 的客户端发包格式相同，只替换 Base URL 和 Key
 
 - 普通单图：`output_size` 不填，脚本默认请求 `2048x2048`，Banana 参数为 `aspectRatio: 1:1`、`imageSize: 2K`。
 - 故事板 / 身份卡：`output_size` 默认也用 **`2K`**（如 `9:16` / `1152x2048`、`16:9` / `2048x1152`）；仅用户明确要超高清特写大图时再指定 `4K`（`9:16-4k` 等）。
-- 批量多候选：拆成多条 row，每条 `count: 1`，不要依赖一个 row 里多张返回。
+- 批量多候选（仅 **API 直连模式**）：拆成多条 row，每条 `count: 1`，不要依赖直连单请求返回多张；若走 **DesignFlow 模式**，则在 `items` 内每屏传 `count: 2..4`。
 
 ## 禁止混用
 

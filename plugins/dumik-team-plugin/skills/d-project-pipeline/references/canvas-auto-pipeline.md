@@ -1,9 +1,10 @@
 # 无状态 9:16 主图优先流水线编排
 
-本方法衔接根目录 `project.md` 与 `制作/<编号_名称>/prompt.md`，使用 `skills/d-project-pipeline/scripts/build_canvas_pipeline.py` 做**零本地运行垃圾**的批次调度、真实文件状态校准与定稿晋升归档。
+本方法衔接根目录 `project.md` 与 `制作/<编号_名称>/prompt.md`，使用 `skills/d-project-pipeline/scripts/build_canvas_pipeline.py` 做**零本地运行垃圾**的批次调度、真实文件状态校准与定稿晋升归档，并严格区分 **DesignFlow 模式（默认）** 与 **API 直连模式**：
 
 - **项目内绝不写入** `run-state.json`、`wave*.json` 或 `运行记录.json/.md`。
-- 需要批量提交给 `generate_batch_images.py --batch` 的任务单，只临时写入系统 `%TEMP%\dumik-runs\`，跑完即焚。
+- **DesignFlow 模式（`--engine designflow`，默认）**：`--prepare-batch` 校验并输出保留每屏单节点 `count (1..4)` 与 `@图1..N` 顺序的 `designflowItems`，直接交 Agent 调用 `designflow_generate_image({ items: [...] })` 并发跑图，完成后用 `designflow_export_image` 导出落盘。
+- **API 直连模式（`--engine api`）**：将多候选拆成独立 `count: 1` 行，仅临时写入系统 `%TEMP%\dumik-runs\` 交给 `generate_batch_images.py --batch` 并发提交，跑完即焚。
 
 ## 一、四段分波次执行顺序
 
@@ -20,13 +21,16 @@
 # 1. 根据 制作/、设定集/里程碑/、成品/ 真实文件校准 project.md 状态列（不改图、不写 JSON）
 python "<插件根目录>\skills\d-project-pipeline\scripts\build_canvas_pipeline.py" --project-root "<项目根目录>" --status
 
-# 2. 干跑校验第 1 批 prompt.md 是否写齐（缺失时明确报错，不调接口、不留临时文件）
-python "<插件根目录>\skills\d-project-pipeline\scripts\build_canvas_pipeline.py" --project-root "<项目根目录>" --prepare-batch --wave 1
+# 2. DesignFlow 模式预检组包（保留单节点 count 1..4，不写临时文件；产出 designflowItems 交 designflow_generate_image 并发）
+python "<插件根目录>\skills\d-project-pipeline\scripts\build_canvas_pipeline.py" --project-root "<项目根目录>" --prepare-batch --engine designflow --wave 1 --count 2 --quality 2k --image-model banana2.1 --thinking-level high
 
-# 3. 仅在用户明确下令「开始生图 / 出图 / 批量跑图」后执行真实批量提交（支持 --ids MS02,S04）
-python "<插件根目录>\skills\d-project-pipeline\scripts\build_canvas_pipeline.py" --project-root "<项目根目录>" --execute --wave 1 --quality 2k --image-model banana2.1 --thinking-level high
+# 3. API 直连模式干跑校验（拆 count: 1 行，不调接口、不留临时文件）
+python "<插件根目录>\skills\d-project-pipeline\scripts\build_canvas_pipeline.py" --project-root "<项目根目录>" --prepare-batch --engine api --wave 1 --count 2
 
-# 4. 定稿晋升：把选中候选图拷入 设定集/里程碑/ 或 成品/ 并自动更新 project.md
+# 4. 仅在用户明确下令「开始生图 / 出图 / 批量跑图」且走 API 直连模式时提交执行（支持 --ids MS02,S04）
+python "<插件根目录>\skills\d-project-pipeline\scripts\build_canvas_pipeline.py" --project-root "<项目根目录>" --execute --engine api --wave 1 --count 2 --quality 2k --image-model banana2.1 --thinking-level high
+
+# 5. 定稿晋升：把选中候选图拷入 设定集/里程碑/ 或 成品/ 并自动更新 project.md
 python "<插件根目录>\skills\d-project-pipeline\scripts\build_canvas_pipeline.py" --project-root "<项目根目录>" --promote S04 --file "制作/S04_钛好舀/候选_01.png"
 ```
 

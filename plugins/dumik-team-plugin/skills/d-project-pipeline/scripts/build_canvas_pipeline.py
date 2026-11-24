@@ -446,6 +446,21 @@ def _validate_person_card_binding(project_root: Path, row_id: str, final_instruc
         )
 
 
+def _normalize_designflow_thinking_level(image_model: str, thinking_level: str | None) -> str | None:
+    raw = (thinking_level or "").strip()
+    if raw:
+        low = raw.lower()
+        if low == "off":
+            return None
+        if low == "auto":
+            return "auto"
+        if low in ("minimal", "medium", "high"):
+            return low.upper()
+    if "banana" in image_model.lower():
+        return "HIGH"
+    return None
+
+
 def prepare_or_execute_batch(
     *,
     project_root: Path,
@@ -456,8 +471,17 @@ def prepare_or_execute_batch(
     thinking_level: str | None = None,
     count: int = 1,
     concurrency: int = 3,
+    engine: str = "api",
     execute: bool = False,
 ) -> dict[str, Any]:
+    if engine not in ("api", "designflow"):
+        raise PipelineError(f"不支持的执行模式 engine={engine}（请使用 api 或 designflow）。")
+    if engine == "designflow" and execute:
+        raise PipelineError(
+            "--engine designflow 仅用于 --prepare-batch 校验并生成 designflowItems，"
+            "请直接由 Agent 调用 DesignFlow MCP designflow_generate_image 执行"
+            "（直连 API 请使用 --engine api --execute）。"
+        )
     project_root = project_root.resolve()
     _, rows = parse_project_md(project_root / "project.md")
 
@@ -503,6 +527,8 @@ def prepare_or_execute_batch(
 
     missing_prompts: list[str] = []
     batch_items: list[dict[str, Any]] = []
+    designflow_items: list[dict[str, Any]] = []
+    df_thinking = _normalize_designflow_thinking_level(image_model, thinking_level)
     for row in selected_rows:
         work_dir = _find_matching_work_dir(project_root, row.id)
         prompt_path = (work_dir / "prompt.md") if work_dir else None
@@ -516,26 +542,71 @@ def prepare_or_execute_batch(
         _validate_person_card_binding(project_root, row.id, parsed["final_instruction"], all_refs)
         next_idx = _next_candidate_index(work_dir)
         safe_count = max(1, int(count))
-        for cand_offset in range(safe_count):
-            cand_name = f"候选_{next_idx + cand_offset:02d}.png"
-            out_rel = f"{work_dir.name}/{cand_name}"
-            item_id = row.id if safe_count == 1 else f"{row.id}-c{cand_offset + 1}"
-            task_title = f"第{row.wave}批 | {row.id} {row.title}" + (f" #{cand_offset + 1}" if safe_count > 1 else "")
-            batch_items.append(
-                {
-                    "id": item_id,
-                    "file": parsed["file"],
-                    "reference_files": parsed["reference_files"],
-                    "task": task_title,
-                    "count": 1,
-                    "output_name": out_rel,
-                    "output_size": resolve_output_size(parsed["ratio"], quality),
-                    "final_instruction": parsed["final_instruction"],
+
+        if engine == "designflow":
+            # 严格保持 @图1..N 在 prompt.md 中的原始引用顺序
+            ordered_refs = ([parsed["file"]] if parsed["file"] else []) + list(parsed["reference_files"])
+            offset = 0
+            chunk_idx = 0
+            chunk_sizes: list[int] = []
+            rem = safe_count
+            while rem > 0:
+                sz = min(4, rem)
+                chunk_sizes.append(sz)
+                rem -= sz
+            for sz in chunk_sizes:
+                chunk_idx += 1
+                out_names = [f"{work_dir.name}/候选_{next_idx + offset + i:02d}.png" for i in range(sz)]
+                offset += sz
+                df_item: dict[str, Any] = {
+                    "id": row.id if len(chunk_sizes) == 1 else f"{row.id}-g{chunk_idx}",
+                    "title": f"第{row.wave}批 | {row.id} {row.title}",
+                    "prompt": parsed["final_instruction"],
+                    "model": image_model,
+                    "ratio": parsed["ratio"],
+                    "sizePreset": quality.upper(),
+                    "count": sz,
+                    "referenceFiles": ordered_refs,
+                    "outputDir": str(work_dir),
+                    "outputNames": out_names,
                 }
-            )
+                if df_thinking:
+                    df_item["thinkingLevel"] = df_thinking
+                designflow_items.append(df_item)
+        else:
+            for cand_offset in range(safe_count):
+                cand_name = f"候选_{next_idx + cand_offset:02d}.png"
+                out_rel = f"{work_dir.name}/{cand_name}"
+                item_id = row.id if safe_count == 1 else f"{row.id}-c{cand_offset + 1}"
+                task_title = f"第{row.wave}批 | {row.id} {row.title}" + (f" #{cand_offset + 1}" if safe_count > 1 else "")
+                batch_items.append(
+                    {
+                        "id": item_id,
+                        "file": parsed["file"],
+                        "reference_files": parsed["reference_files"],
+                        "task": task_title,
+                        "count": 1,
+                        "output_name": out_rel,
+                        "output_size": resolve_output_size(parsed["ratio"], quality),
+                        "final_instruction": parsed["final_instruction"],
+                    }
+                )
 
     if missing_prompts:
         raise PipelineError("以下编号尚未准备 prompt.md，禁止用草稿偷跑生图：\n- " + "\n- ".join(missing_prompts))
+
+    if engine == "designflow":
+        return {
+            "ok": True,
+            "mode": "designflow_prepared",
+            "engine": "designflow",
+            "projectRoot": str(project_root),
+            "itemsCount": len(designflow_items),
+            "totalImages": sum(int(it["count"]) for it in designflow_items),
+            "imageModel": image_model,
+            "designflowItems": designflow_items,
+            "tempFileCleaned": True,
+        }
 
     temp_dir = Path(tempfile.gettempdir()) / "dumik-runs"
     temp_dir.mkdir(parents=True, exist_ok=True)
@@ -547,6 +618,7 @@ def prepare_or_execute_batch(
             return {
                 "ok": True,
                 "mode": "dry_run_prepared",
+                "engine": "api",
                 "projectRoot": str(project_root),
                 "itemsCount": len(batch_items),
                 "imageModel": image_model,
@@ -587,6 +659,7 @@ def prepare_or_execute_batch(
     return {
         "ok": True,
         "mode": "executed",
+        "engine": "api",
         "projectRoot": str(project_root),
         "itemsSubmitted": len(batch_items),
         "imageModel": image_model,
@@ -656,6 +729,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--thinking-level", default=None, help="Banana 思考深度（默认 high；支持 minimal/medium/high/off）")
     parser.add_argument("--count", type=int, default=1, help="每项生成候选数，默认 1")
     parser.add_argument("--concurrency", type=int, default=3, help="并发数，默认 3")
+    parser.add_argument(
+        "--engine",
+        choices=("api", "designflow"),
+        default="api",
+        help="执行模式：api=直连拆 count:1 提交；designflow=输出保留单节点 count(1-4) 的 designflowItems",
+    )
     parser.add_argument("--promote", default=None, help="将某编号候选图定稿晋升到 设定集/里程碑 或 成品/")
     parser.add_argument("--file", default=None, help="配合 --promote 使用的候选图文件路径")
     return parser
@@ -682,6 +761,7 @@ def main(argv: list[str] | None = None) -> int:
                 thinking_level=args.thinking_level,
                 count=args.count,
                 concurrency=args.concurrency,
+                engine=args.engine,
                 execute=bool(args.execute),
             )
         else:
