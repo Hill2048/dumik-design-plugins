@@ -3,7 +3,7 @@
 本方法衔接根目录 `project.md` 与 `制作/<编号_名称>/prompt.md`，使用 `skills/d-project-pipeline/scripts/build_canvas_pipeline.py` 做**零本地运行垃圾**的批次调度、真实文件状态校准与定稿晋升归档，并严格区分 **DesignFlow 模式（默认）** 与 **API 直连模式**：
 
 - **项目内绝不写入** `run-state.json`、`wave*.json` 或 `运行记录.json/.md`。
-- **DesignFlow 模式（`--engine designflow`，默认）**：`--prepare-batch` 校验并输出保留每屏单节点 `count (1..4)` 与 `@图1..N` 顺序的 `designflowItems`，直接交 Agent 调用 `designflow_generate_image({ items: [...] })` 并发跑图，完成后用 `designflow_export_image` 导出落盘。
+- **DesignFlow 模式（`--engine designflow`，默认）**：`--prepare-batch` 校验并输出保留每屏单节点 `count (1..4)`、多模型 `models: [...]`（传 `--image-models banana2.1,bananapro`）与 `@图1..N` 顺序的 `designflowItems`（同词多模型只出 1 条 item，不拆多节点），直接交 Agent 一次调用 `designflow_generate_image({ items: [...] })` 并发跑图，完成后用 `designflow_export_image` 导出落盘。
 - **API 直连模式（`--engine api`）**：将多候选拆成独立 `count: 1` 行，仅临时写入系统 `%TEMP%\dumik-runs\` 交给 `generate_batch_images.py --batch` 并发提交，跑完即焚。
 
 ## 一、四段分波次执行顺序
@@ -23,6 +23,9 @@ python "<插件根目录>\skills\d-project-pipeline\scripts\build_canvas_pipelin
 
 # 2. DesignFlow 模式预检组包（保留单节点 count 1..4，不写临时文件；产出 designflowItems 交 designflow_generate_image 并发）
 python "<插件根目录>\skills\d-project-pipeline\scripts\build_canvas_pipeline.py" --project-root "<项目根目录>" --prepare-batch --engine designflow --wave 1 --count 2 --quality 2k --image-model banana2.1 --thinking-level high
+
+# 2b. DesignFlow 模式同屏多模型对比组包（单节点并发 banana2.1 + bananapro，每屏仅产 1 条含 models 数组的 designflowItems）
+python "<插件根目录>\skills\d-project-pipeline\scripts\build_canvas_pipeline.py" --project-root "<项目根目录>" --prepare-batch --engine designflow --wave 1 --count 2 --quality 2k --image-models banana2.1,bananapro --thinking-level high
 
 # 3. API 直连模式干跑校验（拆 count: 1 行，不调接口、不留临时文件）
 python "<插件根目录>\skills\d-project-pipeline\scripts\build_canvas_pipeline.py" --project-root "<项目根目录>" --prepare-batch --engine api --wave 1 --count 2

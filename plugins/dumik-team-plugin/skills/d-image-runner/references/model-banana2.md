@@ -68,7 +68,9 @@ Juaihub 与 808Relay 的客户端发包格式相同，只替换 Base URL 和 Key
 - `generationConfig.thinkingConfig.thinkingLevel`（默认 `high`，可通过 `--thinking-level` 或批次行 `thinking_level` 覆盖；传 `off` 可省略该字段）：`banana2` 支持 `minimal` / `high`；`banana2.1` 支持 `minimal` / `medium` / `high`。
 - Banana 系列的 `output_size` 用来选择比例和 `imageSize` 档位，不承诺返回精确像素；脚本会记录实际尺寸，并校验返回比例不能明显偏离请求比例。
 - 参考图改图：目标图和参考图按 `contents[].parts[]` 顺序分别作为多个 `inlineData` 部分发送，不能放进 `images`、`image` 或 multipart 字段。
-- 多张候选（仅 **API 直连模式**，走 Gemini `:generateContent` 协议时）：每张图使用独立 `count: 1` 请求，并发任务行，不串联垫图；若走 **DesignFlow 模式**，应在单节点传 `count: 2..4` 并发，不拆多节点。
+- 多张候选与多模型并发：
+  - **DesignFlow 模式（默认，画布在线）**：同提示词多张在单节点传 `count: 2..4`；同提示词同时跑 `banana2.1` 与 `bananapro`（或其他渠道模型）必须**只调用 1 次 `designflow_generate_image`**，传 `"models": ["banana2.1", "bananapro"]` 与 `"count": 2..4`，**严禁拆成两个节点或发起两次调用**（传了 `models` 时仅对支持的 `banana2` / `banana2.1` 生效 `thinkingLevel`）。
+  - **API 直连模式（离线或指定直连）**：走 Gemini `:generateContent` 协议时每张图使用独立 `count: 1` 请求并发任务行，不串联垫图，且每次仅跑单个模型。
 - 返回图片可能是 PNG 或 JPEG，统一从 Gemini 响应的 inline data 解码保存，不按文件扩展名判断格式。
 
 ## 返回结构
@@ -101,7 +103,9 @@ Juaihub 与 808Relay 的客户端发包格式相同，只替换 Base URL 和 Key
 
 - 普通单图：`output_size` 不填，脚本默认请求 `2048x2048`，Banana 参数为 `aspectRatio: 1:1`、`imageSize: 2K`。
 - 故事板 / 身份卡：`output_size` 默认也用 **`2K`**（如 `9:16` / `1152x2048`、`16:9` / `2048x1152`）；仅用户明确要超高清特写大图时再指定 `4K`（`9:16-4k` 等）。
-- 批量多候选（仅 **API 直连模式**）：拆成多条 row，每条 `count: 1`，不要依赖直连单请求返回多张；若走 **DesignFlow 模式**，则在 `items` 内每屏传 `count: 2..4`。
+- 批量多候选与多模型：
+  - **DesignFlow 模式（默认）**：在 `designflow_generate_image` 传 `items`，每屏保留单节点 `count: 2..4`；同屏要对比多个 Banana/跨渠道模型直接在该条目或外层传 `models: ["banana2.1", "bananapro"]`，绝不按模型拆两行。
+  - **API 直连模式**：拆成多条 row，每条 `count: 1`，不要依赖直连单请求返回多张。
 
 ## 禁止混用
 
