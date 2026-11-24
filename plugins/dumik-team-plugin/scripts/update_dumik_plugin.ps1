@@ -8,6 +8,9 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $canonicalSource = 'https://github.com/Hill2048/dumik-design-plugins.git'
+$legacySources = @(
+    'https://github.com/Hill2048/dumik-codex-plugins.git'
+)
 $pluginName = 'dumik-team-plugin'
 $expectedSkills = @(
     'd-init',
@@ -56,13 +59,18 @@ function Invoke-NativeCommand {
         [Parameter(Mandatory = $true)]
         [string]$Command,
         [Parameter(Mandatory = $true)]
-        [string[]]$Arguments
+        [string[]]$Arguments,
+        [switch]$StdoutOnly
     )
 
     $previousErrorActionPreference = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
-        $output = @(& $Command @Arguments 2>&1)
+        if ($StdoutOnly) {
+            $output = @(& $Command @Arguments 2>$null)
+        } else {
+            $output = @(& $Command @Arguments 2>&1)
+        }
         $exitCode = $LASTEXITCODE
     } finally {
         $ErrorActionPreference = $previousErrorActionPreference
@@ -76,6 +84,21 @@ function Invoke-NativeCommand {
         throw "$Command failed with exit code ${exitCode}: $detail"
     }
     return $text.Trim()
+}
+
+function Test-OfficialSourceUrl {
+    param([Parameter(Mandatory = $true)][string]$Url)
+
+    $normalized = Normalize-GitUrl -Url $Url
+    if ($normalized -eq (Normalize-GitUrl -Url $canonicalSource)) {
+        return $true
+    }
+    foreach ($legacy in $legacySources) {
+        if ($normalized -eq (Normalize-GitUrl -Url $legacy)) {
+            return $true
+        }
+    }
+    return $false
 }
 
 function Normalize-GitUrl {
@@ -212,40 +235,64 @@ try {
 
     $pluginInfo = $null
     if (-not $SkipPluginInstall) {
-        $pluginListJson = Invoke-NativeCommand -Command 'codex' -Arguments @('plugin', 'list', '--json')
-        $pluginList = $pluginListJson | ConvertFrom-Json
-        $installedPlugins = @($pluginList.installed | Where-Object { $_.name -eq $pluginName -and $_.installed })
-        if ($installedPlugins.Count -ne 1) {
-            throw "Expected one installed $pluginName entry, found $($installedPlugins.Count)"
+        $codexCmd = Get-Command 'codex' -ErrorAction SilentlyContinue
+        if ($null -ne $codexCmd) {
+            try {
+                $pluginListJson = Invoke-NativeCommand -Command 'codex' -Arguments @('plugin', 'list', '--json') -StdoutOnly
+                $pluginList = $pluginListJson | ConvertFrom-Json
+                $installedPlugins = @($pluginList.installed | Where-Object { $_.name -eq $pluginName -and $_.installed })
+                if ($installedPlugins.Count -eq 1) {
+                    $pluginInfo = $installedPlugins[0]
+                } elseif ($installedPlugins.Count -gt 1) {
+                    throw "Expected one installed $pluginName entry, found $($installedPlugins.Count)"
+                }
+            } catch {
+                if ($_.Exception.Message -like 'Expected one installed*') {
+                    throw
+                }
+            }
         }
-        $pluginInfo = $installedPlugins[0]
     }
 
     $marketplacesRoot = Join-Path $CodexRoot '.tmp\marketplaces'
-    if (-not (Test-Path -LiteralPath $marketplacesRoot -PathType Container)) {
-        throw "Codex marketplace directory was not found: $marketplacesRoot"
-    }
-
     $matchingCheckouts = @()
-    foreach ($directory in @(Get-ChildItem -LiteralPath $marketplacesRoot -Directory -Force)) {
-        $recordPath = Join-Path $directory.FullName '.codex-marketplace-install.json'
-        if (-not (Test-Path -LiteralPath $recordPath -PathType Leaf)) {
-            continue
-        }
+    if (Test-Path -LiteralPath $marketplacesRoot -PathType Container) {
+        foreach ($directory in @(Get-ChildItem -LiteralPath $marketplacesRoot -Directory -Force)) {
+            $recordPath = Join-Path $directory.FullName '.codex-marketplace-install.json'
+            if (-not (Test-Path -LiteralPath $recordPath -PathType Leaf)) {
+                continue
+            }
 
-        try {
-            $record = Get-Content -Raw -LiteralPath $recordPath | ConvertFrom-Json
-        } catch {
-            continue
-        }
+            try {
+                $record = Get-Content -Raw -LiteralPath $recordPath | ConvertFrom-Json
+            } catch {
+                continue
+            }
 
-        if ($record.source_type -eq 'git' -and
-            (Normalize-GitUrl -Url ([string]$record.source)) -eq (Normalize-GitUrl -Url $canonicalSource)) {
-            $matchingCheckouts += $directory.FullName
+            if ($record.source_type -eq 'git' -and
+                (Test-OfficialSourceUrl -Url ([string]$record.source))) {
+                $matchingCheckouts += $directory.FullName
+            }
         }
     }
 
     if ($matchingCheckouts.Count -eq 0) {
+        $fallbackRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+        if (Test-Path -LiteralPath (Join-Path $fallbackRepo '.git')) {
+            try {
+                $fallbackOrigin = Invoke-NativeCommand -Command 'git' -Arguments @('-C', $fallbackRepo, 'config', '--get', 'remote.origin.url')
+                if (Test-OfficialSourceUrl -Url $fallbackOrigin) {
+                    $matchingCheckouts += $fallbackRepo
+                }
+            } catch {
+            }
+        }
+    }
+
+    if ($matchingCheckouts.Count -eq 0) {
+        if (-not (Test-Path -LiteralPath $marketplacesRoot -PathType Container)) {
+            throw "Codex marketplace directory was not found: $marketplacesRoot"
+        }
         throw 'No managed DUMIK marketplace checkout matched the official GitHub source.'
     }
 
@@ -274,8 +321,26 @@ try {
     }
 
     $originUrl = Invoke-NativeCommand -Command 'git' -Arguments @('-C', $checkout, 'config', '--get', 'remote.origin.url')
-    if ((Normalize-GitUrl -Url $originUrl) -ne (Normalize-GitUrl -Url $canonicalSource)) {
+    if (-not (Test-OfficialSourceUrl -Url $originUrl)) {
         throw "Marketplace origin does not match the official DUMIK source: $originUrl"
+    }
+
+    if ((Normalize-GitUrl -Url $originUrl) -ne (Normalize-GitUrl -Url $canonicalSource)) {
+        [void](Invoke-NativeCommand -Command 'git' -Arguments @('-C', $checkout, 'remote', 'set-url', 'origin', $canonicalSource))
+    }
+
+    $recordPath = Join-Path $checkout '.codex-marketplace-install.json'
+    if (Test-Path -LiteralPath $recordPath -PathType Leaf) {
+        try {
+            $recordObj = Get-Content -Raw -LiteralPath $recordPath | ConvertFrom-Json
+            if ($recordObj.source_type -eq 'git' -and
+                (Normalize-GitUrl -Url ([string]$recordObj.source)) -ne (Normalize-GitUrl -Url $canonicalSource)) {
+                $recordObj.source = $canonicalSource
+                $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+                [IO.File]::WriteAllText($recordPath, ($recordObj | ConvertTo-Json -Depth 10), $utf8NoBom)
+            }
+        } catch {
+        }
     }
 
     $branch = Invoke-NativeCommand -Command 'git' -Arguments @('-C', $checkout, 'symbolic-ref', '--quiet', '--short', 'HEAD')
@@ -293,7 +358,16 @@ try {
     }
 
     $beforeRevision = Invoke-NativeCommand -Command 'git' -Arguments @('-C', $checkout, 'rev-parse', 'HEAD')
-    [void](Invoke-NativeCommand -Command 'git' -Arguments @('-C', $checkout, 'pull', '--ff-only', 'origin', 'main'))
+    try {
+        [void](Invoke-NativeCommand -Command 'git' -Arguments @('-C', $checkout, 'pull', '--ff-only', 'origin', 'main'))
+    } catch {
+        $allChanges = Invoke-NativeCommand -Command 'git' -Arguments @('-C', $checkout, 'status', '--porcelain=v1')
+        if (-not [string]::IsNullOrWhiteSpace($allChanges)) {
+            throw
+        }
+        [void](Invoke-NativeCommand -Command 'git' -Arguments @('-C', $checkout, 'fetch', 'origin', 'main'))
+        [void](Invoke-NativeCommand -Command 'git' -Arguments @('-C', $checkout, 'reset', '--hard', 'FETCH_HEAD'))
+    }
     $afterRevision = Invoke-NativeCommand -Command 'git' -Arguments @('-C', $checkout, 'rev-parse', 'HEAD')
 
     $pluginRoot = Join-Path $checkout 'plugins\dumik-team-plugin'
@@ -301,8 +375,8 @@ try {
     Assert-SkillLayout -PluginRoot $pluginRoot
     Assert-VideoDirectorReferences -PluginRoot $pluginRoot
 
-    if (-not $SkipPluginInstall) {
-        $installJson = Invoke-NativeCommand -Command 'codex' -Arguments @('plugin', 'add', [string]$pluginInfo.pluginId, '--json')
+    if (-not $SkipPluginInstall -and $null -ne $pluginInfo) {
+        $installJson = Invoke-NativeCommand -Command 'codex' -Arguments @('plugin', 'add', [string]$pluginInfo.pluginId, '--json') -StdoutOnly
         $installResult = $installJson | ConvertFrom-Json
         $installedPath = [string]$installResult.installedPath
         if ([string]::IsNullOrWhiteSpace($installedPath) -or

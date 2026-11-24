@@ -165,6 +165,22 @@ try {
         throw "Dirty-checkout skip was not explicit: $($dirtyResult.message)"
     }
 
+    $legacyFixture = New-TestCodexRoot -Name 'legacy' -RemotePath $remotePath
+    $legacySource = 'https://github.com/Hill2048/dumik-codex-plugins.git'
+    [void](Invoke-Git -GitArguments @('-C', $legacyFixture.Checkout, 'remote', 'set-url', 'origin', $legacySource))
+    @{
+        source_type = 'git'
+        source = $legacySource
+        ref_name = $null
+        sparse_paths = @()
+    } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $legacyFixture.Checkout '.codex-marketplace-install.json')
+    $legacyResult = Invoke-UpdateTest -CodexRoot $legacyFixture.CodexRoot -ExpectedExitCode 0
+    Assert-Equal -Actual $legacyResult.status -Expected 'current' -Label 'legacy-origin status'
+    $migratedOrigin = Invoke-Git -GitArguments @('-C', $legacyFixture.Checkout, 'config', '--get', 'remote.origin.url')
+    Assert-Equal -Actual $migratedOrigin -Expected $canonicalSource -Label 'legacy-origin migrated remote'
+    $migratedRecord = Get-Content -Raw -LiteralPath (Join-Path $legacyFixture.Checkout '.codex-marketplace-install.json') | ConvertFrom-Json
+    Assert-Equal -Actual ([string]$migratedRecord.source) -Expected $canonicalSource -Label 'legacy-origin migrated record'
+
     $offlineFixture = New-TestCodexRoot -Name 'offline' -RemotePath $remotePath
     Set-GitRewrite -TargetPath (Join-Path $testRoot 'missing-remote.git')
     $offlineResult = Invoke-UpdateTest -CodexRoot $offlineFixture.CodexRoot -ExpectedExitCode 1
@@ -173,7 +189,7 @@ try {
         throw "Offline failure was not reported as a Git failure: $($offlineResult.message)"
     }
 
-    [Console]::Out.WriteLine('{"tests":4,"passed":4,"status":"passed"}')
+    [Console]::Out.WriteLine('{"tests":5,"passed":5,"status":"passed"}')
 } finally {
     $env:GIT_CONFIG_COUNT = $savedGitConfig.Count
     $env:GIT_CONFIG_KEY_0 = $savedGitConfig.Key0
