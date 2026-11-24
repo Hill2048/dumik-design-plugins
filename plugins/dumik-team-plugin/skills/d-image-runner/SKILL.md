@@ -45,6 +45,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 - 用户明确生图、改图、放大或后处理时才执行，图片直接落入对应 `制作/<编号_名称>/`（或指定目录）。**默认不写出 `运行记录.json` 与 `运行记录.md`**（零本地运行垃圾），仅基准测试或显式排错时才传 `--write-run-record`。
 - **执行模式分流（严禁混用规则）**：
   - **1) DesignFlow 模式（默认，画布在线且未指定直连 API 时）**：
+    0. **发包前 3 项硬自检（缺一不可）**：① 先确认目标画布已处于打开/活跃状态（避免往未打开画布盲发报错）；② 必须将 `ratio`（如 `"9:16"`）作为工具显式参数传入，**严禁只在 prompt 文本里写「比例：9:16」导致默认出 1:1**；③ 核对 `referenceFiles` 已去重且保留 L1 设定集真源。
     1. **同提示词多张与跨模型单节点并发（✅ 必用单节点）**：
        - `x2`/`x4` 必须在单次 `designflow_generate_image` 传 `count: 2..4`（**严禁拆成多个 `count: 1` 节点**）；
        - 同提示词并发跑多个模型/渠道（如同时跑 `banana2.1` 和 `bananapro`，或云端混即梦/LibTV/Flowith）**必须只调 1 次 `designflow_generate_image`** 并传 `models: ["banana2.1", "bananapro"]`（1–12 个，可叠加 `count`）：
@@ -60,7 +61,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
          ```
        - **❌ 严禁**：分两次调用 `designflow_generate_image` 各传 `model`，或把同一提示词按模型拆进 `items[]` 建两个节点；先调 `designflow_get_connection` 若见 `mcpRestartRequired: true` 或工具 schema 缺 `models` / `items`，须先提示用户重载客户端 DesignFlow MCP 服务，不得退回拆节点。
     2. **多屏批量一次并发**：多组不同提示词直接走一次 `designflow_generate_image({ items: [...] })`（最多 24 组，其中同一屏要多模型对比也直接写 `"models": [...]` 在同一条 `item` 里），支持传 `requestId` 幂等防重与 `maxCredits`/`dryRun`；工具默认 `wait: true` 直接返回终态，无需每次手动追加 `designflow_wait_command`（仅返回 `WAIT_TIMEOUT` 时才用 `designflow_wait_command` 续等或 `designflow_query_request` 查原 `requestId`）。多屏预校验可先跑 `build_canvas_pipeline.py --prepare-batch --engine designflow --image-models banana2.1,bananapro`。
-    3. **原图导出落盘**：严禁拿 `designflow_view_image` 预览图当成片；落盘直接调 `designflow_export_image`（传 `assetId` 或 `nodeId` + `outputPath: "<项目>/制作/<编号_名称>/候选_01.png"`）导出无损原图，并用 PIL 核验宽高后再送检；若画布离线或无法走通，再切换 **API 直连模式**。
+    3. **原图导出落盘（禁止反复手写 `python -c` 扒 `output.txt`）**：严禁拿 `designflow_view_image` 预览图当成片；落盘优先调 `designflow_export_image` 或使用本 skill 自带的 `scripts/designflow_archive_outputs.py` 一键解析工具输出并无损归档到 `<项目>/制作/<编号_名称>/`（自动核验宽高），彻底避免手写 `python -c` 解析临时日志；若画布离线或无法走通，再切换 **API 直连模式**。
   - **2) API 直连模式（画布离线或用户明确指定直连 API 时）**：
     1. 优先走 `build_canvas_pipeline.py --engine api --execute` 或 `python scripts/generate_batch_images.py --batch`（经 `%TEMP%\dumik-runs\` 跑完即焚，`Banana2.1` 直连规范见 `references/model-banana2.md`）。
     2. **仅 API 直连模式下**将多候选拆成独立 `count: 1` 任务行并发提交（不串联垫图），因直连 Gemini `:generateContent` 单请求只稳定出 1 张图。

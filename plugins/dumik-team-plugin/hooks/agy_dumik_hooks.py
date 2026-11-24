@@ -38,7 +38,9 @@ EXECUTION_WORDS = (
     "跑批",
     "批量跑",
     "重新生成",
+    "重新升成",
     "还是生成",
+    "都生成",
     "再抽",
     "重抽",
     "补抽",
@@ -52,6 +54,20 @@ EXECUTION_WORDS = (
     "出视频",
     "确认片",
 )
+MODEL_HINTS = (
+    "banana2.1",
+    "banana2",
+    "bananapro",
+    "banana-pro",
+    "banana",
+    "pro",
+    "即梦",
+    "seedream",
+    "image2.6",
+    "image2.5",
+    "image2",
+)
+CONCURRENCY_OR_COUNT_RE = re.compile(r"(?:并发|[x×]\s*\d+|各\s*\d+\s*张|分别|多模型)", re.IGNORECASE)
 FORBID_EXEC_WORDS = ("不要生成", "先不生成", "先不出图", "不生图", "只写提示词", "不调接口", "先不跑")
 
 
@@ -173,9 +189,11 @@ def classify_user_intent(user_text: str, project_root: Path) -> dict[str, Any]:
     active_text = _strip_quoted_lines(text)
     lowered = active_text.lower()
 
+    has_model_and_batch = any(m in lowered for m in MODEL_HINTS) and bool(CONCURRENCY_OR_COUNT_RE.search(active_text))
+
     if any(k in active_text for k in FORBID_EXEC_WORDS):
         auth = "forbidden"
-    elif any(k in active_text for k in EXECUTION_WORDS):
+    elif any(k in active_text for k in EXECUTION_WORDS) or has_model_and_batch:
         auth = "authorized"
     else:
         auth = "unconfirmed"
