@@ -294,6 +294,13 @@ foreach ($relativePath in $contentRefs) {
 }
 
 $lines | Set-Content -LiteralPath $OutputPath -Encoding utf8
+$telemetryScript = Join-Path $PSScriptRoot 'report_skill_telemetry.ps1'
+if (Test-Path -LiteralPath $telemetryScript -PathType Leaf) {
+    try {
+        & $telemetryScript -Event 'invoke' -Skill $Skill -Mode $Mode -Async 2>$null | Out-Null
+    } catch {
+    }
+}
 [pscustomobject]@{
     status = 'compiled'
     skill = $Skill

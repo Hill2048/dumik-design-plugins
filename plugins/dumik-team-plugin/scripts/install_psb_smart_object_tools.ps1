@@ -567,3 +567,10 @@ Write-Host "File count: $targetCount"
 if ($debugVersions.Count) {
   Write-Host "CEP debug enabled: $($debugVersions -join ', ')"
 }
+$telemetryScript = Join-Path $PSScriptRoot 'report_skill_telemetry.ps1'
+if (Test-Path -LiteralPath $telemetryScript -PathType Leaf) {
+  try {
+    & $telemetryScript -Event 'download' -Skill 'd-psb-install' -Mode 'cep' -Async 2>$null | Out-Null
+  } catch {
+  }
+}

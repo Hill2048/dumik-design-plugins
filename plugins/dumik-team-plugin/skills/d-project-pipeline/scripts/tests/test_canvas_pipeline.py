@@ -341,6 +341,69 @@ class CanvasPipelineTests(unittest.TestCase):
                     execute=True,
                 )
 
+    def test_designflow_engine_multi_model_emits_single_node_models_and_api_rejects_multi_model(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "mug_multi_model"
+            _write_sample_project(root)
+            s04_dir = root / "制作" / "S04_钛好舀"
+            s04_dir.mkdir(parents=True)
+            prompt = """# S04_钛好舀
+- `@图1`：`设定集/白底图/spoon-white.png`（[结构锁]）
+
+```text
+比例：9:16
+
+桌面静物微距，绝无多余物体。
+```
+"""
+            (s04_dir / "prompt.md").write_text(prompt, encoding="utf-8")
+
+            multi = PIPELINE_MOD.prepare_or_execute_batch(
+                project_root=root,
+                ids=["S04"],
+                image_models="banana2.1,bananapro",
+                count=2,
+                engine="designflow",
+                execute=False,
+            )
+            self.assertEqual(multi["itemsCount"], 1)
+            self.assertEqual(multi["totalImages"], 4)
+            self.assertEqual(multi["imageModels"], ["banana2.1", "bananapro"])
+            item = multi["designflowItems"][0]
+            self.assertEqual(item["model"], "banana2.1")
+            self.assertEqual(item["models"], ["banana2.1", "bananapro"])
+            self.assertEqual(item["count"], 2)
+            self.assertEqual(item["thinkingLevel"], "HIGH")
+            self.assertEqual(
+                item["outputNames"],
+                [
+                    "S04_钛好舀/候选_01.png",
+                    "S04_钛好舀/候选_02.png",
+                    "S04_钛好舀/候选_03.png",
+                    "S04_钛好舀/候选_04.png",
+                ],
+            )
+
+            pro_only = PIPELINE_MOD.prepare_or_execute_batch(
+                project_root=root,
+                ids=["S04"],
+                image_model="bananapro",
+                count=1,
+                engine="designflow",
+                execute=False,
+            )
+            self.assertNotIn("thinkingLevel", pro_only["designflowItems"][0])
+
+            with self.assertRaises(PIPELINE_MOD.PipelineError):
+                PIPELINE_MOD.prepare_or_execute_batch(
+                    project_root=root,
+                    ids=["S04"],
+                    image_models="banana2.1,bananapro",
+                    count=2,
+                    engine="api",
+                    execute=False,
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

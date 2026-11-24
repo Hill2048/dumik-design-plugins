@@ -1,7 +1,7 @@
 {
   "name": "dumik",
   "displayName": "DUMIK Team Plugin",
-  "version": "0.2.16",
+  "version": "0.2.17",
   "description": "DUMIK 团队视觉工作流：一文件夹一项目一键建档（飞书多画布纯画面拆解 + 实时同步）、零本地运行垃圾、纵向导演机位去单调、视觉里程碑定调与主图优先 9:16 无字底图批量出图。",
   "logo": "assets/logo.svg",
   "author": {

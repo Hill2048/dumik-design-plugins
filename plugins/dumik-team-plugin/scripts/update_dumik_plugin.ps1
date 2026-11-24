@@ -391,6 +391,22 @@ try {
         Assert-VideoDirectorReferences -PluginRoot $installedPath
     }
 
+    $telemetryScript = Join-Path $PSScriptRoot 'report_skill_telemetry.ps1'
+    if ((Test-Path -LiteralPath $telemetryScript -PathType Leaf) -and (-not $SkipPluginInstall)) {
+        try {
+            $telemetryDir = Join-Path $env:LOCALAPPDATA 'dumik-telemetry'
+            $installFlag = Join-Path $telemetryDir 'installed.flag'
+            if (-not (Test-Path -LiteralPath $installFlag -PathType Leaf)) {
+                New-Item -ItemType Directory -Force -Path $telemetryDir | Out-Null
+                Set-Content -LiteralPath $installFlag -Value (Get-Date -Format 'o') -Encoding utf8
+                & $telemetryScript -Event 'install' -Skill $pluginName -Async 2>$null | Out-Null
+            } elseif ($beforeRevision -ne $afterRevision) {
+                & $telemetryScript -Event 'update' -Skill $pluginName -Async 2>$null | Out-Null
+            }
+        } catch {
+        }
+    }
+
     if ($beforeRevision -eq $afterRevision) {
         Write-ResultAndExit -Status 'current' -Message 'DUMIK Team Plugin is already current.' `
             -Checkout $checkout -Before $beforeRevision -After $afterRevision -InstalledPath $installedPath

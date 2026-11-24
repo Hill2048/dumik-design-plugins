@@ -446,7 +446,43 @@ def _validate_person_card_binding(project_root: Path, row_id: str, final_instruc
         )
 
 
-def _normalize_designflow_thinking_level(image_model: str, thinking_level: str | None) -> str | None:
+def _parse_image_models(
+    image_model: str = "banana2.1",
+    image_models: list[str] | str | None = None,
+) -> list[str]:
+    raw_items: list[str] = []
+    if isinstance(image_models, str):
+        raw_items.extend(part.strip() for part in image_models.split(","))
+    elif isinstance(image_models, (list, tuple)):
+        for entry in image_models:
+            raw_items.extend(part.strip() for part in str(entry).split(","))
+    elif image_model:
+        raw_items.extend(part.strip() for part in image_model.split(","))
+
+    models: list[str] = []
+    for item in raw_items:
+        if item and item not in models:
+            models.append(item)
+    if not models:
+        models = ["banana2.1"]
+    if len(models) > 12:
+        raise PipelineError(f"单节点多模型并发最多支持 12 个模型，当前传了 {len(models)} 个。")
+    return models
+
+
+def _supports_banana_thinking_level(model_id: str) -> bool:
+    low = model_id.strip().lower()
+    if "pro" in low:
+        return False
+    return low in ("banana", "banana2", "banana2.1", "banana-2.1", "nano-banana-2.1", "gemini-nano-banana-2.1") or (
+        "gemini-3.1-flash-image" in low
+    ) or ("banana-2" in low or "banana2" in low)
+
+
+def _normalize_designflow_thinking_level(models: list[str] | str, thinking_level: str | None) -> str | None:
+    model_list = [models] if isinstance(models, str) else list(models)
+    if not any(_supports_banana_thinking_level(m) for m in model_list):
+        return None
     raw = (thinking_level or "").strip()
     if raw:
         low = raw.lower()
@@ -456,9 +492,7 @@ def _normalize_designflow_thinking_level(image_model: str, thinking_level: str |
             return "auto"
         if low in ("minimal", "medium", "high"):
             return low.upper()
-    if "banana" in image_model.lower():
-        return "HIGH"
-    return None
+    return "HIGH"
 
 
 def prepare_or_execute_batch(
@@ -468,6 +502,7 @@ def prepare_or_execute_batch(
     ids: list[str] | None = None,
     quality: str = "2k",
     image_model: str = "banana2.1",
+    image_models: list[str] | str | None = None,
     thinking_level: str | None = None,
     count: int = 1,
     concurrency: int = 3,
@@ -482,6 +517,12 @@ def prepare_or_execute_batch(
             "请直接由 Agent 调用 DesignFlow MCP designflow_generate_image 执行"
             "（直连 API 请使用 --engine api --execute）。"
         )
+    models = _parse_image_models(image_model, image_models)
+    if engine == "api" and len(models) > 1:
+        raise PipelineError(
+            "API 直连模式每次仅支持单个模型；同提示词多模型并发请改用 --engine designflow 并通过 DesignFlow MCP 单节点 models[] 执行。"
+        )
+    primary_model = models[0]
     project_root = project_root.resolve()
     _, rows = parse_project_md(project_root / "project.md")
 
@@ -528,7 +569,7 @@ def prepare_or_execute_batch(
     missing_prompts: list[str] = []
     batch_items: list[dict[str, Any]] = []
     designflow_items: list[dict[str, Any]] = []
-    df_thinking = _normalize_designflow_thinking_level(image_model, thinking_level)
+    df_thinking = _normalize_designflow_thinking_level(models, thinking_level)
     for row in selected_rows:
         work_dir = _find_matching_work_dir(project_root, row.id)
         prompt_path = (work_dir / "prompt.md") if work_dir else None
@@ -554,15 +595,17 @@ def prepare_or_execute_batch(
                 sz = min(4, rem)
                 chunk_sizes.append(sz)
                 rem -= sz
+            model_multiplier = len(models)
             for sz in chunk_sizes:
                 chunk_idx += 1
-                out_names = [f"{work_dir.name}/候选_{next_idx + offset + i:02d}.png" for i in range(sz)]
-                offset += sz
+                total_outputs = sz * model_multiplier
+                out_names = [f"{work_dir.name}/候选_{next_idx + offset + i:02d}.png" for i in range(total_outputs)]
+                offset += total_outputs
                 df_item: dict[str, Any] = {
                     "id": row.id if len(chunk_sizes) == 1 else f"{row.id}-g{chunk_idx}",
                     "title": f"第{row.wave}批 | {row.id} {row.title}",
                     "prompt": parsed["final_instruction"],
-                    "model": image_model,
+                    "model": primary_model,
                     "ratio": parsed["ratio"],
                     "sizePreset": quality.upper(),
                     "count": sz,
@@ -570,6 +613,8 @@ def prepare_or_execute_batch(
                     "outputDir": str(work_dir),
                     "outputNames": out_names,
                 }
+                if len(models) > 1:
+                    df_item["models"] = list(models)
                 if df_thinking:
                     df_item["thinkingLevel"] = df_thinking
                 designflow_items.append(df_item)
@@ -602,8 +647,9 @@ def prepare_or_execute_batch(
             "engine": "designflow",
             "projectRoot": str(project_root),
             "itemsCount": len(designflow_items),
-            "totalImages": sum(int(it["count"]) for it in designflow_items),
-            "imageModel": image_model,
+            "totalImages": sum(int(it["count"]) * len(it.get("models") or [it["model"]]) for it in designflow_items),
+            "imageModel": primary_model,
+            "imageModels": models,
             "designflowItems": designflow_items,
             "tempFileCleaned": True,
         }
@@ -643,7 +689,7 @@ def prepare_or_execute_batch(
             "--output-dir",
             str(project_root / "制作"),
             "--image-model",
-            image_model,
+            primary_model,
             "--concurrency",
             str(concurrency),
         ]
@@ -662,7 +708,7 @@ def prepare_or_execute_batch(
         "engine": "api",
         "projectRoot": str(project_root),
         "itemsSubmitted": len(batch_items),
-        "imageModel": image_model,
+        "imageModel": primary_model,
         "tempFileCleaned": not tmp_json.exists(),
         "statusSync": status_after,
     }
@@ -725,7 +771,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--wave", type=int, choices=(0, 1, 2, 3), default=None, help="指定波次：0=里程碑 1=主图共用 2=详情其余 3=独立1:1")
     parser.add_argument("--ids", default=None, help="手动指定编号列表，逗号分隔，如 S04,S16")
     parser.add_argument("--quality", choices=("2k", "4k"), default="2k", help="清晰度档位，默认 2k")
-    parser.add_argument("--image-model", default="banana2.1", help="生图模型，默认 banana2.1")
+    parser.add_argument("--image-model", default="banana2.1", help="生图模型（默认 banana2.1；--engine designflow 时也支持逗号分隔多模型）")
+    parser.add_argument("--image-models", default=None, help="DesignFlow 单节点多模型并发列表（逗号分隔，如 banana2.1,bananapro）")
     parser.add_argument("--thinking-level", default=None, help="Banana 思考深度（默认 high；支持 minimal/medium/high/off）")
     parser.add_argument("--count", type=int, default=1, help="每项生成候选数，默认 1")
     parser.add_argument("--concurrency", type=int, default=3, help="并发数，默认 3")
@@ -758,6 +805,7 @@ def main(argv: list[str] | None = None) -> int:
                 ids=ids,
                 quality=args.quality,
                 image_model=args.image_model,
+                image_models=args.image_models,
                 thinking_level=args.thinking_level,
                 count=args.count,
                 concurrency=args.concurrency,
