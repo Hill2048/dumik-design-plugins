@@ -69,8 +69,23 @@ class AgyDumikHooksTests(unittest.TestCase):
             self.assertIn("待写词:1", msg)
             self.assertIn("上限 24000B", msg)
 
-            # PreInvocation distinguishes forbidden vs authorized and deduplicates repeat step in same turn
+            # PreInvocation: general chatter / archiving / git push is completely silent (0 tokens)
             conv = f"test-{root.name}-{id(self)}"
+            for general_input in (
+                "推送github",
+                "开始",
+                "> 方案 C：女儿身份卡_方案C_奶白开衫.jpg\n这个作为女孩设定",
+                "女儿身份卡_方案C 这个作为女孩设定",
+            ):
+                silent_out = HOOKS.dispatch_hook({
+                    "hookEventName": "PreInvocation",
+                    "conversationId": conv,
+                    "lastUserInput": general_input,
+                    "cwd": str(root),
+                })
+                self.assertEqual(silent_out, {"injectSteps": []}, msg=f"Expected silence on: {general_input}")
+
+            # Entering prompt mode with S04 injects compact route + S04 row, without static boilerplate
             forbid_out = HOOKS.dispatch_hook({
                 "hookEventName": "PreInvocation",
                 "conversationId": conv,
@@ -80,7 +95,9 @@ class AgyDumikHooksTests(unittest.TestCase):
             forbid_msg = forbid_out["injectSteps"][0]["systemMessage"]["systemMessage"]
             self.assertIn("禁止生图", forbid_msg)
             self.assertIn("S04（待写词）", forbid_msg)
+            self.assertNotIn("人物身份卡", forbid_msg)
 
+            # Same-turn repeat is silent
             repeat_out = HOOKS.dispatch_hook({
                 "hookEventName": "PreInvocation",
                 "conversationId": conv,
@@ -88,6 +105,42 @@ class AgyDumikHooksTests(unittest.TestCase):
                 "cwd": str(root),
             })
             self.assertEqual(repeat_out, {"injectSteps": []})
+
+            # Consecutive turn in same route+auth and unchanged S04 row is ALSO silent
+            follow_up_same = HOOKS.dispatch_hook({
+                "hookEventName": "PreInvocation",
+                "conversationId": conv,
+                "lastUserInput": "把 S04 提示词里的光影再调柔一点，先不要生成",
+                "cwd": str(root),
+            })
+            self.assertEqual(follow_up_same, {"injectSteps": []})
+
+            # Authorizing execution emits ONLY the changed route/auth, without re-dumping unchanged S04 row
+            auth_out = HOOKS.dispatch_hook({
+                "hookEventName": "PreInvocation",
+                "conversationId": conv,
+                "lastUserInput": "S04 开始生图",
+                "cwd": str(root),
+            })
+            auth_msg = auth_out["injectSteps"][0]["systemMessage"]["systemMessage"]
+            self.assertIn("已授权可执行", auth_msg)
+            self.assertNotIn("S04（待写词）", auth_msg)
+
+            # Once S04 status updates in project.md, mentioning S04 again injects the updated row delta
+            (root / "project.md").write_text(
+                "| 编号 | 批次 | 画面意图 | 状态 |\n"
+                "| --- | --- | --- | --- |\n"
+                "| S04 | 第1批 | 满壶倒茶 | 候选已出(2张) |\n",
+                encoding="utf-8",
+            )
+            updated_row_out = HOOKS.dispatch_hook({
+                "hookEventName": "PreInvocation",
+                "conversationId": conv,
+                "lastUserInput": "看看 S04 改图提示词",
+                "cwd": str(root),
+            })
+            updated_msg = updated_row_out["injectSteps"][0]["systemMessage"]["systemMessage"]
+            self.assertIn("S04（候选已出(2张)）", updated_msg)
 
             # Stop blocks when unsynced candidate or .pytest_cache exists, stops cleanly after cleanup
             (root / "制作" / "S04_首屏" / "候选_01.png").write_bytes(b"cand")

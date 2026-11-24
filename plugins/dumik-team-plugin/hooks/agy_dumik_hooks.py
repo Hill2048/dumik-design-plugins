@@ -162,13 +162,20 @@ def detect_unsynced_work_dirs(project_root: Path) -> list[str]:
     return unsynced[:6]
 
 
+def _strip_quoted_lines(text: str) -> str:
+    lines = [ln for ln in text.splitlines() if not ln.lstrip().startswith(">")]
+    stripped = "\n".join(lines).strip()
+    return stripped if stripped else text
+
+
 def classify_user_intent(user_text: str, project_root: Path) -> dict[str, Any]:
     text = (user_text or "").strip()
-    lowered = text.lower()
+    active_text = _strip_quoted_lines(text)
+    lowered = active_text.lower()
 
-    if any(k in text for k in FORBID_EXEC_WORDS):
+    if any(k in active_text for k in FORBID_EXEC_WORDS):
         auth = "forbidden"
-    elif any(k in text for k in EXECUTION_WORDS):
+    elif any(k in active_text for k in EXECUTION_WORDS):
         auth = "authorized"
     else:
         auth = "unconfirmed"
@@ -179,68 +186,82 @@ def classify_user_intent(user_text: str, project_root: Path) -> dict[str, Any]:
         if norm not in mentioned_ids:
             mentioned_ids.append(norm)
 
-    if any(k in text for k in ("初始化", "建档", "增量同步", "同步画布", "项目规约", "改规则")) or "--sync" in lowered:
+    is_pure_archive = any(k in active_text for k in ("作为", "设为", "归档", "存进")) and not any(
+        k in active_text for k in ("提示词", "prompt", "写", "改", "生成", "生图", "出图", "重抽")
+    )
+
+    if any(k in active_text for k in ("初始化", "建档", "增量同步", "同步画布", "项目规约", "改规则")) or "--sync" in lowered:
         skill, mode = "d-init", "init/maintain"
-    elif any(k in text for k in ("验收", "审稿", "一致性", "三态", "对比原图")):
+    elif any(k in active_text for k in ("验收", "审稿", "一致性", "三态", "对比原图")):
         skill, mode = "d-consistency-check", "review"
-    elif any(k in text for k in ("反推", "拆参考图", "还原提示词")):
+    elif any(k in active_text for k in ("反推", "拆参考图", "还原提示词")):
         skill, mode = "d-prompt-reverse", "reverse"
-    elif any(k in text for k in ("飞书", "策划", "卖点排序", "详情结构", "场景矩阵")):
+    elif any(k in active_text for k in ("飞书", "策划", "卖点排序", "详情结构", "场景矩阵")):
         skill, mode = "d-visual-plan", "canvas/image"
-    elif any(k in text for k in ("视频", "分镜", "拉片", "seedance", "dreamina", "veo")):
+    elif any(k in active_text for k in ("视频", "分镜", "拉片", "seedance", "dreamina", "veo")):
         skill = "d-video-runner" if auth == "authorized" else "d-video-director"
         mode = "generate" if auth == "authorized" else "prompt"
-    elif any(k in text for k in ("流水线", "定稿", "晋升", "--status", "--promote", "状态校准")):
+    elif any(k in active_text for k in ("流水线", "定稿", "晋升", "--status", "--promote", "状态校准")):
         skill, mode = "d-project-pipeline", "image"
-    elif auth == "authorized" and mentioned_ids and not any(k in text for k in ("重写", "只改词", "改一下提示词")):
+    elif auth == "authorized" and mentioned_ids and not any(k in active_text for k in ("重写", "只改词", "改一下提示词")):
         skill, mode = "d-image-director -> d-project-pipeline/d-image-runner", "detail + execute"
     elif auth == "authorized":
         skill, mode = "d-image-runner", "generate"
-    elif any(k in text for k in ("身份卡", "摆件", "选样", "四视图")):
+    elif not is_pure_archive and any(k in active_text for k in ("身份卡", "摆件", "选样", "四视图")):
         skill, mode = "d-image-director", "edit-prop"
-    elif mentioned_ids or any(k in text for k in ("提示词", "prompt", "改图", "重绘", "四宫格", "场景", "构图")):
+    elif mentioned_ids or any(k in active_text for k in ("提示词", "prompt", "改图", "重绘", "四宫格", "场景", "构图")):
         skill, mode = "d-image-director", "detail"
     else:
         skill, mode = "按 AGENTS.md 路由", "general"
-
-    has_person_cards = (project_root / "设定集" / "人物身份卡").is_dir() and any(
-        p.is_file() and p.suffix.lower() in IMAGE_EXTS for p in (project_root / "设定集" / "人物身份卡").iterdir()
-    )
 
     return {
         "auth": auth,
         "skill": skill,
         "mode": mode,
         "mentioned_ids": mentioned_ids[:8],
-        "has_person_cards": has_person_cards,
     }
 
 
-def _should_inject_this_turn(conv_id: str, user_text: str) -> bool:
-    if not user_text.strip():
-        return False
+def _state_file_path() -> Path:
     state_dir = Path(tempfile.gettempdir()) / "dumik-runs"
     state_dir.mkdir(parents=True, exist_ok=True)
-    state_file = state_dir / "agy-hook-state.json"
-    turn_sig = hashlib.sha256(f"{conv_id}\n{user_text}".encode("utf-8")).hexdigest()[:16]
+    return state_dir / "agy-hook-state.json"
+
+
+def _load_hook_state() -> dict[str, Any]:
+    sf = _state_file_path()
     try:
-        data = json.loads(state_file.read_text(encoding="utf-8")) if state_file.is_file() else {}
-        if not isinstance(data, dict):
-            data = {}
+        data = json.loads(sf.read_text(encoding="utf-8")) if sf.is_file() else {}
+        return data if isinstance(data, dict) else {}
     except Exception:
-        data = {}
-    if data.get(conv_id) == turn_sig:
-        return False
-    data[conv_id] = turn_sig
+        return {}
+
+
+def _save_hook_state(data: dict[str, Any]) -> None:
     if len(data) > 40:
-        # Keep only the most recent 20 conversations
         keys = list(data.keys())[-20:]
         data = {k: data[k] for k in keys}
     try:
-        state_file.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+        _state_file_path().write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     except Exception:
         pass
-    return True
+
+
+def _get_conv_entry(data: dict[str, Any], conv_id: str) -> dict[str, Any]:
+    raw = data.get(conv_id)
+    if isinstance(raw, str):
+        entry: dict[str, Any] = {"turn_sig": raw, "last_route_key": "", "seen_rows": {}, "warned_bytes": False}
+    elif isinstance(raw, dict):
+        entry = {
+            "turn_sig": str(raw.get("turn_sig") or ""),
+            "last_route_key": str(raw.get("last_route_key") or ""),
+            "seen_rows": dict(raw.get("seen_rows")) if isinstance(raw.get("seen_rows"), dict) else {},
+            "warned_bytes": bool(raw.get("warned_bytes", False)),
+        }
+    else:
+        entry = {"turn_sig": "", "last_route_key": "", "seen_rows": {}, "warned_bytes": False}
+    data[conv_id] = entry
+    return entry
 
 
 def handle_session_start(payload: dict[str, Any]) -> dict[str, Any]:
@@ -260,9 +281,7 @@ def handle_session_start(payload: dict[str, Any]) -> dict[str, Any]:
     counts_txt = " / ".join(f"{k}:{v}" for k, v in status_counts.items()) or "空表"
 
     lines = [
-        f"[DUMIK 项目挂钩已激活] 根目录：{root.name}（总账本共 {len(rows)} 项：{counts_txt}）",
-        f"- 规则体量：`AGENTS.md` 含 `@` 展开共 {expanded_bytes}B（上限 {MAX_RULE_BYTES}B，内联：{', '.join(includes) or '无'}）",
-        "- 核心入口：写/改词先用 `d-image-director` 跑 `compile_reference_pack.ps1`；批量出图走 `build_canvas_pipeline.py`；总账本 `project.md` 按编号用 `read_file` 按需读取。",
+        f"[DUMIK 项目挂钩] {root.name}（共 {len(rows)} 项：{counts_txt}｜规则 {expanded_bytes}B / 上限 {MAX_RULE_BYTES}B，内联：{', '.join(includes) or '无'}）",
     ]
     if expanded_bytes > WARN_RULE_BYTES:
         lines.append(f"- 警告：`AGENTS.md` 展开逼近/超出 {MAX_RULE_BYTES}B，务必精简 `design.md` 且严禁内联整本 `project.md`！")
@@ -280,34 +299,61 @@ def handle_pre_invocation(payload: dict[str, Any]) -> dict[str, Any]:
         return {"injectSteps": []}
     conv_id = str(payload.get("conversationId") or "default")
     user_text = str(payload.get("lastUserInput") or "")
-    if not _should_inject_this_turn(conv_id, user_text):
+    if not user_text.strip():
         return {"injectSteps": []}
 
-    route = classify_user_intent(user_text, root)
-    auth_desc = {
-        "authorized": "已授权（可执行生图/后处理，仍须先备齐完整 prompt.md）",
-        "forbidden": "禁止生图（用户明确要求仅出文字/暂不调用接口）",
-        "unconfirmed": "未检测到明确生图口令（默认只停在文本/提示词，禁偷跑接口）",
-    }[route["auth"]]
+    turn_sig = hashlib.sha256(f"{conv_id}\n{user_text}".encode("utf-8")).hexdigest()[:16]
+    state = _load_hook_state()
+    entry = _get_conv_entry(state, conv_id)
+    if entry["turn_sig"] == turn_sig:
+        return {"injectSteps": []}
+    entry["turn_sig"] = turn_sig
 
-    lines = [
-        f"[DUMIK 本轮路由] 推荐入口：`{route['skill']}`（mode={route['mode']}）｜授权状态：{auth_desc}",
-    ]
-    if route["has_person_cards"]:
-        lines.append("- 硬检提示：项目含 `设定集/人物身份卡/`，凡出现人物/手/腕/袖必传人物卡；严禁传入 `素材/飞书画布/` 脏截图。")
+    route = classify_user_intent(user_text, root)
+    route_key = f"{route['skill']}|{route['mode']}|{route['auth']}"
+    prev_route_key = entry["last_route_key"]
+    entry["last_route_key"] = route_key
+
+    lines: list[str] = []
+    is_meaningful_route = (route["mode"] != "general") or (route["auth"] != "unconfirmed")
+    if is_meaningful_route and route_key != prev_route_key:
+        auth_tag = {
+            "authorized": "已授权可执行",
+            "forbidden": "禁止生图（仅文本）",
+            "unconfirmed": "仅文本/禁调接口",
+        }[route["auth"]]
+        if route["mode"] == "general":
+            lines.append(f"[DUMIK 授权] {auth_tag}")
+        else:
+            lines.append(f"[DUMIK 路由] `{route['skill']}` ({route['mode']}) ｜ {auth_tag}")
 
     if route["mentioned_ids"]:
         all_rows = _extract_project_rows(root)
+        seen_rows = entry["seen_rows"]
         hit_lines = []
         for mid in route["mentioned_ids"]:
             base = mid.split("-", 1)[0]
             info = all_rows.get(mid) or all_rows.get(base)
             if info:
                 st, summary = info
-                hit_lines.append(f"  - {mid}（{st}）：{summary}")
+                row_sig = f"{st}|{summary}"
+                if seen_rows.get(mid) != row_sig:
+                    seen_rows[mid] = row_sig
+                    hit_lines.append(f"  - {mid}（{st}）：{summary}")
         if hit_lines:
-            lines.append("- 命中 `project.md` 摘要（需细节请 `read_file`）：\n" + "\n".join(hit_lines))
+            lines.append("- `project.md` 摘要：\n" + "\n".join(hit_lines))
 
+    expanded_bytes, _ = measure_agents_expanded_bytes(root)
+    if expanded_bytes > WARN_RULE_BYTES:
+        if not entry["warned_bytes"]:
+            lines.append(f"- 警告：`AGENTS.md` 展开达 {expanded_bytes}B（上限 {MAX_RULE_BYTES}B），请精简 `design.md`。")
+            entry["warned_bytes"] = True
+    else:
+        entry["warned_bytes"] = False
+
+    _save_hook_state(state)
+    if not lines:
+        return {"injectSteps": []}
     return {"injectSteps": [{"systemMessage": {"systemMessage": "\n".join(lines)}}]}
 
 
