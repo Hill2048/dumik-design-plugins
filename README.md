@@ -1,96 +1,96 @@
-# DUMIK Design 插件市场
+# DUMIK Design Plugins
 
-DUMIK 团队共用的电商视觉与视频工作流插件仓库，同时兼容 Codex、ZCode 与 Antigravity。
+面向 DUMIK 视觉与电商设计团队的 AI 协同工作流插件，支持 **Antigravity（反重力）**、**Codex** 与 **ZCode**。
 
-- **插件名**：`dumik-team-plugin`（DUMIK Team Plugin）
-- **当前版本**：见 [plugin.json](plugins/dumik-team-plugin/.codex-plugin/plugin.json) 与 [skill-versions.json](plugins/dumik-team-plugin/assets/skill-versions.json)
-- **更新公告**：全部正式版本与变更说明统一发布在 [GitHub Releases](https://github.com/Hill2048/dumik-design-plugins/releases)
+它不是零散的抽卡工具，而是把 **「建档 → 策划 → 写词 → 授权出图 → 结构验收 → 放大抠图与 PS 排版」** 串成一套可控的项目制生产流程，同时把设计师日常高频的改图、反推、拉片、分镜与后处理能力封装成开箱即用的工具。
+
+- **最新版本与更新公告**：统一发布在 [GitHub Releases](https://github.com/Hill2048/dumik-design-plugins/releases)
 
 ---
 
-## 一、Skills 项目流程总览
+## 一、这套工具能帮你干嘛？
 
-DUMIK 遵循 **「一文件夹一项目、先文字策划/写词、明确授权才花钱出图、零本地运行垃圾」** 的全链路流程：
+### 1. 跑通整套「一产品一文件夹」项目制工作流
+
+面对一整套主图 + 详情页需求，你不需要反复向 AI 解释产品长什么样、之前定了什么风格，也不用担心目录里堆满乱七八糟的临时文件：
 
 ```mermaid
-flowchart TD
-    A["1. 项目建档 (d-init)<br/>实拍图 + 飞书画布链接 → 生成 project.md / design.md / AGENTS.md"] --> B{"媒体类型"}
-
-    B -->|图片详情页 / 主图| C["2. 视觉策划 (d-visual-plan)<br/>卖点四层纯视觉翻译 · 场景错峰 · 逐屏人物判定"]
-    C --> D["3. 提示词编写 (d-image-director)<br/>detail / edit / hd / repair → 写入 制作/编号_名称/prompt.md"]
-    D --> E{"用户明确授权生图?"}
-    E -->|仅写词/改词| D
-    E -->|明确下令出图| F["4. 图片生成执行 (d-image-runner / d-project-pipeline)<br/>默认 DesignFlow MCP · 9:16 · 2K · x2 · 无状态 %TEMP% 调度"]
-    F --> G["5. 结构验收 (d-consistency-check)<br/>对照白底原图做三态验收 + 无字纯净度检查"]
-    G -->|局部漂移| D
-    G -->|验收通过| H["6. 后期放大 / 排版<br/>RunningHub 超分抠图 (d-image-runner) + PS 智能对象 (d-psb-install)"]
-
-    B -->|视频内容| V1["2. 视频策划 (d-visual-plan)<br/>卖点顺序 · 开头钩子 · 证据链"]
-    V1 --> V2["3. 视频导演与编排 (d-video-director)<br/>拉片分析 · 故事板 · 分镜提示词编译"]
-    V2 -->|明确授权出片| V3["4. 视频执行 (d-video-runner)<br/>Seedance / Dreamina / Veo 提交与查询"]
+flowchart LR
+    A["1. 扔素材一键建档<br/>实拍图 + 飞书链接"] --> B["2. 卖点转画面策划<br/>场景错峰 · 人物判定"]
+    B --> C["3. 输出纯无字底图词<br/>预留排版留白"]
+    C -->|"你明确下令出图"| D["4. 先定调再分批出图<br/>默认 9:16 · 2K · 双候选"]
+    D --> E["5. 对照白底图验收<br/>结构漂移局部修"]
+    E --> F["6. 超分抠图 + PS 排版<br/>RunningHub + PSB 插件"]
 ```
 
-### 核心流程原则
+- **一文件夹管到底，开新对话不用重讲**：把产品实拍图、白底图和飞书画布链接丢进项目文件夹，自动整理素材并生成项目设定与进度总表。飞书改稿时支持一键增量同步，不会覆盖你已经定调或定稿的画面。
+- **先看方案和提示词，绝不私自花钱生图**：默认只输出策划和提示词；只有你明确说出「开始生图 / 出图 / 跑图」后，才会调用 DesignFlow 画布或生图接口。
+- **只出纯无字底图，完美衔接后期排版**：AI 只负责把光影、材质、结构和画面氛围做扎实，不渲染营销文案、标尺和乱码角标（仅保留产品原生丝印/刻字），并为你留好文字排版区。
+- **严控真实参考，防止画面跑偏**：带 UI/水印的飞书截图只用来看需求，绝不喂进生图模型；实景画面优先垫干净真机实拍图；凡画面出现任何人物（哪怕只露手或肩背），强制绑定人物身份卡保持统一。
+- **先定调再批量，目录零垃圾**：先跑视觉里程碑锁定全页调性，再优先产出主图与详情页共用的核心屏；批量调度全在系统临时区完成，项目文件夹里只留干净的提示词和图片。
 
-1. **一文件夹一项目 + 飞书增量同步**：每个产品项目独立建档，自动归整实拍原图与白底基准；飞书画布改动后支持 `--sync` 增量同步，自动保留已锁定里程碑与已定稿画面。
-2. **默认停在文字，授权才调用付费接口**：未收到用户明确指令（如「开始生图 / 出图 / 生成视频」）前，所有技能只交付策略、拆解或提示词，不自动触发接口扣费。
-3. **纯无字底图 + 真实参考隔离**：AI 只产出无营销文字、无标尺/角标的纯画面底图（保留产品原生丝印/刻字）；带 UI 水印的飞书截图只用于写词参考，严禁直接喂入生图接口；人物画面强制绑定人物身份卡。
-4. **9:16 分批出图与零本地运行垃圾**：默认按「第 0 批里程碑 → 第 1 批主图共用核心屏 → 第 2 批其余分屏 → 第 3 批独立 1:1 入口」推进；过程队列全部走系统 `%TEMP%`，项目目录不留 `.json` 队列或运行记录。
+### 2. 覆盖设计师日常高频的各类视觉能力
 
----
+除了整套详情页项目，日常零散需求也能直接用：
 
-## 二、Skills 能力全景（共 11 个）
-
-### 1. 图片工作流
-
-| Skill | 定位 | 核心能力与模式 | 典型交付物 |
-| --- | --- | --- | --- |
-| `d-visual-plan` | 视觉策划 | 飞书多画布拆解翻译、卖点四层物理视觉翻译、整页场景错峰矩阵、逐屏人物判定、视频转化策略；纯报告/规格屏自动标记跳过 | 更新 `project.md` / `design.md` |
-| `d-image-director` | 图片提示词导演 | 编写或追改纯无字底图提示词；支持 `detail`（详情/主图）、`edit`（改图）、`brief`、`direction`（四宫格发散）、`hd`（高清重绘）、`repair`（局部结构修复） | `制作/<编号_名称>/prompt.md` 或独立改图指令 |
-| `d-image-runner` | 图片执行器 | 单图/多候选并发出图、实拍改图、RunningHub 超分放大与抠图去背景；支持 `Banana 2`、`Banana 2.1`、`Banana Pro`、`Image 2`、`Image 2.5` 等模型与 DesignFlow MCP / 直连兜底 | 候选图落盘至 `制作/<编号_名称>/` |
-| `d-project-pipeline` | 批量流水线编排 | 项目进度校准（`--status`）、批次校验（`--prepare-batch`）、在 `%TEMP%` 组批次并发出图及定稿晋升（`--promote`） | 校准状态并同步更新 `project.md` |
-| `d-consistency-check` | 一致性审稿 | 对照白底原图与生成图做三态结构验收（外观结构/比例/细节还原）与画面无字纯净度审核 | 一致 / 不一致 / 无法判断三态验收表 |
-| `d-prompt-reverse` | 参考图反推 | 从参考图拆解画面结构与光影要素，先由人判定主次与控制区，再交给 `d-image-director` 编译终稿 | 结构化提示词草稿 |
-
-### 2. 视频工作流
-
-| Skill | 定位 | 核心能力与模式 | 典型交付物 |
-| --- | --- | --- | --- |
-| `d-video-director` | 视频导演 | 故事合同、镜头语言与声音编排、已有视频拉片与 HTML 证据报告、分镜关键帧设计，末端适配 Seedance / Dreamina / Veo | 分镜脚本、视频提示词、拉片分析报告 |
-| `d-video-runner` | 视频执行器 | 执行已授权的确认片、普通视频与批量视频任务提交，查询生成状态并下载保存成片 | 生成视频文件与状态回传 |
-
-### 3. 项目入口与工具
-
-| Skill | 定位 | 核心能力与模式 | 典型交付物 |
-| --- | --- | --- | --- |
-| `d-init` | 项目初始化 | 整理实拍原图与白底基准、拉取并拆解飞书画布、生成根目录三文档，支持 `--sync` 增量同步及全局规则维护 | `project.md`、`design.md`、`AGENTS.md` |
-| `d-api-test` | API 基准测试 | 新增或更换图片 API 时，用固定双参考改图题测试各模型的可用性、尺寸比例、响应速度与画面保持度 | 实测对比结果 |
-| `d-psb-install` | PS 智能对象工具 | 自动核对 GitHub 最新版本并安装/更新 Photoshop PSB 智能对象插件（默认 UXP 版），方便后续无损排版 | 已安装的 PS 智能对象插件 |
+| 设计场景 | 你能直接用它做什么 |
+| --- | --- |
+| **电商主图与日常改图** | 换背景、换材质、调光影、四宫格创意方向发散、线稿/色块高清重绘；支持单图或多候选并发出图 |
+| **结构验收与局部修复** | 对照产品白底原图逐项检查外观、比例、细节是否漂移及画面无字纯净度；发现把手、Logo、接缝等局部漂移时，针对性出局部修复词，不必整张重抽 |
+| **参考图反推提示词** | 遇到好参考图时，先把构图、光影和主体结构拆成可编辑草稿，由你定好主次与锁定区，再编译成可直接复用的终稿提示词 |
+| **放大超分与一键抠图** | 选中的候选图可直接调用 RunningHub 做高清超分放大、抠图与去背景 |
+| **短视频策划、拉片与出片** | 拆解竞品或真实参考视频并生成可视化拉片报告；梳理卖点节奏与开头钩子、编写分镜故事板与关键帧提示词；确认后直接提交 Seedance、Dreamina 或 Veo 生成并下载成片 |
+| **效率与配套工具** | 一键安装/更新 Photoshop PSB 智能对象插件（UXP 版），方便无损套版；新增或更换生图 API 时，用标准双参考改图题快速测速与测保真度 |
 
 ---
 
-## 三、团队安装方式
+## 二、设计师怎么开口就能用？
 
-### Codex
+安装完成后，不需要背诵任何命令或英文名，直接按真实工作意图说话即可：
 
-在 Codex 里打开「添加插件市场」：
+- **新开产品项目**：「用这个飞书链接初始化当前项目文件夹，整理实拍图并生成策划表」
+- **飞书改稿同步**：「同步一下飞书画布的最新修改」
+- **只写词不出图**：「先帮我写 S01 和 S02 的纯无字底图提示词」
+- **确认开始出图**：「提示词没问题，开始生图，按默认 9:16 2K 跑 2 张候选」
+- **检查是否跑偏**：「对照白底原图验收一下这几张图的结构漂没漂」
+- **放大 / 抠图**：「把这张定稿图用 RunningHub 放大到 4K / 抠出透明底」
+- **做短视频**：「帮我拉片分析这条视频，然后给我们的产品写一版 15 秒分镜」
+- **装 PS 插件**：「帮我安装或更新 PS 智能对象工具」
 
-- 来源：`https://github.com/Hill2048/dumik-design-plugins`
-- Git 引用：`main`
-- 稀疏路径：留空
+---
 
-### ZCode
+## 三、安装与接入（三端支持）
 
-在 ZCode 里添加插件市场，来源填：
+### 1. Antigravity（反重力）
+
+支持通过插件配置或本地挂载将本仓库的 `plugins/dumik-team-plugin` 接入 `~/.gemini/config/plugins/dumik`：
+
+- 接入后自动启用团队全局视觉规则、项目上下文钩子与全部工作流能力。
+- 配合 DesignFlow MCP 使用时，生图任务默认直接走画布节点流（默认规格 `Banana 2.1 · 9:16 · 2K · x2`，离线或冲突时自动直连兜底）。
+
+### 2. Codex
+
+在 Codex 中打开「添加插件市场」：
+
+- **来源**：`https://github.com/Hill2048/dumik-design-plugins`
+- **Git 引用**：`main`
+- **稀疏路径**：留空
+
+### 3. ZCode
+
+在 ZCode 中添加插件市场，来源填写：
 
 - `Hill2048/dumik-design-plugins`（或 `https://github.com/Hill2048/dumik-design-plugins`）
 
-安装后搜索 `DUMIK Team Plugin` 即可使用。
+安装后搜索 `DUMIK Team Plugin` 即可启用。
 
 ---
 
-## 四、清单、密钥与发版说明
+## 四、给维护者的技术索引
 
-- **Marketplace 清单**：仓库同时维护 Codex（`.codex-plugin/marketplace.json`）与 ZCode（`.claude-plugin/marketplace.json`）两套清单，改动插件名或目录时需两边同步。
-- **本机密钥隔离**：公开仓库不内置任何 API Key。使用图片接口前请在本机配置环境变量或通过 `scripts/init_api_cache.py` 写入本机缓存，或调用脚本时传入 `--api-key`。
-- **更新与发版规则**：详细规范见 [AGENTS.md](plugins/dumik-team-plugin/rules/AGENTS.md)。正式发版时使用 `plugins/dumik-team-plugin/scripts/release_dumik_plugin.ps1` 自动递增版本号（默认 `+0.0.1`），并随附对比上一发行版的更新公告发布到 GitHub Releases。
+> 日常使用无需关心以下细节，仅在维护插件、配置本机接口或发版时查阅。
+
+- **底层能力模块（11 个 Skills）**：项目建档 `d-init` · 视觉策划 `d-visual-plan` · 图片导演 `d-image-director` · 图片执行 `d-image-runner` · 批量流水线 `d-project-pipeline` · 一致性审稿 `d-consistency-check` · 参考图反推 `d-prompt-reverse` · 视频导演 `d-video-director` · 视频执行 `d-video-runner` · API 基准测试 `d-api-test` · PS 工具安装 `d-psb-install`（详细路由见 [agent-skill-routing.md](plugins/dumik-team-plugin/assets/agent-skill-routing.md)）。
+- **密钥隔离**：公开仓库不内置任何 API Key。直连生图前请在本机配置环境变量，或运行 `scripts/init_api_cache.py` 写入本机缓存，或通过 `--api-key` 临时传入。
+- **自动更新**：支持会话级快进更新检查（`scripts/update_dumik_plugin.ps1`），自动保护本地未提交改动，并已兼容旧仓库名 `dumik-codex-plugins` 的自动迁移。
+- **发版规则**：见 [rules/AGENTS.md](plugins/dumik-team-plugin/rules/AGENTS.md)。正式发版通过 `plugins/dumik-team-plugin/scripts/release_dumik_plugin.ps1 -NotesFile "<公告文件>"` 自动递增版本号（默认 `+0.0.1`）并同步发布至 GitHub Releases。
