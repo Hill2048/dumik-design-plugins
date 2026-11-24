@@ -1,14 +1,16 @@
-param(
+﻿param(
   [switch]$CheckOnly,
   [ValidateSet("Install", "Update")]
   [string]$Mode = "Install",
   [ValidateSet("Auto", "CEP", "UXP")]
   [string]$Flavor = "Auto",
   [switch]$Update,
-  [switch]$SkipRemoteCheck
+  [switch]$SkipRemoteCheck,
+  [switch]$AllowRemoteFetch
 )
 
 $ErrorActionPreference = "Stop"
+Write-Warning "[DEPRECATED] PSB 智能对象工具已从 DUMIK 插件废弃（保留存档，默认不再从 GitHub 拉取远端更新）。"
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $PluginRoot = Split-Path -Parent $ScriptDir
@@ -95,8 +97,8 @@ function Get-RemotePluginVersion {
 }
 
 function Use-GithubPluginIfNewer {
-  if ($SkipRemoteCheck) {
-    Write-Host "GitHub version check skipped."
+  if ($SkipRemoteCheck -or -not $AllowRemoteFetch) {
+    Write-Host "GitHub remote fetch skipped by default (PSB tool is deprecated; pass -AllowRemoteFetch to explicitly fetch from GitHub)."
     return
   }
 

@@ -20,7 +20,7 @@ flowchart LR
     B --> C["3. 输出纯无字底图词<br/>预留排版留白"]
     C -->|"你明确下令出图"| D["4. 先定调再分批出图<br/>默认 9:16 · 2K · 双候选"]
     D --> E["5. 对照白底图验收<br/>结构漂移局部修"]
-    E --> F["6. 超分抠图 + PS 排版<br/>RunningHub + PSB 插件"]
+    E --> F["6. 超分抠图 + PS 排版<br/>RunningHub + PS 后期"]
 ```
 
 - **一文件夹管到底，开新对话不用重讲**：把产品实拍图、白底图和飞书画布链接丢进项目文件夹，自动整理素材并生成项目设定与进度总表。飞书改稿时支持一键增量同步，不会覆盖你已经定调或定稿的画面。
@@ -40,7 +40,7 @@ flowchart LR
 | **参考图反推提示词** | 遇到好参考图时，先把构图、光影和主体结构拆成可编辑草稿，由你定好主次与锁定区，再编译成可直接复用的终稿提示词 |
 | **放大超分与一键抠图** | 选中的候选图可直接调用 RunningHub 做高清超分放大、抠图与去背景 |
 | **短视频策划、拉片与出片** | 拆解竞品或真实参考视频并生成可视化拉片报告；梳理卖点节奏与开头钩子、编写分镜故事板与关键帧提示词；确认后直接提交 Seedance、Dreamina 或 Veo 生成并下载成片 |
-| **效率与配套工具** | 一键安装/更新 Photoshop PSB 智能对象插件（UXP 版），方便无损套版；新增或更换生图 API 时，用标准双参考改图题快速测速与测保真度 |
+| **API 基准测试** | 新增或更换生图 API 时，用标准双参考改图题快速测速、尺寸比例与保真度（注：原 Photoshop PSB 智能对象插件已废弃归档，默认不再加载与拉取） |
 
 ---
 
@@ -55,7 +55,6 @@ flowchart LR
 - **检查是否跑偏**：「对照白底原图验收一下这几张图的结构漂没漂」
 - **放大 / 抠图**：「把这张定稿图用 RunningHub 放大到 4K / 抠出透明底」
 - **做短视频**：「帮我拉片分析这条视频，然后给我们的产品写一版 15 秒分镜」
-- **装 PS 插件**：「帮我安装或更新 PS 智能对象工具」
 
 ---
 
@@ -90,7 +89,7 @@ flowchart LR
 
 > 日常使用无需关心以下细节，仅在维护插件、配置本机接口或发版时查阅。
 
-- **底层能力模块（11 个 Skills）**：项目建档 `d-init` · 视觉策划 `d-visual-plan` · 图片导演 `d-image-director` · 图片执行 `d-image-runner` · 批量流水线 `d-project-pipeline` · 一致性审稿 `d-consistency-check` · 参考图反推 `d-prompt-reverse` · 视频导演 `d-video-director` · 视频执行 `d-video-runner` · API 基准测试 `d-api-test` · PS 工具安装 `d-psb-install`（详细路由见 [agent-skill-routing.md](plugins/dumik-team-plugin/assets/agent-skill-routing.md)）。
+- **底层能力模块（10 个活跃 Skills）**：项目建档 `d-init` · 视觉策划 `d-visual-plan` · 图片导演 `d-image-director` · 图片执行 `d-image-runner` · 批量流水线 `d-project-pipeline` · 一致性审稿 `d-consistency-check` · 参考图反推 `d-prompt-reverse` · 视频导演 `d-video-director` · 视频执行 `d-video-runner` · API 基准测试 `d-api-test`（详细路由见 [agent-skill-routing.md](plugins/dumik-team-plugin/assets/agent-skill-routing.md)）。原 `d-psb-install`（PSB 智能对象工具）已标注废弃并移入 `archive/deprecated-psb-tools/` 保留存档，默认不再加载也不自动拉取。
 - **密钥隔离**：公开仓库不内置任何 API Key。直连生图前请在本机配置环境变量，或运行 `scripts/init_api_cache.py` 写入本机缓存，或通过 `--api-key` 临时传入。
 - **自动更新**：支持会话级快进更新检查（`scripts/update_dumik_plugin.ps1`），自动保护本地未提交改动，并已兼容旧仓库名 `dumik-codex-plugins` 的自动迁移。
 - **发版规则**：见 [rules/AGENTS.md](plugins/dumik-team-plugin/rules/AGENTS.md)。正式发版通过 `plugins/dumik-team-plugin/scripts/release_dumik_plugin.ps1 -NotesFile "<公告文件>"` 自动递增版本号（默认 `+0.0.1`）并同步发布至 GitHub Releases。

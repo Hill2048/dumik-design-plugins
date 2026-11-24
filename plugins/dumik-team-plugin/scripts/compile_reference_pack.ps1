@@ -162,6 +162,7 @@ switch ($Skill) {
         Add-Ref 'skills/d-api-test/references/image-benchmark.md'
     }
     'd-psb-install' {
+        Write-Warning '[DEPRECATED] d-psb-install has been deprecated and archived under archive/deprecated-psb-tools/ (default remote pull disabled).'
         Add-Ref 'assets/task-state-contract.md'
         Add-Ref 'assets/skill-versions.json'
         Add-Ref 'scripts/install_psb_smart_object_tools.ps1'

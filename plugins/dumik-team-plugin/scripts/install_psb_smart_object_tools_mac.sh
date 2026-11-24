@@ -41,7 +41,9 @@ print("1" if left > right else "0")
 PY
 }
 
-if [[ "${SKIP_REMOTE_CHECK:-0}" != "1" ]]; then
+echo "[DEPRECATED] PSB 智能对象工具已从 DUMIK 插件废弃（保留存档，默认不再从 GitHub 拉取远端更新）。" >&2
+
+if [[ "${ALLOW_REMOTE_FETCH:-0}" == "1" && "${SKIP_REMOTE_CHECK:-0}" != "1" ]]; then
   LOCAL_PLUGIN_VERSION="$(plugin_version "$PLUGIN_ROOT")"
   if REMOTE_JSON="$(curl -fsSL "$REMOTE_VERSION_URL" 2>/dev/null)"; then
     REMOTE_PLUGIN_VERSION="$(python3 - <<'PY' "$REMOTE_JSON"
@@ -71,7 +73,7 @@ PY
     echo "GitHub version check failed, continue with local plugin." >&2
   fi
 else
-  echo "GitHub version check skipped."
+  echo "GitHub remote fetch skipped by default (PSB tool is deprecated; set ALLOW_REMOTE_FETCH=1 to explicitly fetch from GitHub)."
 fi
 
 SOURCE="$PLUGIN_ROOT/assets/psb-smart-object-tools/uxp"

@@ -9,7 +9,6 @@ $scriptUnderTest = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\update_du
 $expectedSkills = @(
     'd-init',
     'd-api-test',
-    'd-psb-install',
     'd-visual-plan',
     'd-image-director',
     'd-image-runner',

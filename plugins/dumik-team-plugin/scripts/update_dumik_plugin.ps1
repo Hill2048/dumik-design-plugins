@@ -15,7 +15,6 @@ $pluginName = 'dumik-team-plugin'
 $expectedSkills = @(
     'd-init',
     'd-api-test',
-    'd-psb-install',
     'd-visual-plan',
     'd-image-director',
     'd-image-runner',
@@ -218,6 +217,17 @@ function Remove-ObsoleteInstalledVideoReferences {
     }
 }
 
+function Remove-DeprecatedInstalledSkills {
+    param([Parameter(Mandatory = $true)][string]$InstalledPath)
+
+    $deprecatedArchive = Join-Path $InstalledPath 'archive\deprecated-psb-tools\d-psb-install\SKILL.md'
+    $staleActiveSkill = Join-Path $InstalledPath 'skills\d-psb-install'
+    if ((Test-Path -LiteralPath $deprecatedArchive -PathType Leaf) -and
+        (Test-Path -LiteralPath $staleActiveSkill -PathType Container)) {
+        Remove-Item -LiteralPath $staleActiveSkill -Recurse -Force
+    }
+}
+
 $checkout = $null
 $beforeRevision = $null
 $afterRevision = $null
@@ -387,6 +397,7 @@ try {
         $cacheRoot = Join-Path $CodexRoot 'plugins\cache'
         Repair-SkillCasing -PluginRoot $installedPath -AllowedRoot $cacheRoot -LocationLabel 'Codex plugin cache'
         Remove-ObsoleteInstalledVideoReferences -InstalledPath $installedPath
+        Remove-DeprecatedInstalledSkills -InstalledPath $installedPath
         Assert-SkillLayout -PluginRoot $installedPath
         Assert-VideoDirectorReferences -PluginRoot $installedPath
     }

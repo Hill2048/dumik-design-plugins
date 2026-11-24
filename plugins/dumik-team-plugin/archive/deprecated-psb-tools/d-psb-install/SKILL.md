@@ -1,11 +1,15 @@
 ---
 name: d-psb-install
-description: "安装/更新 PSB 智能对象工具。先自动核对 GitHub 最新版本；默认安装 UXP 版，适合触发词：安装 PSB 插件、更新 PSB 插件、安装智能对象工具、装 PSB 智能对象工具、分享来的插件怎么装。"
+description: "[已废弃 / DEPRECATED] PSB 智能对象工具已从 DUMIK 插件废弃并归档，不再默认加载、不再参与自动路由，安装脚本默认也不从 GitHub 拉取远端更新；仅保留历史存档。"
 metadata:
   version: 0.1.13
+  deprecated: true
+  auto_pull: false
 ---
 
-# PSB 智能对象工具安装
+# [已废弃 / DEPRECATED] PSB 智能对象工具安装
+
+> **已废弃声明**：本技能及 PSB 智能对象工具已从 DUMIK Team Plugin 主链路废弃并移入 `archive/deprecated-psb-tools/` 存档（不删除历史源码）。默认不再随插件加载、不再参与自动路由，安装脚本默认也不再从 GitHub 拉取更新。如需临时使用本地历史资产，请手动运行脚本并仅在确有必要时显式传入 `-AllowRemoteFetch`（Windows）或 `ALLOW_REMOTE_FETCH=1`（macOS）。
 
 ## 参考文件硬门槛
 

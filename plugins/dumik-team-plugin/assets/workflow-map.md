@@ -15,7 +15,10 @@
 
 - `d-init`：生成或维护项目入口；完整初始化时可登记项目级上下文钩子，不参与逐次调度。
 - `d-api-test`：图片 API 基准测试。
-- `d-psb-install`：PSB 工具安装与更新。
+
+## 已废弃入口（保留存档，默认不加载、不自动拉取）
+
+- `d-psb-install`：PSB 智能对象工具已废弃并归档至 `archive/deprecated-psb-tools/`，不删除历史源码，不再参与自动路由，脚本默认也不再从 GitHub 拉取更新。
 
 旧入口已归档到 `archive/merged-skills-legacy/`，不再参与自动路由。
 

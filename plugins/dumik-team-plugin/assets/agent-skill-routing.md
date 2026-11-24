@@ -1,6 +1,6 @@
 # DUMIK 唯一路由合同
 
-本文件是 DUMIK Team Plugin 的唯一能力路由。项目根目录的 `AGENTS.md` 优先决定项目协作、授权、确认和目录；本文件只决定当前工作应进入哪个插件 skill。11 个 skill 是专业入口，不互相争夺总控，也不在没有明确条件时串联。
+本文件是 DUMIK Team Plugin 的唯一能力路由。项目根目录的 `AGENTS.md` 优先决定项目协作、授权、确认和目录；本文件只决定当前工作应进入哪个插件 skill。10 个活跃 skill 是专业入口，不互相争夺总控，也不在没有明确条件时串联。
 
 ## 判定顺序
 
@@ -74,11 +74,11 @@ project.entry
 api.benchmark
   新增或更换图片 API，比较模型成功率、尺寸、比例、速度或画面保持度
   -> d-api-test
-
-psb.install
-  安装或更新 PSB 智能对象工具
-  -> d-psb-install
 ```
+
+## 已废弃入口（保留存档，默认不加载、不自动拉取）
+
+- `psb.install`（`d-psb-install` / PSB 智能对象工具）：已从插件废弃并移至 `archive/deprecated-psb-tools/`（不删除历史源码与安装包），不再参与自动路由，安装脚本默认也不再从 GitHub 拉取远端更新。
 
 ## 同一任务的路线锁
 
