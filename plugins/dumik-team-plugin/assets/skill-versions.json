@@ -1,11 +1,11 @@
 {
   "plugin": "dumik-team-plugin",
-  "pluginVersion": "0.2.21",
+  "pluginVersion": "0.2.22",
   "skills": {
     "d-init": "0.4.2",
     "d-api-test": "0.1.4",
     "d-visual-plan": "0.3.2",
-    "d-image-director": "0.4.1",
+    "d-image-director": "0.4.2",
     "d-image-runner": "0.2.0",
     "d-video-director": "0.1.4",
     "d-video-runner": "0.1.3",
