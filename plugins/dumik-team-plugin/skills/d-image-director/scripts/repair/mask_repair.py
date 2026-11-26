@@ -508,11 +508,18 @@ def cmd_prepare_single(args: argparse.Namespace) -> int:
     )
     meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
 
+    source_warning = ""
+    if ("_已修复" in img_path.stem) or ("_repaired" in img_path.stem.lower()):
+        source_warning = (
+            "检测到待修源图已是修复产物；若为重修同一部位或修独立新部位，请改用最开始的原始干净图作为 --image，避免多轮串联导致整图偏红发糊。"
+        )
+
     result = {
         "status": "prepared",
         "workdir": str(workdir),
         "meta_path": str(meta_path),
         "preview_sheet": str(sheet_path),
+        "source_warning": source_warning,
         "designflow_item": {
             "prompt": prompt,
             "ratio": meta["ratio"],
