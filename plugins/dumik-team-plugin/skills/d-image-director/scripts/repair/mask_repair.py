@@ -1,0 +1,500 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+DUMIK 产品细节修复引擎（产品外扩切图 + 局部高对比色块破惰性 + 外扩边羽化贴回）。
+
+核心思路：
+1. 以 `product_box` 向外扩展（默认 20%）并轻微吸附到标准比例池（1:1 / 3:4 / 4:3 / 9:16 / 16:9），
+   把 AI 的 2K 分辨率集中砸在产品本体与待修细节上，且外扩边界落在背景平滑区。
+2. 在切出的产品外扩图上，将具体不对的 `defect_boxes` 实心涂上高对比色块（默认荧光洋红 #FF00FF），
+   彻底抹除旧的错误结构先验，打破生图模型“照抄原图”的惰性。
+3. 中间产物（切片、带色块图、联系表、DesignFlow 并发任务 JSON）默认全部落在系统 `%TEMP%\\dumik-runs\\`，
+   项目目录零运行垃圾。
+4. AI 修完后，按记录的 `crop_box` 在外扩边做羽化无损贴回原整图，未动区域 100% 保留原像素。
+
+用法：
+  单张准备：
+    python mask_repair.py prepare-single --image 原图.png --white-ref 白底图.png \
+      --product-box 300 400 900 1100 --defect-box 720 520 880 760 \
+      --defect-desc "把手弯折角度偏圆，按白底图还原方圆角 D 型扁平一体焊把"
+
+  单张贴回：
+    python mask_repair.py paste-single --meta <temp>/meta.json \
+      --repaired 修好的外扩图.png --out 制作/S01/候选_01_repaired.png
+
+  批量准备（manifest JSON 可放在 %TEMP%）：
+    python mask_repair.py prepare-batch --manifest <temp>/manifest.json --project-root .
+
+  批量贴回：
+    python mask_repair.py paste-batch --workdir <temp>/repair-xxx --repaired-dir <dir>
+"""
+
+from __future__ import annotations
+
+import argparse
+from datetime import datetime
+import json
+import os
+from pathlib import Path
+import shutil
+import sys
+import tempfile
+from typing import Any
+
+from PIL import Image, ImageDraw, ImageFilter
+
+# Target aspect ratios supported natively by Gemini Banana / DesignFlow
+RATIO_POOL: list[tuple[str, float]] = [
+    ("1:1", 1.0),
+    ("3:4", 3 / 4),
+    ("4:3", 4 / 3),
+    ("2:3", 2 / 3),
+    ("3:2", 3 / 2),
+    ("9:16", 9 / 16),
+    ("16:9", 16 / 9),
+]
+
+DEFAULT_MASK_COLOR = "#FF00FF"  # High-contrast magenta (rarely matches cookware/metal)
+
+
+def _clamp(v: int, lo: int, hi: int) -> int:
+    return max(lo, min(hi, v))
+
+
+def _parse_hex_color(color_str: str) -> tuple[int, int, int, int]:
+    c = color_str.strip().lstrip("#")
+    if len(c) == 6:
+        return (int(c[0:2], 16), int(c[2:4], 16), int(c[4:6], 16), 255)
+    if len(c) == 8:
+        return (int(c[0:2], 16), int(c[2:4], 16), int(c[4:6], 16), int(c[6:8], 16))
+    raise ValueError(f"非法颜色值: {color_str}（请使用 #RRGGBB 如 #FF00FF）")
+
+
+def _nearest_ratio(w: int, h: int) -> tuple[str, float]:
+    actual = w / h if h > 0 else 1.0
+    return min(RATIO_POOL, key=lambda kv: abs(kv[1] - actual))
+
+
+def compute_expanded_crop_box(
+    img_size: tuple[int, int],
+    product_box: list[int],
+    pad: float = 0.20,
+    snap_ratio: bool = True,
+) -> tuple[list[int], str]:
+    """围绕产品框外扩 pad 比例，并按需轻微扩展到最接近的标准比例池。"""
+    W, H = img_size
+    x1, y1, x2, y2 = [int(v) for v in product_box]
+    if x2 <= x1 or y2 <= y1:
+        raise ValueError(f"非法 product_box: {product_box}")
+
+    bw, bh = x2 - x1, y2 - y1
+    px, py = int(bw * pad), int(bh * pad)
+    cx1, cy1 = _clamp(x1 - px, 0, W), _clamp(y1 - py, 0, H)
+    cx2, cy2 = _clamp(x2 + px, 0, W), _clamp(y2 + py, 0, H)
+
+    cw, ch = cx2 - cx1, cy2 - cy1
+    ratio_name, target_r = _nearest_ratio(cw, ch)
+
+    if snap_ratio and ch > 0:
+        cur_r = cw / ch
+        # Only expand outward slightly so we never clip the padded product
+        if cur_r < target_r:
+            desired_w = min(W, int(round(ch * target_r)))
+            delta = desired_w - cw
+            cx1 = _clamp(cx1 - delta // 2, 0, W)
+            cx2 = _clamp(cx1 + desired_w, 0, W)
+            cx1 = _clamp(cx2 - desired_w, 0, W)
+        elif cur_r > target_r:
+            desired_h = min(H, int(round(cw / target_r)))
+            delta = desired_h - ch
+            cy1 = _clamp(cy1 - delta // 2, 0, H)
+            cy2 = _clamp(cy1 + desired_h, 0, H)
+            cy1 = _clamp(cy2 - desired_h, 0, H)
+
+    ratio_name, _ = _nearest_ratio(cx2 - cx1, cy2 - cy1)
+    return [cx1, cy1, cx2, cy2], ratio_name
+
+
+def build_masked_crop(
+    img: Image.Image,
+    product_box: list[int],
+    defect_boxes: list[list[int]],
+    pad: float = 0.20,
+    mask_color: str = DEFAULT_MASK_COLOR,
+    snap_ratio: bool = True,
+) -> tuple[Image.Image, Image.Image, dict[str, Any]]:
+    """
+    返回 (clean_crop, masked_crop, meta):
+    - clean_crop: 产品外扩干净特写（用于联系表左图对照）
+    - masked_crop: 在 defect_boxes 区域填高对比实心色块的待修图（发给生图模型 @图1）
+    - meta: 坐标与比例元数据（用于贴回原整图）
+    """
+    rgba = img.convert("RGBA")
+    W, H = rgba.size
+    crop_box, ratio_name = compute_expanded_crop_box((W, H), product_box, pad=pad, snap_ratio=snap_ratio)
+    cx1, cy1, cx2, cy2 = crop_box
+
+    clean_crop = rgba.crop((cx1, cy1, cx2, cy2))
+    masked_crop = clean_crop.copy()
+    draw = ImageDraw.Draw(masked_crop)
+    fill_rgba = _parse_hex_color(mask_color)
+
+    local_defects: list[list[int]] = []
+    cw, ch = clean_crop.size
+    for dbox in defect_boxes:
+        dx1, dy1, dx2, dy2 = [int(v) for v in dbox]
+        lx1 = _clamp(dx1 - cx1, 0, cw)
+        ly1 = _clamp(dy1 - cy1, 0, ch)
+        lx2 = _clamp(dx2 - cx1, 0, cw)
+        ly2 = _clamp(dy2 - cy1, 0, ch)
+        if lx2 > lx1 and ly2 > ly1:
+            draw.rectangle([lx1, ly1, lx2, ly2], fill=fill_rgba)
+            local_defects.append([lx1, ly1, lx2, ly2])
+
+    meta = {
+        "source_size": [W, H],
+        "product_box": [int(v) for v in product_box],
+        "crop_box": crop_box,
+        "crop_size": [cw, ch],
+        "ratio": ratio_name,
+        "pad_ratio": pad,
+        "mask_color": mask_color.upper(),
+        "defect_boxes_global": [[int(v) for v in b] for b in defect_boxes],
+        "defect_boxes_local": local_defects,
+    }
+    return clean_crop, masked_crop, meta
+
+
+def paste_back_smooth(
+    base_img: Image.Image,
+    repaired_img: Image.Image,
+    crop_box: list[int],
+    feather: int = 28,
+) -> Image.Image:
+    """将修好的产品外扩图缩放对齐回 crop_box，在外扩背景边平滑羽化贴回原整图。"""
+    base = base_img.convert("RGBA")
+    repaired = repaired_img.convert("RGBA")
+    cx1, cy1, cx2, cy2 = [int(v) for v in crop_box]
+    tw, th = cx2 - cx1, cy2 - cy1
+
+    if repaired.size != (tw, th):
+        repaired = repaired.resize((tw, th), Image.LANCZOS)
+
+    f = max(0, min(int(feather), tw // 4, th // 4))
+    mask = Image.new("L", (tw, th), 0)
+    ImageDraw.Draw(mask).rectangle([f, f, tw - f, th - f], fill=255)
+    if f > 0:
+        mask = mask.filter(ImageFilter.GaussianBlur(f / 2))
+
+    base.paste(repaired, (cx1, cy1), mask)
+    return base
+
+
+def build_repair_prompt(defect_desc: str, mask_color: str = DEFAULT_MASK_COLOR) -> str:
+    """生成符合瘦身红线（<=250字、无Markdown噪音）的局部色块修复提示词。"""
+    color_label = "荧光洋红" if mask_color.upper() == "#FF00FF" else f"纯色（{mask_color.upper()}）"
+    desc = (defect_desc or "产品局部结构与表面细节").strip()
+    return (
+        f"保持@图1中所有未涂色区域的产品主体、构图、背景、光影与色温完全不变。"
+        f"彻底清除@图1中的{color_label}色块，严格对照@图2的产品真实结构、比例与材质，在色块位置重新绘制：{desc}。"
+        f"新绘制的局部必须与@图1周围的受光方向、反射质感、景深和阴影边缘无缝自然融合。"
+        f"严禁残留任何{color_label}色块边缘、改变未涂色区域或额外生成文字与杂物。"
+    )
+
+
+def make_contact_sheet(pairs: list[tuple[str, Image.Image, Image.Image]], out_path: Path) -> None:
+    """将多个 (标签, 原切片, 涂色块切片) 拼成一张方便 5 秒目视复核的联系表。"""
+    if not pairs:
+        return
+    thumb = 360
+    pad = 16
+    header_h = 28
+    row_h = thumb + header_h + pad
+    sheet_w = thumb * 2 + pad * 3
+    sheet_h = row_h * len(pairs) + pad
+    sheet = Image.new("RGB", (sheet_w, sheet_h), (28, 28, 32))
+    draw = ImageDraw.Draw(sheet)
+
+    for idx, (label, left_img, right_img) in enumerate(pairs):
+        y0 = pad + idx * row_h
+        draw.text((pad, y0 + 4), f"[{idx + 1}] {label}  (Left: Clean Crop | Right: Masked)", fill=(235, 235, 240))
+        for col, im in enumerate((left_img, right_img)):
+            cp = im.convert("RGB")
+            cp.thumbnail((thumb, thumb), Image.LANCZOS)
+            x0 = pad + col * (thumb + pad) + (thumb - cp.width) // 2
+            y_img = y0 + header_h + (thumb - cp.height) // 2
+            sheet.paste(cp, (x0, y_img))
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    sheet.save(out_path)
+
+
+def _default_temp_workdir() -> Path:
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    d = Path(tempfile.gettempdir()) / "dumik-runs" / f"repair-{stamp}"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _resolve_path(root: Path, raw: str) -> Path:
+    p = Path(raw)
+    return p if p.is_absolute() else (root / p).resolve()
+
+
+def cmd_prepare_single(args: argparse.Namespace) -> int:
+    workdir = Path(args.workdir) if args.workdir else _default_temp_workdir()
+    workdir.mkdir(parents=True, exist_ok=True)
+
+    img_path = Path(args.image).resolve()
+    white_ref = Path(args.white_ref).resolve()
+    with Image.open(img_path) as im:
+        clean_crop, masked_crop, meta = build_masked_crop(
+            im,
+            product_box=args.product_box,
+            defect_boxes=args.defect_box,
+            pad=args.pad,
+            mask_color=args.mask_color,
+            snap_ratio=not args.no_snap_ratio,
+        )
+
+    stem = args.name or img_path.stem
+    clean_path = workdir / f"{stem}_clean.png"
+    masked_path = workdir / f"{stem}_masked.png"
+    meta_path = workdir / f"{stem}_meta.json"
+    sheet_path = workdir / f"{stem}_preview.png"
+
+    clean_crop.save(clean_path)
+    masked_crop.save(masked_path)
+    make_contact_sheet([(stem, clean_crop, masked_crop)], sheet_path)
+
+    prompt = build_repair_prompt(args.defect_desc, mask_color=args.mask_color)
+    meta.update(
+        {
+            "image_id": stem,
+            "source_image": str(img_path),
+            "white_ref": str(white_ref),
+            "clean_crop": str(clean_path),
+            "masked_crop": str(masked_path),
+            "preview_sheet": str(sheet_path),
+            "prompt": prompt,
+        }
+    )
+    meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    result = {
+        "status": "prepared",
+        "workdir": str(workdir),
+        "meta_path": str(meta_path),
+        "preview_sheet": str(sheet_path),
+        "designflow_item": {
+            "prompt": prompt,
+            "ratio": meta["ratio"],
+            "sizePreset": "2K",
+            "count": 2,
+            "models": ["banana2.1"],
+            "referenceFiles": [str(masked_path), str(white_ref)],
+        },
+    }
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_paste_single(args: argparse.Namespace) -> int:
+    meta_path = Path(args.meta).resolve()
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    src_path = Path(meta["source_image"])
+    out_path = Path(args.out).resolve() if args.out else src_path.with_name(f"{src_path.stem}_repaired.png")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with Image.open(src_path) as base_im, Image.open(Path(args.repaired).resolve()) as rep_im:
+        final_im = paste_back_smooth(base_im, rep_im, meta["crop_box"], feather=args.feather)
+        if out_path.suffix.lower() in (".jpg", ".jpeg"):
+            final_im = final_im.convert("RGB")
+        final_im.save(out_path)
+
+    if args.cleanup:
+        shutil.rmtree(meta_path.parent, ignore_errors=True)
+
+    print(json.dumps({"status": "pasted", "out": str(out_path)}, ensure_ascii=False))
+    return 0
+
+
+def cmd_prepare_batch(args: argparse.Namespace) -> int:
+    root = Path(args.project_root).resolve()
+    manifest = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
+    workdir = Path(args.workdir) if args.workdir else _default_temp_workdir()
+    workdir.mkdir(parents=True, exist_ok=True)
+
+    designflow_items: list[dict[str, Any]] = []
+    meta_entries: list[dict[str, Any]] = []
+    pairs: list[tuple[str, Image.Image, Image.Image]] = []
+
+    for item in manifest.get("items", []):
+        if item.get("verdict") in ("passed", "reroll"):
+            continue
+        img_id = str(item["image_id"])
+        img_path = _resolve_path(root, item["image_path"])
+        white_ref = _resolve_path(root, item["white_ref"])
+        product_box = item["product_box"]
+        defect_boxes = item.get("defect_boxes") or []
+        if not defect_boxes:
+            continue
+
+        pad = float(item.get("pad", args.pad))
+        mask_color = str(item.get("mask_color", args.mask_color))
+        defect_desc = str(item.get("defect_desc", ""))
+
+        with Image.open(img_path) as im:
+            clean_crop, masked_crop, meta = build_masked_crop(
+                im,
+                product_box=product_box,
+                defect_boxes=defect_boxes,
+                pad=pad,
+                mask_color=mask_color,
+                snap_ratio=not args.no_snap_ratio,
+            )
+
+        slug = img_id.replace("/", "_").replace("\\", "_").replace(" ", "_")
+        clean_path = workdir / f"{slug}_clean.png"
+        masked_path = workdir / f"{slug}_masked.png"
+        clean_crop.save(clean_path)
+        masked_crop.save(masked_path)
+        pairs.append((img_id, clean_crop, masked_crop))
+
+        prompt = build_repair_prompt(defect_desc, mask_color=mask_color)
+        meta.update(
+            {
+                "image_id": img_id,
+                "slug": slug,
+                "source_image": str(img_path),
+                "white_ref": str(white_ref),
+                "clean_crop": str(clean_path),
+                "masked_crop": str(masked_path),
+                "out_path": str(_resolve_path(root, item["out_path"])) if item.get("out_path") else str(img_path.with_name(f"{img_path.stem}_repaired.png")),
+                "prompt": prompt,
+            }
+        )
+        meta_entries.append(meta)
+        designflow_items.append(
+            {
+                "id": img_id,
+                "prompt": prompt,
+                "ratio": meta["ratio"],
+                "sizePreset": "2K",
+                "count": int(item.get("count", 2)),
+                "referenceFiles": [str(masked_path), str(white_ref)],
+            }
+        )
+
+    sheet_path = workdir / "contact_sheet.png"
+    make_contact_sheet(pairs, sheet_path)
+
+    batch_meta_path = workdir / "batch_meta.json"
+    batch_meta_path.write_text(json.dumps({"items": meta_entries}, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    df_jobs_path = workdir / "designflow_items.json"
+    df_jobs_path.write_text(json.dumps({"items": designflow_items}, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    print(
+        json.dumps(
+            {
+                "status": "prepared_batch",
+                "count": len(meta_entries),
+                "workdir": str(workdir),
+                "contact_sheet": str(sheet_path),
+                "batch_meta": str(batch_meta_path),
+                "designflow_items": str(df_jobs_path),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    return 0
+
+
+def cmd_paste_batch(args: argparse.Namespace) -> int:
+    workdir = Path(args.workdir).resolve()
+    batch_meta = json.loads((workdir / "batch_meta.json").read_text(encoding="utf-8"))
+    repaired_dir = Path(args.repaired_dir).resolve()
+    outputs: list[str] = []
+    missing: list[str] = []
+
+    for entry in batch_meta.get("items", []):
+        slug = entry["slug"]
+        cand = None
+        for ext in (".png", ".jpg", ".jpeg", ".webp"):
+            for pattern in (f"{slug}{ext}", f"{slug}_repaired{ext}", f"{slug}_01{ext}"):
+                p = repaired_dir / pattern
+                if p.is_file():
+                    cand = p
+                    break
+            if cand:
+                break
+        if not cand:
+            missing.append(entry["image_id"])
+            continue
+
+        src_path = Path(entry["source_image"])
+        out_path = Path(entry["out_path"])
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        with Image.open(src_path) as base_im, Image.open(cand) as rep_im:
+            final_im = paste_back_smooth(base_im, rep_im, entry["crop_box"], feather=args.feather)
+            if out_path.suffix.lower() in (".jpg", ".jpeg"):
+                final_im = final_im.convert("RGB")
+            final_im.save(out_path)
+        outputs.append(str(out_path))
+
+    if args.cleanup and not missing:
+        shutil.rmtree(workdir, ignore_errors=True)
+
+    print(json.dumps({"status": "pasted_batch", "count": len(outputs), "outputs": outputs, "missing": missing}, ensure_ascii=False, indent=2))
+    return 0 if not missing else 1
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description="DUMIK 产品外扩切图 + 局部色块修复脚本（单张/批量一体，零项目垃圾）")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+
+    ps = sub.add_parser("prepare-single", help="单张切产品外扩图并涂高对比色块")
+    ps.add_argument("--image", required=True, help="待修原整图路径")
+    ps.add_argument("--white-ref", required=True, help="设定集白底基准图路径")
+    ps.add_argument("--product-box", nargs=4, type=int, required=True, metavar=("X1", "Y1", "X2", "Y2"))
+    ps.add_argument("--defect-box", nargs=4, type=int, action="append", required=True, metavar=("X1", "Y1", "X2", "Y2"), help="可重复传入多个偏差区域框")
+    ps.add_argument("--defect-desc", required=True, help="一句话描述色块处按白底图应还原的具体细节")
+    ps.add_argument("--pad", type=float, default=0.20, help="产品外扩比例（默认 0.20）")
+    ps.add_argument("--mask-color", default=DEFAULT_MASK_COLOR, help="色块颜色（默认 #FF00FF 荧光洋红）")
+    ps.add_argument("--no-snap-ratio", action="store_true", help="禁用自动吸附到标准比例池")
+    ps.add_argument("--name", default="", help="输出文件名前缀")
+    ps.add_argument("--workdir", default="", help="临时工作目录（默认 %%TEMP%%\\dumik-runs\\repair-*）")
+    ps.set_defaults(func=cmd_prepare_single)
+
+    pts = sub.add_parser("paste-single", help="单张修好后外扩边羽化无损贴回原整图")
+    pts.add_argument("--meta", required=True, help="prepare-single 产出的 *_meta.json")
+    pts.add_argument("--repaired", required=True, help="AI 修好的产品外扩图")
+    pts.add_argument("--out", default="", help="最终输出路径（默认同目录 *_repaired.png）")
+    pts.add_argument("--feather", type=int, default=28, help="外扩边羽化像素（默认 28）")
+    pts.add_argument("--cleanup", action="store_true", help="贴回完成后清理临时工作目录")
+    pts.set_defaults(func=cmd_paste_single)
+
+    pb = sub.add_parser("prepare-batch", help="批量切产品外扩图、涂色块并生成联系表与并发任务")
+    pb.add_argument("--manifest", required=True, help="修复清单 JSON（建议放 %%TEMP%%）")
+    pb.add_argument("--project-root", default=".", help="项目根目录")
+    pb.add_argument("--pad", type=float, default=0.20)
+    pb.add_argument("--mask-color", default=DEFAULT_MASK_COLOR)
+    pb.add_argument("--no-snap-ratio", action="store_true")
+    pb.add_argument("--workdir", default="")
+    pb.set_defaults(func=cmd_prepare_batch)
+
+    ptb = sub.add_parser("paste-batch", help="批量将修好的产品外扩图无损贴回各自整图")
+    ptb.add_argument("--workdir", required=True, help="prepare-batch 产出的临时目录")
+    ptb.add_argument("--repaired-dir", required=True, help="存放 AI 修好图的目录（文件名匹配 <slug>.png 或 <slug>_01.png）")
+    ptb.add_argument("--feather", type=int, default=28)
+    ptb.add_argument("--cleanup", action="store_true", help="全部贴回成功后清理临时目录")
+    ptb.set_defaults(func=cmd_paste_batch)
+
+    args = ap.parse_args(argv)
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
