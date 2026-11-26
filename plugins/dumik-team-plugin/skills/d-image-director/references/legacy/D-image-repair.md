@@ -40,15 +40,17 @@ description: "选片后的产品细节修复质量门（产品外扩切图 + 局
 
 ## 单张修复流程（`scripts/repair/mask_repair.py`）
 
-1. **对照 `设定集/白底图/` 找差异**：列出可见细节偏差及像素坐标（`product_box` + 1~N 个 `defect_boxes`）。
+1. **极速报框（免手算像素）**：
+   - `--product-box`、`--defect-box`、`--white-box` 均支持 **`0~1` 百分比坐标**（如 `0.25 0.30 0.75 0.70`）或绝对像素，直接按视觉占比报框即可；遇到复杂场景拿不准时，可先跑 `python scripts/prep_reference_assets.py grid-overlay --image "<原图>"` 在 `%TEMP%` 叠一层 10×10 标尺网格，1 次报准。
+   - 若 `设定集/白底图/` 是五视图/多视角拼图，直接传 **`--white-slot N`**（1 开始，从上到下、从左到右）自动识别并裁出第 N 只视角，免手算 `--white-box`。
 2. **准备外扩色块图与预览**（不调付费接口）：
    ```powershell
    python scripts/repair/mask_repair.py prepare-single `
-     --image "<待修原整图>" --white-ref "<设定集/白底图/基准图>" `
-     --product-box X1 Y1 X2 Y2 --defect-box DX1 DY1 DX2 DY2 `
+     --image "<待修原整图>" --white-ref "<设定集/白底图/基准图>" --white-slot 2 `
+     --product-box 0.25 0.30 0.75 0.70 --defect-box 0.55 0.38 0.70 0.52 `
      --defect-desc "按白底图还原扁平 D 型一体焊把与倒角"
    ```
-   将产出的 `*_预览图.png`（左原切片 / 中洋红遮罩 / 右裁切白底）与精简修复词交用户确认。
+   将产出的 `*_预览图.png`（左原切片 / 中洋红遮罩 / 右裁切白底）交用户确认。
 3. **授权发包生图**：用户明确下令「开始修复 / 出图」后，交 `d-image-runner`（默认 DesignFlow MCP `2K · x2`，`@图1` 涂色块外扩图 + `@图2` 白底基准图，显式传入脚本返回的 `ratio`）；**产品修复模型优先级固定为：`即梦 5.5`（`seedream-5.5`）＞ `即梦 5.0 Pro`（`seedream-5-pro`）＞ `Banana 2.1`（`banana2.1`）**（首选不可用时按序降级）。
 4. **无损贴回整图并清理 `%TEMP%`**：
    ```powershell

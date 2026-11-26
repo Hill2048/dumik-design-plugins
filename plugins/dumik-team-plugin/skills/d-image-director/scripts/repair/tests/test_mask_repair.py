@@ -217,6 +217,44 @@ class MaskRepairTests(unittest.TestCase):
                 self.assertLess(ref_im.width, 800)
                 self.assertAlmostEqual(ref_im.width / ref_im.height, 1.0, delta=0.12)
 
+    def test_percentage_coords_and_auto_white_slot(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            img_path = root / "scene.png"
+            sheet_white = root / "three_views.png"
+            Image.new("RGB", (1000, 1600), (45, 55, 65)).save(img_path)
+            # 3-view white-bg sheet; slot 2 is at [650, 100, 950, 500]
+            w_im = Image.new("RGB", (1600, 600), (255, 255, 255))
+            from PIL import ImageDraw
+            d = ImageDraw.Draw(w_im)
+            d.rectangle([100, 100, 400, 500], fill=(170, 170, 170))
+            d.rectangle([650, 100, 950, 500], fill=(120, 160, 200))
+            d.rectangle([1200, 100, 1500, 500], fill=(200, 150, 120))
+            w_im.save(sheet_white)
+
+            workdir = root / "pct_tmp"
+            rc = mod.main([
+                "prepare-single",
+                "--image", str(img_path),
+                "--white-ref", str(sheet_white),
+                "--white-slot", "2",
+                "--product-box", "0.25", "0.30", "0.75", "0.70",
+                "--defect-box", "0.50", "0.40", "0.70", "0.55",
+                "--defect-desc", "百分比坐标自动定位并匹配2号白底视角",
+                "--workdir", str(workdir),
+            ])
+            self.assertEqual(rc, 0)
+            meta = json.loads((workdir / "scene_meta.json").read_text(encoding="utf-8"))
+            self.assertEqual(meta["product_box"], [250, 480, 750, 1120])
+            self.assertEqual(meta["defect_boxes_global"], [[500, 640, 700, 880]])
+            self.assertEqual(len(meta["white_ref_crops"]), 1)
+            ref_crop_path = Path(meta["white_ref_crops"][0])
+            self.assertTrue(ref_crop_path.is_file())
+            with Image.open(ref_crop_path) as ref_im:
+                # Center pixel of auto-cropped slot 2 must be the bluish block (120, 160, 200)
+                cx, cy = ref_im.width // 2, ref_im.height // 2
+                self.assertEqual(ref_im.convert("RGB").getpixel((cx, cy)), (120, 160, 200))
+
 
 if __name__ == "__main__":
     unittest.main()

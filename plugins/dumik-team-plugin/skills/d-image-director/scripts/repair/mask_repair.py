@@ -63,6 +63,46 @@ def _clamp(v: int, lo: int, hi: int) -> int:
     return max(lo, min(hi, v))
 
 
+def resolve_box(raw_box: list[float | int], img_size: tuple[int, int]) -> list[int]:
+    """支持 0~1 百分比坐标或绝对像素坐标，自动归一化为像素整数 [x1, y1, x2, y2]。"""
+    if len(raw_box) != 4:
+        raise ValueError(f"坐标框必须为 4 个数值: {raw_box}")
+    W, H = img_size
+    vals = [float(v) for v in raw_box]
+    if all(0.0 <= v <= 1.0 for v in vals):
+        x1 = _clamp(int(round(vals[0] * W)), 0, W)
+        y1 = _clamp(int(round(vals[1] * H)), 0, H)
+        x2 = _clamp(int(round(vals[2] * W)), 0, W)
+        y2 = _clamp(int(round(vals[3] * H)), 0, H)
+    else:
+        x1 = _clamp(int(round(vals[0])), 0, W)
+        y1 = _clamp(int(round(vals[1])), 0, H)
+        x2 = _clamp(int(round(vals[2])), 0, W)
+        y2 = _clamp(int(round(vals[3])), 0, H)
+    if x2 <= x1 or y2 <= y1:
+        raise ValueError(f"非法坐标框: {raw_box} -> [{x1}, {y1}, {x2}, {y2}]")
+    return [x1, y1, x2, y2]
+
+
+def _resolve_white_slot_boxes(white_img: Image.Image, slots: list[int]) -> list[list[int]]:
+    """调用上级目录 prep_reference_assets.detect_white_bg_slots 自动定位多视图白底中的第 N 只。"""
+    parent_scripts = str(Path(__file__).resolve().parents[1])
+    if parent_scripts not in sys.path:
+        sys.path.insert(0, parent_scripts)
+    import prep_reference_assets as prep
+
+    detected = prep.detect_white_bg_slots(white_img)
+    if not detected:
+        raise ValueError("未能从白底图中自动识别到独立产品区域，请改用 --white-box 手动指定。")
+    out: list[list[int]] = []
+    for s in slots:
+        idx = int(s)
+        if idx < 1 or idx > len(detected):
+            raise ValueError(f"--white-slot {idx} 超出范围（当前白底图共识别到 {len(detected)} 个视角）")
+        out.append(list(detected[idx - 1]))
+    return out
+
+
 def _parse_hex_color(color_str: str) -> tuple[int, int, int, int]:
     c = color_str.strip().lstrip("#")
     if len(c) == 6:
@@ -79,15 +119,13 @@ def _nearest_ratio(w: int, h: int) -> tuple[str, float]:
 
 def compute_expanded_crop_box(
     img_size: tuple[int, int],
-    product_box: list[int],
+    product_box: list[float | int],
     pad: float = 0.20,
     snap_ratio: bool = True,
 ) -> tuple[list[int], str]:
     """围绕产品框外扩 pad 比例，并按需轻微扩展到最接近的标准比例池。"""
     W, H = img_size
-    x1, y1, x2, y2 = [int(v) for v in product_box]
-    if x2 <= x1 or y2 <= y1:
-        raise ValueError(f"非法 product_box: {product_box}")
+    x1, y1, x2, y2 = resolve_box(product_box, (W, H))
 
     bw, bh = x2 - x1, y2 - y1
     px, py = int(bw * pad), int(bh * pad)
@@ -119,8 +157,8 @@ def compute_expanded_crop_box(
 
 def build_masked_crop(
     img: Image.Image,
-    product_box: list[int],
-    defect_boxes: list[list[int]],
+    product_box: list[float | int],
+    defect_boxes: list[list[float | int]],
     pad: float = 0.20,
     mask_color: str = DEFAULT_MASK_COLOR,
     snap_ratio: bool = True,
@@ -133,7 +171,9 @@ def build_masked_crop(
     """
     rgba = img.convert("RGBA")
     W, H = rgba.size
-    crop_box, ratio_name = compute_expanded_crop_box((W, H), product_box, pad=pad, snap_ratio=snap_ratio)
+    resolved_product = resolve_box(product_box, (W, H))
+    resolved_defects = [resolve_box(b, (W, H)) for b in defect_boxes]
+    crop_box, ratio_name = compute_expanded_crop_box((W, H), resolved_product, pad=pad, snap_ratio=snap_ratio)
     cx1, cy1, cx2, cy2 = crop_box
 
     clean_crop = rgba.crop((cx1, cy1, cx2, cy2))
@@ -143,8 +183,7 @@ def build_masked_crop(
 
     local_defects: list[list[int]] = []
     cw, ch = clean_crop.size
-    for dbox in defect_boxes:
-        dx1, dy1, dx2, dy2 = [int(v) for v in dbox]
+    for dx1, dy1, dx2, dy2 in resolved_defects:
         lx1 = _clamp(dx1 - cx1, 0, cw)
         ly1 = _clamp(dy1 - cy1, 0, ch)
         lx2 = _clamp(dx2 - cx1, 0, cw)
@@ -155,13 +194,13 @@ def build_masked_crop(
 
     meta = {
         "source_size": [W, H],
-        "product_box": [int(v) for v in product_box],
+        "product_box": resolved_product,
         "crop_box": crop_box,
         "crop_size": [cw, ch],
         "ratio": ratio_name,
         "pad_ratio": pad,
         "mask_color": mask_color.upper(),
-        "defect_boxes_global": [[int(v) for v in b] for b in defect_boxes],
+        "defect_boxes_global": resolved_defects,
         "defect_boxes_local": local_defects,
     }
     return clean_crop, masked_crop, meta
@@ -371,16 +410,14 @@ def build_repair_prompt(defect_desc: str, mask_color: str = DEFAULT_MASK_COLOR) 
 
 def crop_white_ref(
     white_img: Image.Image,
-    white_box: list[int],
+    white_box: list[float | int],
     pad: float = 0.08,
     target_ratio: str = "",
 ) -> Image.Image:
     """从五视图或多角度白底图中裁出最匹配待修角度的单只/局部白底参考，并轻度扩白边对齐目标比例防幻觉。"""
     rgb = white_img.convert("RGB")
     W, H = rgb.size
-    x1, y1, x2, y2 = [int(v) for v in white_box]
-    if x2 <= x1 or y2 <= y1:
-        raise ValueError(f"非法 white_box: {white_box}")
+    x1, y1, x2, y2 = resolve_box(white_box, (W, H))
     bw, bh = x2 - x1, y2 - y1
     px, py = int(bw * pad), int(bh * pad)
     cx1, cy1 = _clamp(x1 - px, 0, W), _clamp(y1 - py, 0, H)
@@ -476,9 +513,12 @@ def cmd_prepare_single(args: argparse.Namespace) -> int:
 
     effective_refs: list[str] = []
     preview_ref_img: Image.Image | None = None
-    white_boxes = args.white_box or []
-    if white_boxes:
+    white_boxes: list[list[float | int]] = list(args.white_box or [])
+    white_slots: list[int] = list(args.white_slot or [])
+    if white_boxes or white_slots:
         with Image.open(white_ref) as wim:
+            if white_slots:
+                white_boxes.extend(_resolve_white_slot_boxes(wim, white_slots))
             for ridx, wbox in enumerate(white_boxes, start=1):
                 rcrop = crop_white_ref(wim, wbox, target_ratio=meta["ratio"])
                 rpath = workdir / f"{stem}_白底参考_{ridx:02d}.png"
@@ -612,9 +652,12 @@ def cmd_prepare_batch(args: argparse.Namespace) -> int:
 
         effective_refs: list[str] = []
         preview_ref_img: Image.Image | None = None
-        wboxes = item.get("white_boxes") or ([item["white_box"]] if item.get("white_box") else [])
-        if wboxes:
+        wboxes: list[list[float | int]] = list(item.get("white_boxes") or ([item["white_box"]] if item.get("white_box") else []))
+        wslots: list[int] = list(item.get("white_slots") or ([item["white_slot"]] if item.get("white_slot") is not None else []))
+        if wboxes or wslots:
             with Image.open(white_ref) as wim:
+                if wslots:
+                    wboxes.extend(_resolve_white_slot_boxes(wim, wslots))
                 for ridx, wbox in enumerate(wboxes, start=1):
                     rcrop = crop_white_ref(wim, wbox, target_ratio=meta["ratio"])
                     rpath = workdir / f"{slug}_白底参考_{ridx:02d}.png"
@@ -733,9 +776,10 @@ def main(argv: list[str] | None = None) -> int:
     ps = sub.add_parser("prepare-single", help="单张切产品外扩图并涂高对比色块")
     ps.add_argument("--image", required=True, help="待修原整图路径")
     ps.add_argument("--white-ref", required=True, help="设定集白底基准图路径")
-    ps.add_argument("--white-box", nargs=4, type=int, action="append", metavar=("X1", "Y1", "X2", "Y2"), help="可选：从多视角/五视图白底图中裁出最匹配角度与状态的单只区域（可多次传入），自动对齐目标比例防幻觉")
-    ps.add_argument("--product-box", nargs=4, type=int, required=True, metavar=("X1", "Y1", "X2", "Y2"))
-    ps.add_argument("--defect-box", nargs=4, type=int, action="append", required=True, metavar=("X1", "Y1", "X2", "Y2"), help="可重复传入多个偏差区域框")
+    ps.add_argument("--white-box", nargs=4, type=float, action="append", metavar=("X1", "Y1", "X2", "Y2"), help="可选：从多视角/五视图白底图中裁出最匹配角度的单只区域（支持 0~1 百分比或像素，可多次传入）")
+    ps.add_argument("--white-slot", type=int, action="append", metavar="N", help="可选：自动识别多视图白底图中的第 N 只视角（从 1 开始，左到右上到下），免手算 --white-box")
+    ps.add_argument("--product-box", nargs=4, type=float, required=True, metavar=("X1", "Y1", "X2", "Y2"), help="产品主体框（支持 0~1 百分比或绝对像素）")
+    ps.add_argument("--defect-box", nargs=4, type=float, action="append", required=True, metavar=("X1", "Y1", "X2", "Y2"), help="偏差区域框（支持 0~1 百分比或绝对像素，可重复传入多个）")
     ps.add_argument("--defect-desc", required=True, help="一句话描述色块处按白底图应还原的具体细节")
     ps.add_argument("--pad", type=float, default=0.20, help="产品外扩比例（默认 0.20）")
     ps.add_argument("--mask-color", default=DEFAULT_MASK_COLOR, help="色块颜色（默认 #FF00FF 荧光洋红）")
