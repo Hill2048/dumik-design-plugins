@@ -1,6 +1,6 @@
 {
   "plugin": "dumik-team-plugin",
-  "pluginVersion": "0.2.30",
+  "pluginVersion": "0.2.31",
   "skills": {
     "d-init": "0.4.2",
     "d-api-test": "0.1.4",
@@ -11,7 +11,8 @@
     "d-video-runner": "0.1.3",
     "d-project-pipeline": "0.2.1",
     "d-consistency-check": "0.2.0",
-    "d-prompt-reverse": "0.1.0"
+    "d-prompt-reverse": "0.1.0",
+    "d-badge-wash": "0.1.0"
   },
   "deprecatedSkills": {
     "d-psb-install": {

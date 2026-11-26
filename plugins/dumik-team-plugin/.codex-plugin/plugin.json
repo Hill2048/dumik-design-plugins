@@ -1,6 +1,6 @@
 {
   "name": "dumik-team-plugin",
-  "version": "0.2.30",
+  "version": "0.2.31",
   "description": "DUMIK 团队视觉工作流：统一图片生产，以及统一视频内容设计、导演调度、提示词编译、拉片、故事板和生成执行。",
   "author": {
     "name": "DUMIK Team"
@@ -20,6 +20,7 @@
       "d-image-runner",
       "d-consistency-check",
       "d-prompt-reverse",
+      "d-badge-wash",
       "d-video-director",
       "d-video-runner",
       "d-project-pipeline",

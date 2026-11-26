@@ -142,6 +142,27 @@ class AgyDumikHooksTests(unittest.TestCase):
             updated_msg = updated_row_out["injectSteps"][0]["systemMessage"]["systemMessage"]
             self.assertIn("S04（候选已出(2张)）", updated_msg)
 
+            # Badge/emblem material wash routes to d-badge-wash (and chains runner only when authorized)
+            badge_plan = HOOKS.dispatch_hook({
+                "hookEventName": "PreInvocation",
+                "conversationId": conv,
+                "lastUserInput": "帮我清洗一下这个徽章，先转纯色平面图再重构材质",
+                "cwd": str(root),
+            })
+            badge_plan_msg = badge_plan["injectSteps"][0]["systemMessage"]["systemMessage"]
+            self.assertIn("d-badge-wash", badge_plan_msg)
+            self.assertIn("仅文本/禁调接口", badge_plan_msg)
+
+            badge_run = HOOKS.dispatch_hook({
+                "hookEventName": "PreInvocation",
+                "conversationId": conv,
+                "lastUserInput": "徽章按A案开始生图",
+                "cwd": str(root),
+            })
+            badge_run_msg = badge_run["injectSteps"][0]["systemMessage"]["systemMessage"]
+            self.assertIn("d-badge-wash -> d-image-runner", badge_run_msg)
+            self.assertIn("已授权可执行", badge_run_msg)
+
             # Stop blocks when unsynced candidate or .pytest_cache exists, stops cleanly after cleanup
             (root / "制作" / "S04_首屏" / "候选_01.png").write_bytes(b"cand")
             (root / ".pytest_cache").mkdir()

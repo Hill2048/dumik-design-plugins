@@ -214,6 +214,9 @@ def classify_user_intent(user_text: str, project_root: Path) -> dict[str, Any]:
         skill, mode = "d-consistency-check", "review"
     elif any(k in active_text for k in ("反推", "拆参考图", "还原提示词")):
         skill, mode = "d-prompt-reverse", "reverse"
+    elif not is_pure_archive and any(k in active_text for k in ("清洗徽章", "徽章", "勋章", "认证标", "角标", "小铭牌", "纯色平面图")):
+        skill = "d-badge-wash -> d-image-runner" if auth == "authorized" else "d-badge-wash"
+        mode = "wash + execute" if auth == "authorized" else "wash"
     elif any(k in active_text for k in ("飞书", "策划", "卖点排序", "详情结构", "场景矩阵")):
         skill, mode = "d-visual-plan", "canvas/image"
     elif any(k in active_text for k in ("视频", "分镜", "拉片", "seedance", "dreamina", "veo")):

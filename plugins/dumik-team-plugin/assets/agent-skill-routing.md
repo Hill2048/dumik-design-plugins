@@ -1,6 +1,6 @@
 # DUMIK 唯一路由合同
 
-本文件是 DUMIK Team Plugin 的唯一能力路由。项目根目录的 `AGENTS.md` 优先决定项目协作、授权、确认和目录；本文件只决定当前工作应进入哪个插件 skill。10 个活跃 skill 是专业入口，不互相争夺总控，也不在没有明确条件时串联。
+本文件是 DUMIK Team Plugin 的唯一能力路由。项目根目录的 `AGENTS.md` 优先决定项目协作、授权、确认和目录；本文件只决定当前工作应进入哪个插件 skill。11 个活跃 skill 是专业入口，不互相争夺总控，也不在没有明确条件时串联。
 
 ## 判定顺序
 
@@ -34,6 +34,11 @@ image.reverse
   -> d-prompt-reverse
   排除：人未判主次就当终稿交付（协议内禁止）；正式改图终稿编译（→ d-image-director）；策略（→ d-visual-plan）；出图（→ d-image-runner）；三态验收（→ d-consistency-check）
 
+image.asset_wash
+  清洗并重构徽章、认证标、图标、角标、勋章或小铭牌等小件资产材质：先脱壳转纯色 2D 平面矢量图并逐字验收，再按项目概念母版与品牌标贴渲染 3D Octane Render 成品（纯白底易抠图）
+  -> d-badge-wash
+  排除：主图/详情整屏场景写词（→ d-image-director）；产品局部细节修复（→ d-image-director repair）；仅调接口执行（→ d-image-runner）
+
 image.execute
   明确要求生图、出图、改图执行、调用图片接口、批量候选、放大、超分、抠图或去背景
   -> d-image-runner
@@ -44,7 +49,7 @@ image.batch
   -> 按波次交给 d-image-director 写 prompt.md / d-image-runner 执行生图
 ```
 
-单图“给我提示词”不进入 `image.execute`；只说“改图”但没有明确执行动作时，先按 `image.prompt` 处理。用户明确说“现在执行 / 调接口 / 出图”时，才切换到 `image.execute`。用户要“对照原图看看漂没漂 / 结构验收 / 一致性”时走 `image.review`，不要在 director 里用散文代替三态表。 用户要“反推参考图提示词 / 拆图写词”时走 `image.reverse`，先主次再草稿。
+单图“给我提示词”不进入 `image.execute`；只说“改图”但没有明确执行动作时，先按 `image.prompt` 处理。用户明确说“现在执行 / 调接口 / 出图”时，才切换到 `image.execute`。用户要“对照原图看看漂没漂 / 结构验收 / 一致性”时走 `image.review`，不要在 director 里用散文代替三态表。用户要“反推参考图提示词 / 拆图写词”时走 `image.reverse`，先主次再草稿。用户要“清洗徽章 / 图标换材质 / 先转纯色平面图再出 3D 徽章”时走 `image.asset_wash`，先纯色脱壳验收再重构 3D。
 
 ## 视频路由
 

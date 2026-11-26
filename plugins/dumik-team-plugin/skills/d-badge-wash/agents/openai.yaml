@@ -1,0 +1,4 @@
+interface:
+  display_name: "徽章小件清洗重构"
+  short_description: "徽章/图标先洗成纯色平面图再 3D 重构材质"
+  default_prompt: "使用 $d-badge-wash 将徽章或图标先清洗成纯色 2D 平面矢量图并逐字验收，再按项目概念母版与品牌标贴材质渲染 3D Octane Render 成品。"
