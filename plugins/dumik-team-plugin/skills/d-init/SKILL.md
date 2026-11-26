@@ -60,7 +60,7 @@ python "<插件根目录>\skills\d-init\scripts\init_dumik_project.py" `
 2. 将顶层散放的实拍图自动移入 `素材/实拍原图/`（重名自动避让，不覆盖）；将显式传入的白底图拷入 `设定集/白底图/`；
 3. 若传入飞书链接或画板 token，直接调用 `d-visual-plan/scripts/parse_feishu_canvas.py` 拆解多画布并生成精炼版 `project.md`（若同时传 `--download-assets`，下载关键非竞品图进 `素材/飞书画布/`）；
 4. 若暂未传飞书链接，生成含实拍盘点与第 0~3 批骨架的初始 `project.md`；
-5. 补齐 `AGENTS.md`（仅原生内联 `@[design.md](design.md)` 防爆 `24KB` 上限，体量控制在 1.2KB 内；`project.md` 按需读取）与 `design.md`（建议锁定后精简保持在 `15KB` 内）。
+5. 补齐 `AGENTS.md`（仅原生内联 `@[design.md](design.md)` 防爆 `24KB` 上限，体量控制在 1.2KB 内；`project.md` 按需读取）与 `design.md`（建议锁定后精简保持在 `15KB` 内）。**若项目已有 `设定集/白底图/`（尤其是多视角/五视图），建档时必须真眼看图将 `design.md` 的「7 维产品身份锁」（外轮廓比例、微观材质肌理、关键部件解剖表、原生 Logo/刻字落位、状态切换与 ≤80 字标准复用短句）逐项填实，不得留空壳；看不见的部位标「待补视角」，禁止瞎编。**
 
 ### 2. 飞书画布增量同步（`--sync`）
 

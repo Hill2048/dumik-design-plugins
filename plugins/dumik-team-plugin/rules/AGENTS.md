@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | 新建项目目录、关联/增量同步飞书（`--sync`）、改项目规约 | `d-init` | 先要飞书链接；跑 `init_dumik_project.py`，生成三文档后抛场景拍板清单；`AGENTS.md` 仅 `@` 内联 `design.md`（防超 24KB 截断，`project.md` 按需查阅） |
 | 飞书拆解策划、卖点去重翻译、全页场景与人物判定 | `d-visual-plan` | 提炼每屏核心物理证明与场景错峰矩阵；纯报告/规格屏标 `无需生图（后期排版）` |
-| 写/改里程碑或详情主图 `prompt.md`、四宫格/高清重绘/局部修复 | `d-image-director` | `detail` 模式跑 `compile_reference_pack.ps1` 覆盖写入 `制作/<编号_名称>/prompt.md`；局部细节修复走 `repair` 模式（`mask_repair.py` 产品外扩切图 + 高对比色块破惰性 + 外扩边羽化贴回分层 `.psd`/`.tif`，修复优先 **`即梦 5.5` ＞ `即梦 5.0 Pro` ＞ `Banana 2.1`**，单张/批量全走 `%TEMP%`）；不触发付费生图 |
+| 写/改里程碑或详情主图 `prompt.md`、四宫格/高清重绘/局部修复 | `d-image-director` | `detail` 模式跑 `compile_reference_pack.ps1` 覆盖写入 `制作/<编号_名称>/prompt.md`；局部细节修复走 `repair` 模式（免编重型参考包提速，`mask_repair.py` 外扩切图 + 色块破惰性 + 贴回分层 `.psd`/`.tif`，优先 **`即梦 5.5` ＞ `即梦 5.0 Pro` ＞ `Banana 2.1`**；确认回复≤5行只给预览+一句差异，禁贴大段提示词与技术废话）；不触发付费生图 |
 | 明确下令生成/出图/重抽/放大/抠图（或按波次批量跑与晋升定稿） | `d-image-runner` / `d-project-pipeline` | 区分 **DesignFlow 模式（默认，画布在线）** 与 **API 直连模式（离线/指定兜底）**：DesignFlow 走 `designflow_generate_image`（同提示词多张单节点传 `count: 1..4`；同词多模型/跨渠道如 `banana2.1` + `bananapro` **只调 1 次传 `models: [...]` 并发**，严禁分两次调用或拆节点；多屏批量传 `items` 并发，`designflow_export_image` 落盘）；API 直连走 `build_canvas_pipeline.py --engine api --execute` 经 `%TEMP%\dumik-runs\` 拆 `count: 1` 并发；默认锁定 **`Banana 2.1` · `9:16` · `2K` · `x2`**，非明确申明不切模型 |
 | 对照白底图做结构与画面纯净度审稿 | `d-consistency-check` | 输出一致/不一致/无法判断三态表 |
 | 从参考图反推结构化草稿 / 视频分镜与生成 | `d-prompt-reverse` / `d-video-director` / `d-video-runner` | 反推先人判主次；视频提及模型名不代表生图授权 |
@@ -21,5 +21,5 @@
 
 ## 三、插件发版与公告规则
 
-- 用户要求更新并推送本插件到 GitHub 时，递增版本号（默认 `+0.0.1`）同步更新 `.codex-plugin/plugin.json`、`plugin.json`、`assets/skill-versions.json`，并运行 `scripts/release_dumik_plugin.ps1 -NotesFile "<公告>"` 发新 GitHub Release。
+- **仅在用户明确下令时才推送与发版**：日常修改插件代码、Skill 或脚本后只在本地保存并完成测试，**严禁私自 `git push` 或发行 GitHub Release**；只有用户本轮明确说「推送 / 发布 / 发版」时，才递增版本号（默认 `+0.0.1`）同步更新 `.codex-plugin/plugin.json`、`plugin.json`、`assets/skill-versions.json`，并运行 `scripts/release_dumik_plugin.ps1 -NotesFile "<公告>"` 发新 GitHub Release。
 - 公告必须基于 `git log <上个tag>..HEAD` 汇总**全部**实际变化，**禁止写 `# DUMIK Team Plugin v...` 重复一级标题**，按 `✨ 新功能 / ⚡ 优化与改进 / 🐛 问题修复` 列 `- **加粗人话小标题**：一两句讲清变化`，末尾附 `compare/<上个tag>...v<新版本>` 链接。
