@@ -75,3 +75,21 @@ description: "选片后的产品细节修复质量门（产品外扩切图 + 局
      --workdir "<temp>/repair-xxx" --repaired-dir "<AI修好图目录>" --cleanup
    ```
    完成后跑 `build_canvas_pipeline.py --status` 刷新 `project.md`，再交 `d-consistency-check` 做复核。
+
+## 代码精准修标 / 擦字 / 数码屏改色（`scripts/repair/logo_patch.py`，零 AI 漂移）
+
+当只需修复**平面/圆柱曲面丝印 LOGO**、**抹除按钮/屏幕假字**或**黑屏数码管改色**（不需要 AI 重画整块结构）时，优先走 `scripts/repair/logo_patch.py`（OpenCV 四角透视 + 圆柱弯曲 + 表面肌理置换 + PS 同款混合模式 + 可选 IOPaint/OpenCV 擦旧字 + 同步输出带独立透明图层与真实混合模式的 `.psd`）：
+
+```powershell
+# 1) 平面/圆柱透视贴真标（有旧乱码时加 --erase-quad；圆柱杯身改 --mode cylinder）
+python scripts/repair/logo_patch.py patch-logo `
+  --image "<待修原图>" --logo "<透明底LOGO.png>" `
+  --quad x1 y1 x2 y2 x3 y3 x4 y4 --mode perspective `
+  --blend multiply --opacity 0.90 --displace 0.65 `
+  --out "<输出.psd>" --preview-png "<预览.png>"
+
+# 2) 黑屏数码读数无损改色（如荧光橙 #FF5E00）
+python scripts/repair/logo_patch.py recolor-led `
+  --image "<待修原图>" --screen-box 0.06 0.70 0.28 0.88 `
+  --color "#FF5E00" --out "<输出.psd>" --preview-png "<预览.png>"
+```
