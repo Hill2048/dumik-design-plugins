@@ -56,6 +56,7 @@ RATIO_POOL: list[tuple[str, float]] = [
 ]
 
 DEFAULT_MASK_COLOR = "#FF00FF"  # High-contrast magenta (rarely matches cookware/metal)
+REPAIR_MODEL_PRIORITY: list[str] = ["seedream-5.5", "seedream-5-pro", "banana2.1"]
 
 
 def _clamp(v: int, lo: int, hi: int) -> int:
@@ -436,7 +437,8 @@ def cmd_prepare_single(args: argparse.Namespace) -> int:
             "ratio": meta["ratio"],
             "sizePreset": "2K",
             "count": 2,
-            "models": ["banana2.1"],
+            "models": [REPAIR_MODEL_PRIORITY[0]],
+            "modelPriority": REPAIR_MODEL_PRIORITY,
             "referenceFiles": [str(masked_path), str(white_ref)],
         },
     }
@@ -524,6 +526,8 @@ def cmd_prepare_batch(args: argparse.Namespace) -> int:
                 "ratio": meta["ratio"],
                 "sizePreset": "2K",
                 "count": int(item.get("count", 2)),
+                "models": [str(item.get("model", REPAIR_MODEL_PRIORITY[0]))],
+                "modelPriority": REPAIR_MODEL_PRIORITY,
                 "referenceFiles": [str(masked_path), str(white_ref)],
             }
         )

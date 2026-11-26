@@ -126,6 +126,8 @@ class MaskRepairTests(unittest.TestCase):
             self.assertTrue((workdir / "contact_sheet.png").is_file())
             df_items = json.loads((workdir / "designflow_items.json").read_text(encoding="utf-8"))
             self.assertEqual(len(df_items["items"]), 1)  # passed item skipped
+            self.assertEqual(df_items["items"][0]["models"], ["seedream-5.5"])
+            self.assertEqual(df_items["items"][0]["modelPriority"], ["seedream-5.5", "seedream-5-pro", "banana2.1"])
 
             repaired_dir = root / "repaired_in"
             repaired_dir.mkdir()

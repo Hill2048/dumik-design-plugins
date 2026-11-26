@@ -42,6 +42,8 @@ BANANAPRO_IMAGE_MODEL = "gemini-3-pro-image-preview"
 IMAGE2_IMAGE_MODEL = "gpt-image-2"
 IMAGE25_FLARE_MODEL = "gpt-image-2.5-flare"
 IMAGE25_SUNBURST_MODEL = "gpt-image-2.5-sunburst"
+SEEDREAM_55_MODEL = "seedream-5.5"
+SEEDREAM_5_PRO_MODEL = "seedream-5-pro"
 CHAT_IMAGE_MODELS = {
     BANANA2_IMAGE_MODEL,
     BANANA21_IMAGE_MODEL,
@@ -69,6 +71,19 @@ IMAGE_MODEL_ALIASES = {
     "sunburst": IMAGE25_SUNBURST_MODEL,
     "image2.5": IMAGE25_SUNBURST_MODEL,
     "image25": IMAGE25_SUNBURST_MODEL,
+    "seedream-5.5": SEEDREAM_55_MODEL,
+    "seedream5.5": SEEDREAM_55_MODEL,
+    "jimeng-5.5": SEEDREAM_55_MODEL,
+    "jimeng5.5": SEEDREAM_55_MODEL,
+    "即梦5.5": SEEDREAM_55_MODEL,
+    "seedream-5-pro": SEEDREAM_5_PRO_MODEL,
+    "seedream-5.0-pro": SEEDREAM_5_PRO_MODEL,
+    "seedream5pro": SEEDREAM_5_PRO_MODEL,
+    "jimeng-5-pro": SEEDREAM_5_PRO_MODEL,
+    "jimeng-5.0-pro": SEEDREAM_5_PRO_MODEL,
+    "jimeng5.0pro": SEEDREAM_5_PRO_MODEL,
+    "即梦5.0pro": SEEDREAM_5_PRO_MODEL,
+    "即梦5pro": SEEDREAM_5_PRO_MODEL,
     "banana": BANANA2_IMAGE_MODEL,
     "banana2": BANANA2_IMAGE_MODEL,
     "banana2.1": BANANA21_IMAGE_MODEL,
