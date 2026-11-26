@@ -466,10 +466,10 @@ def cmd_prepare_single(args: argparse.Namespace) -> int:
         )
 
     stem = args.name or img_path.stem
-    clean_path = workdir / f"{stem}_clean.png"
-    masked_path = workdir / f"{stem}_masked.png"
+    clean_path = workdir / f"{stem}_原切片.png"
+    masked_path = workdir / f"{stem}_遮罩图.png"
     meta_path = workdir / f"{stem}_meta.json"
-    sheet_path = workdir / f"{stem}_preview.png"
+    sheet_path = workdir / f"{stem}_预览图.png"
 
     clean_crop.save(clean_path)
     masked_crop.save(masked_path)
@@ -481,7 +481,7 @@ def cmd_prepare_single(args: argparse.Namespace) -> int:
         with Image.open(white_ref) as wim:
             for ridx, wbox in enumerate(white_boxes, start=1):
                 rcrop = crop_white_ref(wim, wbox, target_ratio=meta["ratio"])
-                rpath = workdir / f"{stem}_ref_{ridx:02d}.png"
+                rpath = workdir / f"{stem}_白底参考_{ridx:02d}.png"
                 rcrop.save(rpath)
                 effective_refs.append(str(rpath))
                 if preview_ref_img is None:
@@ -532,7 +532,7 @@ def cmd_paste_single(args: argparse.Namespace) -> int:
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
     src_path = Path(meta["source_image"])
     fmt_ext = "." + args.format.lstrip(".").lower() if args.format else ".psd"
-    out_path = Path(args.out).resolve() if args.out else src_path.with_name(f"{src_path.stem}_repaired{fmt_ext}")
+    out_path = Path(args.out).resolve() if args.out else src_path.with_name(f"{src_path.stem}_已修复{fmt_ext}")
 
     rep_paths = [Path(p).resolve() for p in args.repaired]
     rep_imgs: list[Image.Image] = []
@@ -598,8 +598,8 @@ def cmd_prepare_batch(args: argparse.Namespace) -> int:
             )
 
         slug = img_id.replace("/", "_").replace("\\", "_").replace(" ", "_")
-        clean_path = workdir / f"{slug}_clean.png"
-        masked_path = workdir / f"{slug}_masked.png"
+        clean_path = workdir / f"{slug}_原切片.png"
+        masked_path = workdir / f"{slug}_遮罩图.png"
         clean_crop.save(clean_path)
         masked_crop.save(masked_path)
 
@@ -610,7 +610,7 @@ def cmd_prepare_batch(args: argparse.Namespace) -> int:
             with Image.open(white_ref) as wim:
                 for ridx, wbox in enumerate(wboxes, start=1):
                     rcrop = crop_white_ref(wim, wbox, target_ratio=meta["ratio"])
-                    rpath = workdir / f"{slug}_ref_{ridx:02d}.png"
+                    rpath = workdir / f"{slug}_白底参考_{ridx:02d}.png"
                     rcrop.save(rpath)
                     effective_refs.append(str(rpath))
                     if preview_ref_img is None:
@@ -632,7 +632,7 @@ def cmd_prepare_batch(args: argparse.Namespace) -> int:
                 "white_ref_crops": effective_refs,
                 "clean_crop": str(clean_path),
                 "masked_crop": str(masked_path),
-                "out_path": str(_resolve_path(root, item["out_path"])) if item.get("out_path") else str(img_path.with_name(f"{img_path.stem}_repaired.psd")),
+                "out_path": str(_resolve_path(root, item["out_path"])) if item.get("out_path") else str(img_path.with_name(f"{img_path.stem}_已修复.psd")),
                 "prompt": prompt,
             }
         )
@@ -650,7 +650,7 @@ def cmd_prepare_batch(args: argparse.Namespace) -> int:
             }
         )
 
-    sheet_path = workdir / "contact_sheet.png"
+    sheet_path = workdir / "色块联系表.png"
     make_contact_sheet(pairs, sheet_path)
 
     batch_meta_path = workdir / "batch_meta.json"
@@ -691,7 +691,7 @@ def cmd_paste_batch(args: argparse.Namespace) -> int:
             if not p.is_file() or p.suffix.lower() not in (".png", ".jpg", ".jpeg", ".webp"):
                 continue
             stem = p.stem
-            if stem == slug or stem == f"{slug}_repaired" or stem.startswith(f"{slug}_"):
+            if stem == slug or stem == f"{slug}_已修复" or stem == f"{slug}_repaired" or stem.startswith(f"{slug}_"):
                 cands.append(p)
         if not cands:
             missing.append(entry["image_id"])

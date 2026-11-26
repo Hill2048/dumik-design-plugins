@@ -214,7 +214,7 @@ def query_eagle_candidates(
     valid_for_preview = [p for p in picked if p["file_path"] and Path(p["file_path"]).is_file()]
     if valid_for_preview and not skip_preview:
         stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        out_p = Path(tempfile.gettempdir()) / "dumik-runs" / f"eagle-picks-{stamp}.jpg"
+        out_p = Path(tempfile.gettempdir()) / "dumik-runs" / f"参考备选_{stamp}.jpg"
         saved = make_candidate_strip(valid_for_preview, out_p)
         preview_path = str(saved) if saved else None
 

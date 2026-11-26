@@ -195,7 +195,7 @@ def archive_images(
     if results and not skip_contact_sheet:
         if contact_sheet_path is None:
             stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-            contact_sheet_path = Path(tempfile.gettempdir()) / "dumik-runs" / f"pick-sheet-{prefix}-{stamp}.jpg"
+            contact_sheet_path = Path(tempfile.gettempdir()) / "dumik-runs" / f"选片联系表_{prefix}_{stamp}.jpg"
         saved_p = build_pick_contact_sheet(results, contact_sheet_path)
         sheet_saved = str(saved_p) if saved_p else None
 

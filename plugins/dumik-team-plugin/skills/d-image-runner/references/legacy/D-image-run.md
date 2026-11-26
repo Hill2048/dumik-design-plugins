@@ -72,7 +72,7 @@ scripts\presets\banana-source-4k.ps1 `
   -Image "<目标图路径>" `
   -PromptFile "<提示词.txt>" `
   -Count 3 `
-  -Out "<输出目录>\candidate.png"
+  -Out "<输出目录>\候选.png"
 ```
 
 已有批任务 JSON 时继续使用批量入口，每行必须 `count: 1`，并发数按任务数设置：

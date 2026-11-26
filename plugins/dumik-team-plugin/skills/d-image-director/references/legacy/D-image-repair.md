@@ -18,9 +18,10 @@ description: "选片后的产品细节修复质量门（产品外扩切图 + 局
 
 - **提速**：进入 `repair` 模式**免跑重型 `compile_reference_pack.ps1` 与插件更新检查**，只读本文件；1 轮内并行看「待修图 + 白底图」直接给框跑 `mask_repair.py`，不反复试错。
 - **极简确认模板（硬上限 ≤5 行，严禁贴整段 Prompt 代码块或复述 `%TEMP%` / 零垃圾 / 羽化蒙版等技术废话）**：
-  - 第 1 行：预览图链接（`*_preview.png` 或 `contact_sheet.png`）
+  - 第 1 行：预览图链接（`*_预览图.png` 或 `色块联系表.png`）
   - 第 2 行：`修 N 处：部位1问题｜部位2问题｜部位3问题`（一句话浓缩）
   - 第 3 行：`没问题回「修」，用 即梦 5.5（<比例> · 2K · x2）开跑并贴回分层 PSD。`
+  - **中文命名铁律**：所有切片、候选、修复预览与最终输出必须用中文命名（如 `候选_01.png`、`<原名>_已修复.png`、`<原名>_已修复.psd`），严禁 `s01_float_1.png`、`_repaired.png` 等英文文件名或英文后缀；同图多轮修复原地覆写唯一 `<原名>_已修复.png` 与 `<原名>_已修复.psd`。
   - 仅用户主动说「看提示词」时才展示完整 Prompt 代码块；用户直接说「直接修 / 修完给我」时跳过确认一步跑完。
 
 ## 只做三件事
@@ -39,24 +40,24 @@ description: "选片后的产品细节修复质量门（产品外扩切图 + 局
      --product-box X1 Y1 X2 Y2 --defect-box DX1 DY1 DX2 DY2 `
      --defect-desc "按白底图还原扁平 D 型一体焊把与倒角"
    ```
-   将产出的 `*_preview.png`（左原切片 / 右涂色块切片）与精简修复词交用户确认。
+   将产出的 `*_预览图.png`（左原切片 / 中洋红遮罩 / 右裁切白底）与精简修复词交用户确认。
 3. **授权发包生图**：用户明确下令「开始修复 / 出图」后，交 `d-image-runner`（默认 DesignFlow MCP `2K · x2`，`@图1` 涂色块外扩图 + `@图2` 白底基准图，显式传入脚本返回的 `ratio`）；**产品修复模型优先级固定为：`即梦 5.5`（`seedream-5.5`）＞ `即梦 5.0 Pro`（`seedream-5-pro`）＞ `Banana 2.1`（`banana2.1`）**（首选不可用时按序降级）。
 4. **无损贴回整图并清理 `%TEMP%`**：
    ```powershell
    python scripts/repair/mask_repair.py paste-single `
      --meta "<temp>/*_meta.json" --repaired "<AI修好的外扩图>" `
-     --out "<项目>/制作/<编号_名称>/<原名>_repaired.png" --cleanup
+     --out "<项目>/制作/<编号_名称>/<原名>_已修复.psd" --cleanup
    ```
 
 ## 批量修复流程（项目制多屏选片后）
 
-1. **批量分诊**：扫完当前批次候选图，将 `blocked` 项与每张图的 `product_box`、`defect_boxes`、`defect_desc` 写入 `%TEMP%\dumik-runs\repair-manifest.json`（`passed` 与 `reroll` 自动跳过）。
+1. **批量分诊**：扫完当前批次候选图，将 `blocked` 项与每张图的 `product_box`、`defect_boxes`、`defect_desc` 写入 `%TEMP%\dumik-runs\修复清单.json`（`passed` 与 `reroll` 自动跳过）。
 2. **一键切图涂色块 + 生成联系表**：
    ```powershell
    python scripts/repair/mask_repair.py prepare-batch `
-     --manifest "%TEMP%\dumik-runs\repair-manifest.json" --project-root "<项目根目录>"
+     --manifest "%TEMP%\dumik-runs\修复清单.json" --project-root "<项目根目录>"
    ```
-   先将 `contact_sheet.png` 给用户 5 秒核对每张图的外扩范围与色块覆盖是否准确。
+   先将 `色块联系表.png` 给用户 5 秒核对每张图的外扩范围与色块覆盖是否准确。
 3. **一次并发出图**：用户确认并下令「开始修复」后，直接读取 `%TEMP%\...\designflow_items.json` 经 `d-image-runner` 走 DesignFlow MCP `items[]` 并发跑图（离线走直连并发）。
 4. **一键批量无损贴回 + 清理**：
    ```powershell

@@ -38,7 +38,7 @@ class MaskRepairTests(unittest.TestCase):
             self.assertEqual(rc, 0)
             meta_path = workdir / "full_meta.json"
             self.assertTrue(meta_path.is_file())
-            self.assertTrue((workdir / "full_preview.png").is_file())
+            self.assertTrue((workdir / "full_预览图.png").is_file())
 
             meta = json.loads(meta_path.read_text(encoding="utf-8"))
             self.assertIn(meta["ratio"], {"1:1", "3:4", "4:3", "2:3", "3:2", "9:16", "16:9"})
@@ -123,7 +123,7 @@ class MaskRepairTests(unittest.TestCase):
                 "--workdir", str(workdir),
             ])
             self.assertEqual(rc, 0)
-            self.assertTrue((workdir / "contact_sheet.png").is_file())
+            self.assertTrue((workdir / "色块联系表.png").is_file())
             df_items = json.loads((workdir / "designflow_items.json").read_text(encoding="utf-8"))
             self.assertEqual(len(df_items["items"]), 1)  # passed item skipped
             self.assertEqual(df_items["items"][0]["models"], ["seedream-5.5"])
