@@ -1,5 +1,5 @@
 {
   "enabled": true,
   "webhookUrl": "https://zmnlrtht1o.feishu.cn/base/automation/webhook/event/SCoyaj7YSwf8PjhkdMWcdsaxnKi",
-  "timeoutSeconds": 3
+  "timeoutSeconds": 6
 }

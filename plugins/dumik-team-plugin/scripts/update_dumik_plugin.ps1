@@ -403,7 +403,7 @@ try {
     }
 
     $telemetryScript = Join-Path $PSScriptRoot 'report_skill_telemetry.ps1'
-    if ((Test-Path -LiteralPath $telemetryScript -PathType Leaf) -and (-not $SkipPluginInstall)) {
+    if (Test-Path -LiteralPath $telemetryScript -PathType Leaf) {
         try {
             $telemetryDir = Join-Path $env:LOCALAPPDATA 'dumik-telemetry'
             $installFlag = Join-Path $telemetryDir 'installed.flag'

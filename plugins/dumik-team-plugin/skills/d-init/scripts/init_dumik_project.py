@@ -420,6 +420,15 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False, indent=2), file=sys.stderr)
         return 1
 
+    try:
+        scripts_dir = str(Path(__file__).resolve().parents[3] / "scripts")
+        if scripts_dir not in sys.path:
+            sys.path.insert(0, scripts_dir)
+        import dumik_telemetry
+
+        dumik_telemetry.report_event_async(event="invoke", skill="d-init", mode="sync" if args.sync else "init")
+    except Exception:
+        pass
     print(json.dumps(res, ensure_ascii=False, indent=2))
     return 0
 

@@ -815,7 +815,18 @@ def main(argv: list[str] | None = None) -> int:
     ptb.set_defaults(func=cmd_paste_batch)
 
     args = ap.parse_args(argv)
-    return args.func(args)
+    rc = args.func(args)
+    if rc == 0:
+        try:
+            scripts_dir = str(Path(__file__).resolve().parents[4] / "scripts")
+            if scripts_dir not in sys.path:
+                sys.path.insert(0, scripts_dir)
+            import dumik_telemetry
+
+            dumik_telemetry.report_event_async(event="invoke", skill="d-image-director", mode=f"repair-{args.cmd}")
+        except Exception:
+            pass
+    return rc
 
 
 if __name__ == "__main__":

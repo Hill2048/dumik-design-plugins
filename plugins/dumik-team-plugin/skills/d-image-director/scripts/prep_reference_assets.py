@@ -249,6 +249,15 @@ def main(argv: list[str] | None = None) -> int:
         res = {"status": "ok", "grid_image": str(saved)}
 
     print(json.dumps(res, ensure_ascii=False, indent=2))
+    try:
+        scripts_dir = str(Path(__file__).resolve().parents[3] / "scripts")
+        if scripts_dir not in sys.path:
+            sys.path.insert(0, scripts_dir)
+        import dumik_telemetry
+
+        dumik_telemetry.report_event_async(event="invoke", skill="d-image-director", mode=f"prep-{args.cmd}")
+    except Exception:
+        pass
     return 0
 
 

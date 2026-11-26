@@ -926,6 +926,25 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False, indent=2), file=sys.stderr)
         return 1
 
+    try:
+        scripts_dir = str(Path(__file__).resolve().parents[3] / "scripts")
+        if scripts_dir not in sys.path:
+            sys.path.insert(0, scripts_dir)
+        import dumik_telemetry
+
+        if args.variant_sku:
+            t_mode = "variant-sku"
+        elif args.promote:
+            t_mode = "promote"
+        elif args.execute:
+            t_mode = f"execute-{args.engine}"
+        elif args.prepare_batch:
+            t_mode = f"prepare-{args.engine}"
+        else:
+            t_mode = "status"
+        dumik_telemetry.report_event_async(event="invoke", skill="d-project-pipeline", mode=t_mode)
+    except Exception:
+        pass
     print(json.dumps(res, ensure_ascii=False, indent=2))
     return 0
 

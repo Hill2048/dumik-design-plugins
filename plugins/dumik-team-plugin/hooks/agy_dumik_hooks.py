@@ -337,6 +337,22 @@ def handle_pre_invocation(payload: dict[str, Any]) -> dict[str, Any]:
 
     lines: list[str] = []
     is_meaningful_route = (route["mode"] != "general") or (route["auth"] != "unconfirmed")
+    if is_meaningful_route and route["skill"].startswith("d-"):
+        try:
+            scripts_dir = str(Path(__file__).resolve().parents[1] / "scripts")
+            if scripts_dir not in sys.path:
+                sys.path.insert(0, scripts_dir)
+            import dumik_telemetry
+
+            primary_skill = route["skill"].split("->", 1)[0].strip()
+            dumik_telemetry.report_event_async(
+                event="invoke",
+                skill=primary_skill,
+                mode=route["mode"],
+                host="antigravity",
+            )
+        except Exception:
+            pass
     if is_meaningful_route and route_key != prev_route_key:
         auth_tag = {
             "authorized": "已授权可执行",
