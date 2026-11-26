@@ -27,14 +27,34 @@ Skill 是可测流程封装，不是文章收藏。相邻步骤必须能传**结
 
 禁止：「按之前的来」且不附完整 Prompt 或五格。
 
-## 链路上的责任边界
+## 完整端到端标准生产线（一条线串通全部 11 个技能与配套工具）
 
 ```text
-d-visual-plan（拆解+策略）
-  → d-image-director / d-prompt-reverse（文字）
-    → d-image-runner（执行，须明确授权）
-      → d-consistency-check（三态）
-        → 不通过则回 director repair/edit
+Stage 1 · 建档与拆解（d-init + d-visual-plan）
+  └─ init_dumik_project.py 生成四文档（AGENTS.md 仅内联纯视觉宪法 design.md；资产路径/哈希/摆件库/食材表落 assets.md；分屏总账落 project.md）
+  └─ 白底多图先用 prep_reference_assets.py（stitch-white 拼 2K 多视图身份卡 / compress-refs 超限大图 2K 瘦身）
+  ↓
+Stage 2 · 第 0 批里程碑锁调（MS01~MS04：d-image-director detail → d-image-runner → --promote）
+  └─ 定稿锁入 设定集/里程碑/；纯审美/光影/材质公式写进 design.md，路径与 local-asset: 登记进 assets.md
+  ↓
+Stage 3 · 置景摆件库 & 饮品/食材预规划（MS05 · 里程碑锁调后、进详情批量前必做）
+  └─ d-visual-plan 梳理 8~12 件风格摆件 + 全案饮品/食材错峰表写入 assets.md
+  └─ 重点摆件交 d-image-director（multi-view-lock.md 1×3/3×2 实物目录选样卡）+ d-image-runner 出图拍板入 设定集/摆件身份卡/
+  ↓
+Stage 4 · 第 1~3 批详情/主图/入口批量生产（d-project-pipeline + d-image-director + d-image-runner）
+  └─ 写每屏 prompt.md 强制三层垫图隔离（L1 必带，严禁垫 制作/ 未定稿候选图），从 assets.md 领用摆件（≤3件）与饮品并回填屏号
+  └─ 洗图走 wash_prep.py（洋红脱壳/抹字/9:16 顶部留白）；徽章/标贴洗材质走 d-badge-wash；反推参考走 d-prompt-reverse
+  └─ 明确授权后默认 DesignFlow 单节点并发（count/models/items），优先按 nodeId 导图落盘（全中文命名），跑 --status 同步
+  ↓
+Stage 5 · 三态验收 & 局部无损修复（d-consistency-check → d-image-director repair + d-image-runner）
+  └─ 局部漂移走 mask_repair.py（0~1 百分比坐标 + --white-slot 自动切五视图 + 洋红破惰性 + 强制回原始干净图防变红）
+  └─ 优先 即梦 5.5 ＞ 即梦 5.0 Pro ＞ Banana 2.1，贴回原地覆写唯一 <原名>_已修复.png/.psd（纯色底加 --match-border-color）
+  ↓
+Stage 6 · 定稿晋升与多 SKU 延展（d-project-pipeline）
+  └─ --promote 防压缩图门禁（拦截 .user_uploaded/ 与 <1500px）晋升 成品/，支持 --variant-sku 多配色批量换款
+  ↓
+Stage 7 · 全链路护航与观测（agy_dumik_hooks.py + dumik_telemetry.py）
+  └─ 25 轮长会话 /compact 提醒、追改防漂移、置景表未填提醒、Stop 清垃圾/同步检查、飞书多维表格全链路异步埋点
 ```
 
 `d-project-pipeline` 只编排依赖与恢复，不替代上述任一专业输出。
@@ -49,7 +69,7 @@ d-visual-plan（拆解+策略）
 
 ## 飞书画布与单项目文件夹成套流水线补充标准
 
-- **建档拆解输出**：由 `d-init`（`scripts/init_dumik_project.py`）与 `d-visual-plan`（`canvas` 模式）直接生成根目录精炼 `project.md`、`design.md` 与 `AGENTS.md`，项目内严禁残留 `.json` 队列、`拆解清单.md` 或 `运行记录`。
+- **建档拆解输出**：由 `d-init`（`scripts/init_dumik_project.py`）与 `d-visual-plan`（`canvas` 模式）直接生成根目录四文档（`AGENTS.md`、`design.md`、`assets.md`、`project.md`），项目内严禁残留 `.json` 队列、`拆解清单.md` 或 `运行记录`。
 - **单图写词载体**：`d-image-director` 按 `project.md` 编号为已动工的画面在 `制作/<编号_名称>/prompt.md` 覆盖维护最新完整无字底图提示词与 `@图N` 绑定；纯报告/规格屏跳过不建目录。
 - **无状态批次与授权**：`build_canvas_pipeline.py` 只在用户明确下令「开始生图 / 出图 / 批量跑图」时，才于系统 `%TEMP%` 组批次并调用 `d-image-runner` 提交，跑完立即删掉临时文件并依真实文件刷新 `project.md`。
 

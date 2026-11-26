@@ -56,6 +56,28 @@ class AgyDumikHooksRoutingTests(unittest.TestCase):
             self.assertIn("/compact", combined)
             self.assertIn("防漂移底线", combined)
 
+    def test_prop_bible_hook_reminds_only_when_unfilled_after_milestone(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "project.md").write_text(
+                "| 编号 | 名称 | 画幅 | 状态 |\n| --- | --- | --- | --- |\n| MS02 | 首屏KV | 9:16 | 已锁定 |\n",
+                encoding="utf-8",
+            )
+            (root / "design.md").write_text(
+                "## 四、置景摆件库与饮品/食材排期\n### 1. 风格摆件库\n| 序号 | 摆件名称与分组 | 材质 |\n| --- | --- | --- |\n| 01 | 待规划（杯垫） | 待填 |\n",
+                encoding="utf-8",
+            )
+            self.assertTrue(hooks.has_unfilled_prop_bible(root))
+
+            # Once filled with real prop, reminder clears
+            (root / "design.md").write_text(
+                "## 四、置景摆件库与饮品/食材排期\n### 1. 风格摆件库\n| 序号 | 摆件名称与分组 | 材质 |\n| --- | --- | --- |\n| 01 | 焦糖真皮杯垫 | 焦糖粒面真皮 |\n",
+                encoding="utf-8",
+            )
+            self.assertFalse(hooks.has_unfilled_prop_bible(root))
+
 
 if __name__ == "__main__":
     unittest.main()

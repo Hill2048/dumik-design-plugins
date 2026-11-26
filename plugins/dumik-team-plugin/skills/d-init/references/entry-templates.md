@@ -1,9 +1,9 @@
-# 项目入口三文档模板（精简覆盖态）
+# 项目入口四文档模板（精简覆盖态）
 
-`init_dumik_project.py` 会基于本规范自动生成与维护项目根目录三文档。维护已有项目时，先读原文件再做局部修改，保留项目差异，不整份覆盖已有设定。
+`init_dumik_project.py` 会基于本规范自动生成与维护项目根目录四文档。维护已有项目时，先读原文件再做局部修改，保留项目差异，不整份覆盖已有设定。
 
-- 根目录永远只放 `AGENTS.md`、`project.md`、`design.md` 三份文件，不新建 `CLAUDE.md`、`CURRENT_PROJECT.md`、`CONTEXT.md`、`拆解清单.md` 或任何 `.json` 状态队列。
-- `AGENTS.md` 仅内联 `@[design.md](design.md)`（保证展开总字节远低于 `24KB` 截断线，视觉宪法永不丢失）；`project.md` 作为大账本按编号用 `read_file` 或 `--status` 按需读取。
+- 根目录永远只放 `AGENTS.md`、`design.md`、`assets.md`、`project.md` 四份文件，不新建 `CLAUDE.md`、`CURRENT_PROJECT.md`、`CONTEXT.md`、`拆解清单.md` 或任何 `.json` 状态队列。
+- `AGENTS.md` 仅内联 `@[design.md](design.md)`（保证展开总字节远低于 `24KB` 截断线，纯视觉宪法永不丢失）；`assets.md`（资产路径/`local-asset:` 哈希、8~12 件风格摆件库、饮品/食材错峰排期表、Eagle ID）与 `project.md`（分屏总账）均按需读取。
 
 ## 一、根目录 `AGENTS.md` 模板（`init_dumik_project.py` 默认生成）
 

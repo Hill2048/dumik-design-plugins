@@ -155,6 +155,36 @@ def _extract_project_rows(project_root: Path) -> dict[str, tuple[str, str]]:
     return rows
 
 
+def has_unfilled_prop_bible(project_root: Path) -> bool:
+    """检查是否已锁定里程碑，但 assets.md（兼容老项目 design.md）里的置景摆件库尚未填实。"""
+    rows = _extract_project_rows(project_root)
+    has_locked_ms = any(rid.startswith("MS") and st.startswith("已锁定") for rid, (st, _) in rows.items())
+    if not has_locked_ms:
+        return False
+    target = project_root / "assets.md"
+    if not target.is_file():
+        target = project_root / "design.md"
+    if not target.is_file():
+        return False
+    text = target.read_text(encoding="utf-8", errors="replace")
+    if "风格摆件库" not in text and "置景摆件库" not in text:
+        return False
+    in_prop_sec = False
+    for line in text.splitlines():
+        stripped = line.lstrip()
+        if stripped.startswith("#") and ("风格摆件库" in stripped or "置景摆件库" in stripped):
+            in_prop_sec = True
+            continue
+        if in_prop_sec and stripped.startswith("##"):
+            break
+        if in_prop_sec and stripped.startswith("|"):
+            cells = [c.strip() for c in stripped.strip("|").split("|")]
+            if len(cells) >= 3 and re.fullmatch(r"\d{1,2}", cells[0]):
+                if not any(ph in cells[1] for ph in ("待规划", "待填")):
+                    return False
+    return True
+
+
 def detect_unsynced_work_dirs(project_root: Path) -> list[str]:
     make_dir = project_root / "制作"
     pm_path = project_root / "project.md"
@@ -403,7 +433,12 @@ def handle_pre_invocation(payload: dict[str, Any]) -> dict[str, Any]:
     is_rework_cue = any(k in user_text for k in ("重新", "重抽", "氛围", "不要", "换", "再"))
     if is_img_route and not is_repair_turn and (route_key != prev_route_key or is_rework_cue):
         lines.append(
-            "- 防漂移底线：严禁拿 `制作/` 未定稿候选图当垫图；必须带 L1 白底图 + 已定稿里程碑母版，并核对 `design.md` 已用饮品/道具防重复。"
+            "- 防漂移底线：严禁拿 `制作/` 未定稿候选图当垫图；必须带 L1 白底图 + 已定稿里程碑母版，并核对 `assets.md` 已用饮品/摆件防重复。"
+        )
+    has_detail_id = any(mid.startswith(("S", "M")) and not mid.startswith("MS") for mid in route["mentioned_ids"])
+    if is_img_route and not is_repair_turn and has_detail_id and has_unfilled_prop_bible(root):
+        lines.append(
+            "- 前置置景提醒：里程碑已锁定，但 `assets.md` 风格摆件库尚未填实；建议先梳理 8~12 件风格摆件（重点款可出目录选样卡拍板）与饮品/食材错峰表，再批量开写详情。"
         )
 
     _save_hook_state(state)

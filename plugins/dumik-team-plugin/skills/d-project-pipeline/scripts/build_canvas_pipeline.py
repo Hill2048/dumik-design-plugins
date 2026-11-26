@@ -786,7 +786,10 @@ def promote_candidate(
         result["linkedMainToDerive"] = row.linked_main
         result["reminder"] = f"{row.id} 已定稿，请顺手从该 9:16 原片裁切/延展派生关联 3:4 主图：{'、'.join(row.linked_main)}"
     elif row.id.startswith("MS"):
-        result["reminder"] = f"{row.id} 已锁入 {result['promotedTo']}，请将光影与材质结论写入 design.md。"
+        result["reminder"] = (
+            f"{row.id} 已锁入 {result['promotedTo']}，请将光影与材质结论写入 design.md；"
+            "里程碑齐备后，先延伸 8~12 件置景摆件库（重点款可出实物目录选样卡拍板样式）并排定全案饮品/食材错峰表，再进第 1 批详情生产。"
+        )
     return result
 
 

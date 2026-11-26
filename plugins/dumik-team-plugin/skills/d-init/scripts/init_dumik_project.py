@@ -115,7 +115,7 @@ def render_project_agents_md(project_name: str) -> str:
 - **零运行垃圾**：禁写 `.json` 队列、`拆解清单.md` 或运行记录；制作只按需建 `制作/<编号_名称>/prompt.md` 覆盖维护最新版。
 - **参考与授权**：白底只锁结构固有色；光色从 `design.md` 与 `设定集/`；飞书参考图只读不喂 API；未收「开始生图/出图」绝不调付费接口。
 - **汇报带短卖点**：列编号必附4~6字卖点（如 `S01 健康对比`），一眼扫完，忌裸号或长句。
-- **防截断按需读账本**：`project.md` 体量大，不整本内联，按当前编号按需读取或跑 `--status`。
+- **防截断按需读账本**：`project.md` 与 `assets.md`（资产路径/哈希、摆件库、食材表）不整本内联，按当前编号按需读取或跑 `--status`。
 
 ## 项目上下文自动挂载
 
@@ -124,16 +124,15 @@ def render_project_agents_md(project_name: str) -> str:
 
 
 def render_design_md(project_name: str, white_bg_paths: list[str]) -> str:
-    wb_lines = "\n".join(f"  - `{p}`" for p in white_bg_paths) if white_bg_paths else "  - 待补齐（放入 `设定集/白底图/`）"
     status_line = "白底已锁，待里程碑定调光影母体" if white_bg_paths else "待补齐白底参考与里程碑定调"
-    return f"""# {project_name} — 视觉宪法
+    return f"""# {project_name} — 视觉宪法（纯审美与工艺规范）
+
+> 本文件随 `AGENTS.md` 每轮内联，**只写「画面长什么样」**（永保 5~8KB 清爽）；资产路径、`local-asset:` 哈希、摆件库、饮品/食材排期与 Eagle ID 一律放 `assets.md`。
 
 - 当前锁定状态：{status_line}
 
 ## 一、产品身份锁（7 维解剖档案 · 严禁漂移）
 
-- 白底结构基准图（优先补齐正视/侧视/顶视/底视/内腔五视图或身份卡）：
-{wb_lines}
 - **外轮廓与比例**：精确尺寸与视觉比例（如宽口矮胖/修长直筒、壁厚与底角弧度）｜禁画变形雷区：待看白底图填实
 - **表面材质与微观肌理**：主体固有色、微观纹理颗粒/反差/受光折射与边缘高光（写清与易错材质如喷砂/哑光漆的区别）：待看白底图填实
 - **关键部件解剖表**（建档看白底图逐项填实，看不见的标「待补视角」绝不瞎编）：
@@ -158,7 +157,7 @@ def render_design_md(project_name: str, white_bg_paths: list[str]) -> str:
 ## 三、统一空间与光影母版（第 0 批里程碑确认后锁死）
 
 - 光影基调：待定调（光源方向、软硬光比、台面接触阴影）
-- 色彩与台面材质家族：待定调
+- 色彩配比与台面材质家族：待定调
 - 超级符号（视觉锤）：待定调
 
 ## 四、全案硬禁令
@@ -166,6 +165,63 @@ def render_design_md(project_name: str, white_bg_paths: list[str]) -> str:
 - 全画面严禁生成任何后期排版标题、卖点文案、数字标尺、指示引线、放大圆框、水印或装饰角标。
 - 所有画面必须按 `project.md` 预留干净低反差的后期 PS 排版负空间。
 """
+
+
+def render_assets_md(project_name: str, white_bg_paths: list[str]) -> str:
+    wb_lines = "\n".join(f"- `{p}`" for p in white_bg_paths) if white_bg_paths else "- 待补齐（放入 `设定集/白底图/`）"
+    return f"""# {project_name} — 资产与置景台账（按需读取，不内联）
+
+> 专放文件路径、DesignFlow `local-asset:` 索引、风格摆件库、饮品/食材错峰排期与 Eagle 参考 ID；写词与发包前按需翻查并回填已用屏号。
+
+## 一、已锁定资产真源索引
+
+### 产品白底图
+{wb_lines}
+
+### 里程碑 / 人物 / 场景 / 品牌资产
+- 里程碑母版：待第 0 批定稿后登记
+- 人物身份卡：按需登记
+- 场景与摆件身份卡：按需登记
+- 品牌标贴与超级符号：按需登记
+
+## 二、风格摆件库（里程碑定稿后、进详情批量前梳理 8~12 件）
+
+> 重点款可先按 `multi-view-lock.md` 出 1×3/3×2 实物目录选样卡或从 Eagle 选图拍板样式再入 `设定集/摆件身份卡/`；每屏领用 ≤3 件并回填已用屏号。
+
+| 序号 | 摆件名称与分组 | 材质、色系与体量 | 参考/身份卡路径 | 已用屏号 |
+| --- | --- | --- | --- | --- |
+| 01 | 待规划（如桌面托盘/杯垫） | 待填 | — | 未用 |
+| 02 | 待规划（如皮具/织物软装） | 待填 | — | 未用 |
+| 03 | 待规划（如绿植/花器） | 待填 | — | 未用 |
+| 04 | 待规划（如办公/数码配角） | 待填 | — | 未用 |
+
+## 三、饮品 / 食材错峰排期表（不涉及吃喝品类可标「不适用」）
+
+| 屏号 | 饮品 / 食材品种 | 视觉色相与物理状态（如冰块/热气/汤色） | 错峰说明 |
+| --- | --- | --- | --- |
+| 待排期 | 待填（相邻屏绝不重样，单品全案 ≤2 次） | 待填 | 严禁临场重复默认咖啡 |
+
+## 四、Eagle 参考库索引
+
+- 待按需登记（含库文件夹名与已用 ID）
+"""
+
+
+def update_assets_md_white_bg(assets_path: Path, white_bg_paths: list[str]) -> None:
+    if not white_bg_paths or not assets_path.is_file():
+        return
+    text = assets_path.read_text(encoding="utf-8")
+    existing = set(re.findall(r"`(设定集/白底图/[^`]+)`", text))
+    new_paths = [p for p in white_bg_paths if p not in existing]
+    if not new_paths:
+        return
+    if "待补齐（放入 `设定集/白底图/`）" in text:
+        replacement = "\n".join(f"- `{p}`" for p in white_bg_paths)
+        text = text.replace("- 待补齐（放入 `设定集/白底图/`）", replacement)
+    elif "### 产品白底图" in text:
+        add_lines = "\n".join(f"- `{p}`" for p in new_paths)
+        text = re.sub(r"(### 产品白底图[^\n]*\n)", rf"\1{add_lines}\n", text, count=1)
+    assets_path.write_text(text, encoding="utf-8")
 
 
 def update_design_md_white_bg(design_path: Path, white_bg_paths: list[str]) -> None:
@@ -215,6 +271,7 @@ def render_empty_project_md(
 | MS02 | 首屏 KV 视觉定调 | 9:16 | 待生成定调 | 无 | 定光影、背景基调、负空间比例与纯无字画面 |
 | MS03 | 超级符号 / 核心视觉锤 | 9:16 | 待生成定调 | 无 | 提炼跨屏复用的高辨识视觉锤 |
 | MS04 | 核心使用场景母版 | 9:16 | 待生成定调 | 无 | 统一台面材质与真实自然环境逻辑 |
+| MS05 | 置景摆件库与食材排期表 | 16:9 | 待里程碑后规划 | 无 | 延伸 8~12 件风格摆件（可出目录选样卡拍板样式）+ 锁定整页饮品/食材错峰表，再进第 1 批详情 |
 
 ## 三、3:4 主图转化序列（门面点击逻辑与同源裁切对照）
 
@@ -301,6 +358,7 @@ def init_project(
     display_name = (project_name or project_root.name or "DUMIK视觉项目").strip()
     agents_path = project_root / "AGENTS.md"
     design_path = project_root / "design.md"
+    assets_path = project_root / "assets.md"
     project_md_path = project_root / "project.md"
 
     created_files: list[str] = []
@@ -313,6 +371,12 @@ def init_project(
         created_files.append("design.md")
     elif registered_wb:
         update_design_md_white_bg(design_path, registered_wb)
+
+    if not assets_path.exists():
+        _write_utf8_no_bom(assets_path, render_assets_md(display_name, existing_wb))
+        created_files.append("assets.md")
+    elif registered_wb:
+        update_assets_md_white_bg(assets_path, registered_wb)
 
     parser_mod = _load_parser_module()
     effective_url = feishu_url
@@ -384,7 +448,7 @@ def init_project(
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="一键初始化或增量同步 DUMIK 项目文件夹（三文件闭环，零本地 JSON 尾气）。")
+    parser = argparse.ArgumentParser(description="一键初始化或增量同步 DUMIK 项目文件夹（四文档闭环，零本地 JSON 尾气）。")
     parser.add_argument("--project-root", default=".", help="项目根目录路径（绝不嵌套创建子项目文件夹）")
     parser.add_argument("--project-name", default=None, help="项目显示名称，默认取文件夹名")
     parser.add_argument("--feishu-url", default=None, help="飞书 wiki / docx / whiteboard 策划链接")

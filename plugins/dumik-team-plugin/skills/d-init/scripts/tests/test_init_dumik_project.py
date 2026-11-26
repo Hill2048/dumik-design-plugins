@@ -42,26 +42,33 @@ class InitDumikProjectTests(unittest.TestCase):
             self.assertEqual(sorted(res["movedRootImages"]), ["素材/实拍原图/实拍侧面.jpg", "素材/实拍原图/实拍正拍.png"])
             self.assertEqual(res["whiteBgRefs"], ["设定集/白底图/external-white-bg.png"])
 
-            # Verify root contains strictly the 3 markdown files + 4 asset dirs
+            # Verify root contains strictly the 4 markdown files + 4 asset dirs
             top_files = sorted(p.name for p in root.iterdir() if p.is_file())
             top_dirs = sorted(p.name for p in root.iterdir() if p.is_dir())
-            self.assertEqual(top_files, ["AGENTS.md", "design.md", "project.md"])
+            self.assertEqual(top_files, ["AGENTS.md", "assets.md", "design.md", "project.md"])
             self.assertEqual(top_dirs, ["制作", "成品", "素材", "设定集"])
             self.assertEqual(list((root / "制作").iterdir()), [])
             self.assertEqual(list(root.rglob("*.json")), [])
 
             agents_txt = (root / "AGENTS.md").read_text(encoding="utf-8")
             self.assertNotIn("@[project.md](project.md)", agents_txt)
+            self.assertNotIn("@[assets.md](assets.md)", agents_txt)
             self.assertIn("@[design.md](design.md)", agents_txt)
             self.assertIn("纯无字画面底图", agents_txt)
             self.assertLess(len(agents_txt.encode("utf-8")), 1500)
 
             design_txt = (root / "design.md").read_text(encoding="utf-8")
-            self.assertIn("`设定集/白底图/external-white-bg.png`", design_txt)
+            self.assertIn("纯审美与工艺规范", design_txt)
             self.assertLess(len((agents_txt + design_txt).encode("utf-8")), 24000)
+
+            assets_txt = (root / "assets.md").read_text(encoding="utf-8")
+            self.assertIn("`设定集/白底图/external-white-bg.png`", assets_txt)
+            self.assertIn("风格摆件库", assets_txt)
+            self.assertIn("饮品 / 食材错峰排期表", assets_txt)
 
             project_txt = (root / "project.md").read_text(encoding="utf-8")
             self.assertIn("设定集/白底图/external-white-bg.png", project_txt)
+            self.assertIn("MS05", project_txt)
             self.assertIn("已锁定", project_txt)
 
             for txt in (agents_txt, design_txt, project_txt):

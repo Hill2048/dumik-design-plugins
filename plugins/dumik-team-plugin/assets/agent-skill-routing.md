@@ -73,7 +73,7 @@ video.execute
 
 ```text
 project.entry
-  一键初始化项目文件夹（建目录、归整实拍、拆解飞书写入 project.md、生成 AGENTS.md / design.md）或 --sync 增量同步飞书变更与局部规则维护
+  一键初始化项目文件夹（建目录、归整实拍、拆解飞书写入 project.md、生成 AGENTS.md / design.md / assets.md）或 --sync 增量同步飞书变更与局部规则维护
   -> d-init
 
 api.benchmark

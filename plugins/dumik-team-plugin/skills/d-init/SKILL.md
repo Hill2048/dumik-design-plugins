@@ -7,7 +7,7 @@ metadata:
 
 # 项目初始化与增量同步
 
-**一个产品一个项目文件夹，文件夹本身即完整上下文。** 本 skill 负责把标准目录和三份核心文档（`AGENTS.md`、`design.md`、`project.md`）一次性建好并串通；初始化完成后，日常任务直接读项目根三份文档推进，不再反复补充背景。
+**一个产品一个项目文件夹，文件夹本身即完整上下文。** 本 skill 负责把标准目录和四份职责正交的核心文档（`AGENTS.md`、`design.md`、`assets.md`、`project.md`）一次性建好并串通；初始化完成后，日常任务每轮只自动内联纯视觉宪法 `design.md`，按需翻查 `assets.md` 与 `project.md`，不再反复补充背景。
 
 ## 参考文件硬门槛
 
@@ -24,8 +24,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\c
 ```text
 <项目文件夹>/
 ├── AGENTS.md                 # 极简规约 + @[design.md](design.md)（防超 24KB 截断）
+├── design.md                 # 纯视觉宪法：只写审美定调、材质光学、产品工艺锁与硬禁令（永保 5~8KB 清爽）
+├── assets.md                 # 资产与置景台账（按需读取）：锁定资产路径/local-asset 哈希、摆件库、饮品/食材排期、Eagle ID
 ├── project.md                # 唯一项目总账本：飞书源、卖点提纯、第0~3批清单与实时状态（按需查阅）
-├── design.md                 # 全案视觉宪法：白底结构锁、材质光学公式、光影母体、硬禁令
 ├── 素材/
 │   ├── 实拍原图/             # 根目录散放实拍图自动归整至此
 │   └── 飞书画布/             # 仅在需要时下载画布内非竞品关键参考图
