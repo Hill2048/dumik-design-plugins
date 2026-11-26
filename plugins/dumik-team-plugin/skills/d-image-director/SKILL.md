@@ -40,7 +40,8 @@ Windows / 有 PowerShell 时：先运行当前插件目录的 `scripts/compile_r
 | 光影专项、调性反差、实拍+C4D 分工 | `lighting-control.md` |
 | 机位/焦距/景深/广角风险 | `camera-language.md` |
 | 真实感、世界逻辑、轻微不完美 | `realism.md` |
-| 多角度成套、Logo 后期叠、产品/场景/摆件身份卡与目录选样 | `multi-view-lock.md` |
+| 多角度成套、Logo 后期叠、产品/场景/摆件身份卡与目录选样 | `multi-view-lock.md` + `pinterest-100-props-dna.md`（可从 `assets/moodboards/摆件_01~04_*.jpg` 拆 `1024×1024` 单格作 `@图` 参考） |
+| 画面含饮品、食材本体、中西美食或锅具王牌配菜 | 协同 `d-food-drink-stylist` 获取纯本体造型与微观物理片段（必要时用 `crop_moodboard_tile.py` 从内置 31 张 `3×3` 图板拆 `1024×1024` 单格作 `@图` 垫图），**场景台面、光影方向与相机景深仍 100% 由本 skill 与 `design.md` 统管** |
 | 模特佩戴/持握同框、人物身份卡 / 手模四视图 | `model-product.md`（与 `templates.md` 身份卡及人像段并用） |
 | 白膜渲染 / 扩图补全 / 分层 3D 字 / 锤纹与钛陶瓷材质 | `templates.md` |
 | 要 JSON/模块字段化 | `prompt-json-modules.md` |

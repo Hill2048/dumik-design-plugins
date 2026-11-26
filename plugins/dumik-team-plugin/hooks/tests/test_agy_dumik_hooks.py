@@ -78,6 +78,11 @@ class AgyDumikHooksRoutingTests(unittest.TestCase):
             )
             self.assertFalse(hooks.has_unfilled_prop_bible(root))
 
+    def test_food_drink_stylist_route_matches(self):
+        res = hooks.classify_user_intent("帮我做几款高写实的饮品设计和食材造型", Path("."))
+        self.assertEqual(res["skill"], "d-food-drink-stylist")
+        self.assertEqual(res["auth"], "unconfirmed")
+
 
 if __name__ == "__main__":
     unittest.main()
