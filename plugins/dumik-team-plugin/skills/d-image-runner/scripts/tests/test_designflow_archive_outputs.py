@@ -34,14 +34,22 @@ class DesignFlowArchiveOutputsTests(unittest.TestCase):
             self.assertEqual(len(sources), 2)
 
             out_dir = root / "制作" / "S01_测试"
-            summary = mod.archive_images(sources, out_dir, prefix="b21", expect_ratio="9:16")
+            sheet_path = root / "pick_sheet.jpg"
+            summary = mod.archive_images(
+                sources, out_dir, prefix="b21", expect_ratio="9:16", min_long_edge=120, contact_sheet_path=sheet_path
+            )
             self.assertEqual(summary["status"], "ok")
             self.assertEqual(summary["count"], 2)
             self.assertTrue((out_dir / "b21_01.png").is_file())
             self.assertTrue((out_dir / "b21_02.png").is_file())
+            self.assertTrue(sheet_path.is_file())
+            self.assertEqual(summary["contact_sheet"], str(sheet_path))
             self.assertTrue(summary["files"][0]["ratio_ok"])
+            self.assertTrue(summary["files"][0]["res_ok"])
             self.assertFalse(summary["files"][1]["ratio_ok"])
+            self.assertFalse(summary["files"][1]["res_ok"])
             self.assertEqual(len(summary["ratio_warnings"]), 1)
+            self.assertEqual(len(summary["res_warnings"]), 1)
 
 
 if __name__ == "__main__":

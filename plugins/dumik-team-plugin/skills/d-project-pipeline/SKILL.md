@@ -39,6 +39,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
    - **API 直连模式（离线或指定直连）**：跑 `--execute --engine api` 经系统 `%TEMP%\dumik-runs\` 拆 `count: 1` 并发调 `d-image-runner`，结束后立即删除临时 JSON 并自动刷新 `project.md`。
 4. **选片验收与外扩色块局部修复（单张/批量）**：候选图生成后先交 `d-consistency-check` 对照 `设定集/白底图/` 做三态验收；判定 `blocked`（整体构图光影已过关、仅局部产品细节漂移）时，交 `d-image-director` (`repair` 模式) 跑 `scripts/repair/mask_repair.py`（产品框外扩 20% 吸附比例池 + 偏差局部实心涂高对比色块，全部落 `%TEMP%\dumik-runs\`），向用户展示预览/联系表确认后，再由 `d-image-runner` 走 DesignFlow MCP 单张或 `items[]` 批量并发出图（**产品修复优先模型：`即梦 5.5` ＞ `即梦 5.0 Pro` ＞ `Banana 2.1`**），最后 `paste-single / paste-batch --cleanup` 默认输出分层可编辑蒙版 `.psd`（支持 `.tif`/`.png`）并 `--status` 刷新 `project.md`。
 5. **定稿晋升归档**：候选图（或修复验收通过图）确认后，使用 `--promote <编号> --file <候选图>` 复制归档进 `设定集/里程碑/`（`MS*`）或 `成品/`（`S*`/`M*`/`E*`），同时刷新状态并在第 1 批详情定稿时提醒同步派生关联 `3:4` 主图。
+6. **多 SKU / 多配色批量一键换款**：主推色定稿入 `成品/` 后，可运行 `scripts/build_canvas_pipeline.py --project-root <项目> --variant-sku "<新SKU名>" --variant-ref "<新SKU白底图>" --variant-desc "<颜色/材质差>"`（可配 `--ids`），在 `%TEMP%\dumik-runs\` 生成 DesignFlow 批量换款任务（锁死原构图光影，优先 `即梦 5.5` ＞ `即梦 5.0 Pro` ＞ `Banana 2.1`），生成结果归档至 `成品/<新SKU名>/` 绝不覆盖原成品。
 
 按 [插件路由](../../assets/agent-skill-routing.md) 判断是否需要跨步骤执行编排，不凭“项目制、批量、Agent”单个词触发。单图追改就地覆盖 `制作/<编号_名称>/prompt.md`，详见 [任务状态合同](../../assets/task-state-contract.md)。
 

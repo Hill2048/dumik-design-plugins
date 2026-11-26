@@ -161,6 +161,17 @@ class MaskRepairTests(unittest.TestCase):
             raw = psd_path.read_bytes()
             self.assertTrue(raw.startswith(b"8BPS"))
             self.assertIn(b"8BIMluni", raw)
+            # Multi-candidate layered PSD (Base + 2 candidate layers)
+            repaired2 = Image.new("RGB", (200, 200), (90, 210, 150))
+            multi_psd = root / "multi.psd"
+            mod.save_pasted_output(base, [repaired, repaired2], crop_box, multi_psd, feather=20)
+            mraw = multi_psd.read_bytes()
+            self.assertIn("修复候选_01".encode("utf-16-be"), mraw)
+            self.assertIn("修复候选_02".encode("utf-16-be"), mraw)
+            with Image.open(multi_psd) as m_im:
+                self.assertEqual(m_im.size, (400, 600))
+                # Composite uses first candidate
+                self.assertEqual(m_im.convert("RGB").getpixel((200, 300)), (210, 150, 90))
             # Pillow must be able to open the PSD composite preview and read exact pixels
             with Image.open(psd_path) as psd_im:
                 self.assertEqual(psd_im.size, (400, 600))
@@ -171,6 +182,40 @@ class MaskRepairTests(unittest.TestCase):
                 self.assertEqual(tif_im.size, (400, 600))
                 self.assertEqual(tif_im.convert("RGB").getpixel((5, 5)), (30, 50, 70))
                 self.assertEqual(tif_im.convert("RGB").getpixel((200, 300)), (210, 150, 90))
+
+    def test_white_ref_angle_crop_aligns_ratio(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            img_path = root / "scene.png"
+            sheet_white = root / "five_views.png"
+            Image.new("RGB", (900, 1600), (40, 50, 60)).save(img_path)
+            # Simulate a wide 5-view white-bg sheet (2500x600) with target view at [500, 100, 900, 500]
+            w_im = Image.new("RGB", (2500, 600), (255, 255, 255))
+            for x in range(500, 900):
+                for y in range(100, 500):
+                    w_im.putpixel((x, y), (190, 195, 200))
+            w_im.save(sheet_white)
+
+            workdir = root / "w_tmp"
+            rc = mod.main([
+                "prepare-single",
+                "--image", str(img_path),
+                "--white-ref", str(sheet_white),
+                "--white-box", "500", "100", "900", "500",
+                "--product-box", "250", "500", "650", "900",
+                "--defect-box", "400", "550", "550", "700",
+                "--defect-desc", "对齐角度修复",
+                "--workdir", str(workdir),
+            ])
+            self.assertEqual(rc, 0)
+            meta = json.loads((workdir / "scene_meta.json").read_text(encoding="utf-8"))
+            self.assertEqual(len(meta["white_ref_crops"]), 1)
+            ref_crop_path = Path(meta["white_ref_crops"][0])
+            self.assertTrue(ref_crop_path.is_file())
+            with Image.open(ref_crop_path) as ref_im:
+                # Cropped from 2500x600 sheet down to matched 1:1 square
+                self.assertLess(ref_im.width, 800)
+                self.assertAlmostEqual(ref_im.width / ref_im.height, 1.0, delta=0.12)
 
 
 if __name__ == "__main__":

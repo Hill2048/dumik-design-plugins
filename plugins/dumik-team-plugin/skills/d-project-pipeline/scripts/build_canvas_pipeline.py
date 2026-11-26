@@ -654,6 +654,7 @@ def prepare_or_execute_batch(
             "tempFileCleaned": True,
         }
 
+    from datetime import datetime
     temp_dir = Path(tempfile.gettempdir()) / "dumik-runs"
     temp_dir.mkdir(parents=True, exist_ok=True)
     tmp_json = temp_dir / f"batch-{uuid.uuid4().hex[:10]}.json"
@@ -762,6 +763,97 @@ def promote_candidate(project_root: Path, *, item_id: str, candidate_file: Path)
     return result
 
 
+def prepare_variant_batch(
+    project_root: Path,
+    *,
+    variant_sku: str,
+    variant_ref: Path,
+    variant_desc: str,
+    ids: list[str] | None = None,
+    count: int = 2,
+    quality: str = "2k",
+) -> dict[str, Any]:
+    """基于 成品/ 已定稿图批量生成多 SKU / 多配色一键换款 DesignFlow 并发任务（全落 %TEMP%，目标归档 成品/<SKU名>/）。"""
+    ref_path = variant_ref if variant_ref.is_absolute() else (project_root / variant_ref).resolve()
+    if not ref_path.is_file():
+        raise PipelineError(f"新 SKU 白底参考图不存在: {ref_path}")
+
+    finished_root = project_root / "成品"
+    if not finished_root.is_dir():
+        raise PipelineError(f"未找到 成品/ 目录，请先完成主推色定稿: {finished_root}")
+
+    sku_slug = re.sub(r'[\\/:*?"<>|]+', "_", variant_sku.strip())
+    if not sku_slug:
+        raise PipelineError("--variant-sku 不能为空")
+    target_out_dir = finished_root / sku_slug
+
+    id_filter = {s.upper() for s in ids} if ids else None
+    source_images: list[Path] = []
+    for p in sorted(finished_root.rglob("*")):
+        if not p.is_file() or p.suffix.lower() not in {".png", ".jpg", ".jpeg", ".webp"}:
+            continue
+        # Skip already-generated variant subfolder
+        if target_out_dir in p.parents:
+            continue
+        if id_filter:
+            m = re.match(r"^([A-Za-z]+\d+(?:-\d+)?)", p.stem)
+            if not m or m.group(1).upper() not in id_filter:
+                continue
+        source_images.append(p)
+
+    if not source_images:
+        raise PipelineError("成品/ 中未找到可换款的定稿图片（可检查 --ids 过滤条件）。")
+
+    model_priority = ["seedream-5.5", "seedream-5-pro", "banana2.1"]
+    desc = (variant_desc or f"按@图2替换为{sku_slug}新款外观与配色").strip()
+    prompt = (
+        f"保持@图1的整体构图、背景环境、光影方向、景深、人物动作与留白布局完全不变。"
+        f"仅将@图1中的产品主体严格对照@图2替换为新SKU款式：{desc}。"
+        f"替换后的产品必须保持与原位置一致的透视比例，自然承接@图1原有的环境反光、高光与接触阴影。"
+        f"严禁改变非产品区域、新增多余杂物或生成额外文字水印。"
+    )
+
+    items: list[dict[str, Any]] = []
+    for src in source_images:
+        ratio = "9:16"
+        parent_name = src.parent.name
+        if "3x4" in parent_name or src.stem.upper().startswith("M"):
+            ratio = "3:4"
+        elif "1x1" in parent_name or src.stem.upper().startswith("E"):
+            ratio = "1:1"
+        items.append(
+            {
+                "id": f"{src.stem}_{sku_slug}",
+                "sourceFinished": str(src),
+                "targetOutputDir": str(target_out_dir),
+                "prompt": prompt,
+                "ratio": ratio,
+                "sizePreset": quality.upper(),
+                "count": max(1, min(4, int(count))),
+                "models": [model_priority[0]],
+                "modelPriority": model_priority,
+                "referenceFiles": [str(src), str(ref_path)],
+            }
+        )
+
+    from datetime import datetime
+    temp_dir = Path(tempfile.gettempdir()) / "dumik-runs"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    out_json = temp_dir / f"variant-{sku_slug}-{datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
+    out_json.write_text(json.dumps({"sku": sku_slug, "items": items}, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    return {
+        "ok": True,
+        "mode": "variant-sku",
+        "sku": sku_slug,
+        "count": len(items),
+        "targetOutputDir": str(target_out_dir),
+        "designflowItemsFile": str(out_json),
+        "modelPriority": model_priority,
+        "items": items,
+    }
+
+
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="DUMIK 无状态项目流水线调度（零本地 JSON 尾气，以真实文件为真相）。")
     parser.add_argument("--project-root", default=".", help="DUMIK 项目根目录")
@@ -784,6 +876,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--promote", default=None, help="将某编号候选图定稿晋升到 设定集/里程碑 或 成品/")
     parser.add_argument("--file", default=None, help="配合 --promote 使用的候选图文件路径")
+    parser.add_argument("--variant-sku", default=None, help="多 SKU 批量一键换款：目标新 SKU 名称（归档至 成品/<SKU名>/）")
+    parser.add_argument("--variant-ref", default=None, help="配合 --variant-sku 使用的新 SKU 白底参考图路径")
+    parser.add_argument("--variant-desc", default="", help="配合 --variant-sku 使用的一句话颜色/材质差异说明")
     return parser
 
 
@@ -793,7 +888,20 @@ def main(argv: list[str] | None = None) -> int:
     project_root = Path(args.project_root).resolve()
 
     try:
-        if args.promote:
+        if args.variant_sku:
+            if not args.variant_ref:
+                raise PipelineError("使用 --variant-sku 时必须同时传入 --variant-ref <新SKU白底图路径>。")
+            ids = [s.strip() for s in args.ids.split(",")] if args.ids else None
+            res = prepare_variant_batch(
+                project_root,
+                variant_sku=args.variant_sku,
+                variant_ref=Path(args.variant_ref),
+                variant_desc=args.variant_desc,
+                ids=ids,
+                count=args.count,
+                quality=args.quality,
+            )
+        elif args.promote:
             if not args.file:
                 raise PipelineError("使用 --promote 时必须同时传入 --file <候选图路径>。")
             res = promote_candidate(project_root, item_id=args.promote.strip(), candidate_file=Path(args.file))

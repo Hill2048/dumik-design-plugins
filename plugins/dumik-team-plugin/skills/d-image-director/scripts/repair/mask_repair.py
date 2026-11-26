@@ -215,31 +215,39 @@ def _pack_unicode_layer_name(name: str) -> bytes:
 
 def save_layered_psd(
     base_img: Image.Image,
-    repaired_img: Image.Image,
+    repaired_imgs: Image.Image | list[Image.Image],
     crop_box: list[int],
     out_path: Path,
     feather: int = 28,
 ) -> None:
     """
-    零外部依赖写出标准 Adobe Photoshop 分层 PSD（8-bit RGB）：
+    零外部依赖写出标准 Adobe Photoshop 多图层可编辑蒙版 PSD（8-bit RGB）：
     - 底层「原图」：完整原始整图
-    - 顶层「局部修复」：对齐到 crop_box 的修好产品图 + 独立可编辑羽化图层蒙版（channel_id=-2）
-    - 同时写入合成预览图，支持 Windows 缩略图、Eagle、飞书与 Photoshop 直接打开。
+    - 顶层「修复候选_01」「修复候选_02」…：各自对齐到 crop_box 并附带独立可编辑羽化图层蒙版（channel_id=-2）
+      默认仅第 1 个候选层可见（flags=0），其余候选层默认隐藏（flags=2），进 PS 点小眼睛 1 秒切换或混拼。
+    - 同时写入合成预览图（以第 1 个候选合成），支持 Windows 缩略图、Eagle、飞书与 Photoshop 直接打开。
     """
+    candidates = repaired_imgs if isinstance(repaired_imgs, list) else [repaired_imgs]
+    if not candidates:
+        raise ValueError("至少需要 1 张修复候选图")
+
     base_rgb = base_img.convert("RGB")
     W, H = base_rgb.size
     cx1, cy1, cx2, cy2 = [int(v) for v in crop_box]
     tw, th = cx2 - cx1, cy2 - cy1
 
-    rep_rgb = repaired_img.convert("RGB")
-    if rep_rgb.size != (tw, th):
-        rep_rgb = rep_rgb.resize((tw, th), Image.LANCZOS)
+    rep_rgbs: list[Image.Image] = []
+    for cand in candidates:
+        r = cand.convert("RGB")
+        if r.size != (tw, th):
+            r = r.resize((tw, th), Image.LANCZOS)
+        rep_rgbs.append(r)
 
     mask_l = _build_feather_mask(tw, th, feather)
 
-    # Merged composite preview
+    # Merged composite preview uses the first candidate
     merged = base_rgb.copy()
-    merged.paste(rep_rgb, (cx1, cy1), mask_l)
+    merged.paste(rep_rgbs[0], (cx1, cy1), mask_l)
 
     def _layer_record_and_channels(
         top: int,
@@ -250,6 +258,7 @@ def save_layered_psd(
         unicode_name: str,
         rgb_img: Image.Image,
         user_mask: Image.Image | None = None,
+        visible: bool = True,
     ) -> tuple[bytes, bytes]:
         r_ch, g_ch, b_ch = rgb_img.split()
         ch_pairs: list[tuple[int, bytes]] = [
@@ -260,7 +269,6 @@ def save_layered_psd(
         if user_mask is not None:
             ch_pairs.append((-2, user_mask.tobytes()))
 
-        # Each channel data block has 2-byte compression flag (0 = raw) + raw bytes
         rec = bytearray()
         rec += struct.pack(">iiii", top, left, bottom, right)
         rec += struct.pack(">H", len(ch_pairs))
@@ -271,32 +279,44 @@ def save_layered_psd(
             ch_blobs += struct.pack(">H", 0) + raw_bytes
 
         rec += b"8BIMnorm"
-        rec += struct.pack(">BBBB", 255, 0, 0, 0)  # opacity=255, clipping=0, flags=0, filler=0
+        # PSD layer flags bit 1 (value 2) = hidden/invisible
+        flags = 0 if visible else 2
+        rec += struct.pack(">BBBB", 255, 0, flags, 0)
 
         extra = bytearray()
         if user_mask is not None:
-            # Layer mask data: 20 bytes (top, left, bottom, right, default_color=0, flags=0, pad=0)
             mask_hdr = struct.pack(">iiiiBBH", top, left, bottom, right, 0, 0, 0)
             extra += struct.pack(">I", len(mask_hdr)) + mask_hdr
         else:
             extra += struct.pack(">I", 0)
-        extra += struct.pack(">I", 0)  # Layer blending ranges
+        extra += struct.pack(">I", 0)
         extra += _pack_pascal_string(ascii_name, 4)
         extra += _pack_unicode_layer_name(unicode_name)
 
         rec += struct.pack(">I", len(extra)) + extra
         return bytes(rec), bytes(ch_blobs)
 
-    rec0, ch0 = _layer_record_and_channels(0, 0, H, W, "Base", "原图", base_rgb, None)
-    rec1, ch1 = _layer_record_and_channels(cy1, cx1, cy2, cx2, "Repaired", "局部修复", rep_rgb, mask_l)
+    records: list[bytes] = []
+    channels: list[bytes] = []
+    rec0, ch0 = _layer_record_and_channels(0, 0, H, W, "Base", "原图", base_rgb, None, visible=True)
+    records.append(rec0)
+    channels.append(ch0)
 
-    layer_info = struct.pack(">h", 2) + rec0 + rec1 + ch0 + ch1
+    for idx, rep_rgb in enumerate(rep_rgbs, start=1):
+        a_name = "Repaired" if len(rep_rgbs) == 1 else f"Repaired_{idx:02d}"
+        u_name = "局部修复" if len(rep_rgbs) == 1 else f"修复候选_{idx:02d}"
+        rec_i, ch_i = _layer_record_and_channels(
+            cy1, cx1, cy2, cx2, a_name, u_name, rep_rgb, mask_l, visible=(idx == 1)
+        )
+        records.append(rec_i)
+        channels.append(ch_i)
+
+    layer_info = struct.pack(">h", len(records)) + b"".join(records) + b"".join(channels)
     if len(layer_info) % 2:
         layer_info += b"\x00"
 
     layer_and_mask = struct.pack(">I", len(layer_info)) + layer_info + struct.pack(">I", 0)
 
-    # Merged image data (compression=0, R plane + G plane + B plane)
     mr, mg, mb = merged.split()
     merged_data = struct.pack(">H", 0) + mr.tobytes() + mg.tobytes() + mb.tobytes()
 
@@ -316,18 +336,19 @@ def save_layered_psd(
 
 def save_pasted_output(
     base_img: Image.Image,
-    repaired_img: Image.Image,
+    repaired_imgs: Image.Image | list[Image.Image],
     crop_box: list[int],
     out_path: Path,
     feather: int = 28,
 ) -> None:
-    """按输出扩展名自动保存为分层 PSD、无损 TIFF 或 PNG/JPG。"""
+    """按输出扩展名自动保存为多候选分层 PSD、无损 TIFF 或 PNG/JPG。"""
     ext = out_path.suffix.lower()
     out_path.parent.mkdir(parents=True, exist_ok=True)
     if ext == ".psd":
-        save_layered_psd(base_img, repaired_img, crop_box, out_path, feather=feather)
+        save_layered_psd(base_img, repaired_imgs, crop_box, out_path, feather=feather)
         return
-    final_im = paste_back_smooth(base_img, repaired_img, crop_box, feather=feather)
+    primary = repaired_imgs[0] if isinstance(repaired_imgs, list) else repaired_imgs
+    final_im = paste_back_smooth(base_img, primary, crop_box, feather=feather)
     if ext in (".tif", ".tiff"):
         final_im.convert("RGB").save(out_path, format="TIFF", compression="tiff_lzw")
     elif ext in (".jpg", ".jpeg"):
@@ -348,23 +369,64 @@ def build_repair_prompt(defect_desc: str, mask_color: str = DEFAULT_MASK_COLOR) 
     )
 
 
-def make_contact_sheet(pairs: list[tuple[str, Image.Image, Image.Image]], out_path: Path) -> None:
-    """将多个 (标签, 原切片, 涂色块切片) 拼成一张方便 5 秒目视复核的联系表。"""
+def crop_white_ref(
+    white_img: Image.Image,
+    white_box: list[int],
+    pad: float = 0.08,
+    target_ratio: str = "",
+) -> Image.Image:
+    """从五视图或多角度白底图中裁出最匹配待修角度的单只/局部白底参考，并轻度扩白边对齐目标比例防幻觉。"""
+    rgb = white_img.convert("RGB")
+    W, H = rgb.size
+    x1, y1, x2, y2 = [int(v) for v in white_box]
+    if x2 <= x1 or y2 <= y1:
+        raise ValueError(f"非法 white_box: {white_box}")
+    bw, bh = x2 - x1, y2 - y1
+    px, py = int(bw * pad), int(bh * pad)
+    cx1, cy1 = _clamp(x1 - px, 0, W), _clamp(y1 - py, 0, H)
+    cx2, cy2 = _clamp(x2 + px, 0, W), _clamp(y2 + py, 0, H)
+    cropped = rgb.crop((cx1, cy1, cx2, cy2))
+
+    # Optional white-canvas pad to match the repair crop's aspect ratio cleanly
+    ratio_map = dict(RATIO_POOL)
+    if target_ratio in ratio_map:
+        tr = ratio_map[target_ratio]
+        cw, ch = cropped.size
+        cur = cw / ch if ch > 0 else 1.0
+        if abs(cur - tr) / tr > 0.10:
+            if cur < tr:
+                nw, nh = int(round(ch * tr)), ch
+            else:
+                nw, nh = cw, int(round(cw / tr))
+            canvas = Image.new("RGB", (nw, nh), (255, 255, 255))
+            canvas.paste(cropped, ((nw - cw) // 2, (nh - ch) // 2))
+            return canvas
+    return cropped
+
+
+def make_contact_sheet(pairs: list[tuple[Any, ...]], out_path: Path) -> None:
+    """将多个 (标签, 原切片, 涂色块切片[, 裁切白底参考]) 拼成联系表方便 5 秒目视复核。"""
     if not pairs:
         return
-    thumb = 360
+    cols = max(len(p) - 1 for p in pairs)
+    thumb = 320 if cols >= 3 else 360
     pad = 16
     header_h = 28
     row_h = thumb + header_h + pad
-    sheet_w = thumb * 2 + pad * 3
+    sheet_w = thumb * cols + pad * (cols + 1)
     sheet_h = row_h * len(pairs) + pad
     sheet = Image.new("RGB", (sheet_w, sheet_h), (28, 28, 32))
     draw = ImageDraw.Draw(sheet)
 
-    for idx, (label, left_img, right_img) in enumerate(pairs):
+    for idx, entry in enumerate(pairs):
+        label = str(entry[0])
+        imgs = list(entry[1:])
         y0 = pad + idx * row_h
-        draw.text((pad, y0 + 4), f"[{idx + 1}] {label}  (Left: Clean Crop | Right: Masked)", fill=(235, 235, 240))
-        for col, im in enumerate((left_img, right_img)):
+        col_desc = "Left: Clean | Mid: Masked | Right: Matched Ref" if len(imgs) >= 3 else "Left: Clean | Right: Masked"
+        draw.text((pad, y0 + 4), f"[{idx + 1}] {label}  ({col_desc})", fill=(235, 235, 240))
+        for col, im in enumerate(imgs):
+            if im is None:
+                continue
             cp = im.convert("RGB")
             cp.thumbnail((thumb, thumb), Image.LANCZOS)
             x0 = pad + col * (thumb + pad) + (thumb - cp.width) // 2
@@ -411,7 +473,25 @@ def cmd_prepare_single(args: argparse.Namespace) -> int:
 
     clean_crop.save(clean_path)
     masked_crop.save(masked_path)
-    make_contact_sheet([(stem, clean_crop, masked_crop)], sheet_path)
+
+    effective_refs: list[str] = []
+    preview_ref_img: Image.Image | None = None
+    white_boxes = args.white_box or []
+    if white_boxes:
+        with Image.open(white_ref) as wim:
+            for ridx, wbox in enumerate(white_boxes, start=1):
+                rcrop = crop_white_ref(wim, wbox, target_ratio=meta["ratio"])
+                rpath = workdir / f"{stem}_ref_{ridx:02d}.png"
+                rcrop.save(rpath)
+                effective_refs.append(str(rpath))
+                if preview_ref_img is None:
+                    preview_ref_img = rcrop.copy()
+    else:
+        effective_refs.append(str(white_ref))
+        with Image.open(white_ref) as wim:
+            preview_ref_img = wim.convert("RGB").copy()
+
+    make_contact_sheet([(stem, clean_crop, masked_crop, preview_ref_img)], sheet_path)
 
     prompt = build_repair_prompt(args.defect_desc, mask_color=args.mask_color)
     meta.update(
@@ -419,6 +499,7 @@ def cmd_prepare_single(args: argparse.Namespace) -> int:
             "image_id": stem,
             "source_image": str(img_path),
             "white_ref": str(white_ref),
+            "white_ref_crops": effective_refs,
             "clean_crop": str(clean_path),
             "masked_crop": str(masked_path),
             "preview_sheet": str(sheet_path),
@@ -439,7 +520,7 @@ def cmd_prepare_single(args: argparse.Namespace) -> int:
             "count": 2,
             "models": [REPAIR_MODEL_PRIORITY[0]],
             "modelPriority": REPAIR_MODEL_PRIORITY,
-            "referenceFiles": [str(masked_path), str(white_ref)],
+            "referenceFiles": [str(masked_path), *effective_refs],
         },
     }
     print(json.dumps(result, ensure_ascii=False, indent=2))
@@ -453,13 +534,31 @@ def cmd_paste_single(args: argparse.Namespace) -> int:
     fmt_ext = "." + args.format.lstrip(".").lower() if args.format else ".psd"
     out_path = Path(args.out).resolve() if args.out else src_path.with_name(f"{src_path.stem}_repaired{fmt_ext}")
 
-    with Image.open(src_path) as base_im, Image.open(Path(args.repaired).resolve()) as rep_im:
-        save_pasted_output(base_im, rep_im, meta["crop_box"], out_path, feather=args.feather)
+    rep_paths = [Path(p).resolve() for p in args.repaired]
+    rep_imgs: list[Image.Image] = []
+    try:
+        with Image.open(src_path) as base_im:
+            for rp in rep_paths:
+                rep_imgs.append(Image.open(rp))
+            save_pasted_output(base_im, rep_imgs, meta["crop_box"], out_path, feather=args.feather)
+    finally:
+        for im in rep_imgs:
+            im.close()
 
     if args.cleanup:
         shutil.rmtree(meta_path.parent, ignore_errors=True)
 
-    print(json.dumps({"status": "pasted", "out": str(out_path), "format": out_path.suffix.lstrip(".")}, ensure_ascii=False))
+    print(
+        json.dumps(
+            {
+                "status": "pasted",
+                "out": str(out_path),
+                "format": out_path.suffix.lstrip("."),
+                "candidate_layers": len(rep_paths),
+            },
+            ensure_ascii=False,
+        )
+    )
     return 0
 
 
@@ -503,7 +602,25 @@ def cmd_prepare_batch(args: argparse.Namespace) -> int:
         masked_path = workdir / f"{slug}_masked.png"
         clean_crop.save(clean_path)
         masked_crop.save(masked_path)
-        pairs.append((img_id, clean_crop, masked_crop))
+
+        effective_refs: list[str] = []
+        preview_ref_img: Image.Image | None = None
+        wboxes = item.get("white_boxes") or ([item["white_box"]] if item.get("white_box") else [])
+        if wboxes:
+            with Image.open(white_ref) as wim:
+                for ridx, wbox in enumerate(wboxes, start=1):
+                    rcrop = crop_white_ref(wim, wbox, target_ratio=meta["ratio"])
+                    rpath = workdir / f"{slug}_ref_{ridx:02d}.png"
+                    rcrop.save(rpath)
+                    effective_refs.append(str(rpath))
+                    if preview_ref_img is None:
+                        preview_ref_img = rcrop.copy()
+        else:
+            effective_refs.append(str(white_ref))
+            with Image.open(white_ref) as wim:
+                preview_ref_img = wim.convert("RGB").copy()
+
+        pairs.append((img_id, clean_crop, masked_crop, preview_ref_img))
 
         prompt = build_repair_prompt(defect_desc, mask_color=mask_color)
         meta.update(
@@ -512,6 +629,7 @@ def cmd_prepare_batch(args: argparse.Namespace) -> int:
                 "slug": slug,
                 "source_image": str(img_path),
                 "white_ref": str(white_ref),
+                "white_ref_crops": effective_refs,
                 "clean_crop": str(clean_path),
                 "masked_crop": str(masked_path),
                 "out_path": str(_resolve_path(root, item["out_path"])) if item.get("out_path") else str(img_path.with_name(f"{img_path.stem}_repaired.psd")),
@@ -528,7 +646,7 @@ def cmd_prepare_batch(args: argparse.Namespace) -> int:
                 "count": int(item.get("count", 2)),
                 "models": [str(item.get("model", REPAIR_MODEL_PRIORITY[0]))],
                 "modelPriority": REPAIR_MODEL_PRIORITY,
-                "referenceFiles": [str(masked_path), str(white_ref)],
+                "referenceFiles": [str(masked_path), *effective_refs],
             }
         )
 
@@ -567,16 +685,15 @@ def cmd_paste_batch(args: argparse.Namespace) -> int:
 
     for entry in batch_meta.get("items", []):
         slug = entry["slug"]
-        cand = None
-        for ext in (".png", ".jpg", ".jpeg", ".webp"):
-            for pattern in (f"{slug}{ext}", f"{slug}_repaired{ext}", f"{slug}_01{ext}"):
-                p = repaired_dir / pattern
-                if p.is_file():
-                    cand = p
-                    break
-            if cand:
-                break
-        if not cand:
+        cands: list[Path] = []
+        # Collect numbered candidates (<slug>_01.png, <slug>_02.png, ...) or single (<slug>.png / <slug>_repaired.png)
+        for p in sorted(repaired_dir.iterdir()):
+            if not p.is_file() or p.suffix.lower() not in (".png", ".jpg", ".jpeg", ".webp"):
+                continue
+            stem = p.stem
+            if stem == slug or stem == f"{slug}_repaired" or stem.startswith(f"{slug}_"):
+                cands.append(p)
+        if not cands:
             missing.append(entry["image_id"])
             continue
 
@@ -584,8 +701,15 @@ def cmd_paste_batch(args: argparse.Namespace) -> int:
         out_path = Path(entry["out_path"])
         if args.format:
             out_path = out_path.with_suffix("." + args.format.lstrip(".").lower())
-        with Image.open(src_path) as base_im, Image.open(cand) as rep_im:
-            save_pasted_output(base_im, rep_im, entry["crop_box"], out_path, feather=args.feather)
+        rep_imgs: list[Image.Image] = []
+        try:
+            with Image.open(src_path) as base_im:
+                for cp in cands:
+                    rep_imgs.append(Image.open(cp))
+                save_pasted_output(base_im, rep_imgs, entry["crop_box"], out_path, feather=args.feather)
+        finally:
+            for im in rep_imgs:
+                im.close()
         outputs.append(str(out_path))
 
     if args.cleanup and not missing:
@@ -602,6 +726,7 @@ def main(argv: list[str] | None = None) -> int:
     ps = sub.add_parser("prepare-single", help="单张切产品外扩图并涂高对比色块")
     ps.add_argument("--image", required=True, help="待修原整图路径")
     ps.add_argument("--white-ref", required=True, help="设定集白底基准图路径")
+    ps.add_argument("--white-box", nargs=4, type=int, action="append", metavar=("X1", "Y1", "X2", "Y2"), help="可选：从多视角/五视图白底图中裁出最匹配角度与状态的单只区域（可多次传入），自动对齐目标比例防幻觉")
     ps.add_argument("--product-box", nargs=4, type=int, required=True, metavar=("X1", "Y1", "X2", "Y2"))
     ps.add_argument("--defect-box", nargs=4, type=int, action="append", required=True, metavar=("X1", "Y1", "X2", "Y2"), help="可重复传入多个偏差区域框")
     ps.add_argument("--defect-desc", required=True, help="一句话描述色块处按白底图应还原的具体细节")
@@ -612,9 +737,9 @@ def main(argv: list[str] | None = None) -> int:
     ps.add_argument("--workdir", default="", help="临时工作目录（默认 %%TEMP%%\\dumik-runs\\repair-*）")
     ps.set_defaults(func=cmd_prepare_single)
 
-    pts = sub.add_parser("paste-single", help="单张修好后外扩边羽化无损贴回原整图")
+    pts = sub.add_parser("paste-single", help="单张修好后外扩边羽化无损贴回原整图（支持多候选叠进同一分层 PSD）")
     pts.add_argument("--meta", required=True, help="prepare-single 产出的 *_meta.json")
-    pts.add_argument("--repaired", required=True, help="AI 修好的产品外扩图")
+    pts.add_argument("--repaired", action="append", required=True, help="AI 修好的产品外扩图（可多次传入，自动叠进同一分层 PSD）")
     pts.add_argument("--out", default="", help="最终输出路径（默认同目录 *_repaired.psd，可指定 .psd/.tif/.png）")
     pts.add_argument("--format", default="psd", choices=["psd", "tif", "tiff", "png", "jpg"], help="未指定 --out 时的默认输出格式（默认 psd 分层蒙版）")
     pts.add_argument("--feather", type=int, default=28, help="外扩边羽化像素（默认 28）")
