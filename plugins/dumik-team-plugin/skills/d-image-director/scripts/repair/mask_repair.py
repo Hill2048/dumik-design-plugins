@@ -37,6 +37,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import struct
 import sys
 import tempfile
 from typing import Any
@@ -165,6 +166,15 @@ def build_masked_crop(
     return clean_crop, masked_crop, meta
 
 
+def _build_feather_mask(tw: int, th: int, feather: int) -> Image.Image:
+    f = max(0, min(int(feather), tw // 4, th // 4))
+    mask = Image.new("L", (tw, th), 0)
+    ImageDraw.Draw(mask).rectangle([f, f, tw - f, th - f], fill=255)
+    if f > 0:
+        mask = mask.filter(ImageFilter.GaussianBlur(f / 2))
+    return mask
+
+
 def paste_back_smooth(
     base_img: Image.Image,
     repaired_img: Image.Image,
@@ -180,14 +190,149 @@ def paste_back_smooth(
     if repaired.size != (tw, th):
         repaired = repaired.resize((tw, th), Image.LANCZOS)
 
-    f = max(0, min(int(feather), tw // 4, th // 4))
-    mask = Image.new("L", (tw, th), 0)
-    ImageDraw.Draw(mask).rectangle([f, f, tw - f, th - f], fill=255)
-    if f > 0:
-        mask = mask.filter(ImageFilter.GaussianBlur(f / 2))
-
+    mask = _build_feather_mask(tw, th, feather)
     base.paste(repaired, (cx1, cy1), mask)
     return base
+
+
+def _pack_pascal_string(name: str, pad_multiple: int = 4) -> bytes:
+    raw = name.encode("ascii", errors="replace")[:255]
+    data = bytes([len(raw)]) + raw
+    rem = len(data) % pad_multiple
+    if rem:
+        data += b"\x00" * (pad_multiple - rem)
+    return data
+
+
+def _pack_unicode_layer_name(name: str) -> bytes:
+    utf16 = name.encode("utf-16-be")
+    body = struct.pack(">I", len(name)) + utf16
+    if len(body) % 2:
+        body += b"\x00"
+    return b"8BIMluni" + struct.pack(">I", len(body)) + body
+
+
+def save_layered_psd(
+    base_img: Image.Image,
+    repaired_img: Image.Image,
+    crop_box: list[int],
+    out_path: Path,
+    feather: int = 28,
+) -> None:
+    """
+    零外部依赖写出标准 Adobe Photoshop 分层 PSD（8-bit RGB）：
+    - 底层「原图」：完整原始整图
+    - 顶层「局部修复」：对齐到 crop_box 的修好产品图 + 独立可编辑羽化图层蒙版（channel_id=-2）
+    - 同时写入合成预览图，支持 Windows 缩略图、Eagle、飞书与 Photoshop 直接打开。
+    """
+    base_rgb = base_img.convert("RGB")
+    W, H = base_rgb.size
+    cx1, cy1, cx2, cy2 = [int(v) for v in crop_box]
+    tw, th = cx2 - cx1, cy2 - cy1
+
+    rep_rgb = repaired_img.convert("RGB")
+    if rep_rgb.size != (tw, th):
+        rep_rgb = rep_rgb.resize((tw, th), Image.LANCZOS)
+
+    mask_l = _build_feather_mask(tw, th, feather)
+
+    # Merged composite preview
+    merged = base_rgb.copy()
+    merged.paste(rep_rgb, (cx1, cy1), mask_l)
+
+    def _layer_record_and_channels(
+        top: int,
+        left: int,
+        bottom: int,
+        right: int,
+        ascii_name: str,
+        unicode_name: str,
+        rgb_img: Image.Image,
+        user_mask: Image.Image | None = None,
+    ) -> tuple[bytes, bytes]:
+        r_ch, g_ch, b_ch = rgb_img.split()
+        ch_pairs: list[tuple[int, bytes]] = [
+            (0, r_ch.tobytes()),
+            (1, g_ch.tobytes()),
+            (2, b_ch.tobytes()),
+        ]
+        if user_mask is not None:
+            ch_pairs.append((-2, user_mask.tobytes()))
+
+        # Each channel data block has 2-byte compression flag (0 = raw) + raw bytes
+        rec = bytearray()
+        rec += struct.pack(">iiii", top, left, bottom, right)
+        rec += struct.pack(">H", len(ch_pairs))
+        ch_blobs = bytearray()
+        for cid, raw_bytes in ch_pairs:
+            ch_len = 2 + len(raw_bytes)
+            rec += struct.pack(">hI", cid, ch_len)
+            ch_blobs += struct.pack(">H", 0) + raw_bytes
+
+        rec += b"8BIMnorm"
+        rec += struct.pack(">BBBB", 255, 0, 0, 0)  # opacity=255, clipping=0, flags=0, filler=0
+
+        extra = bytearray()
+        if user_mask is not None:
+            # Layer mask data: 20 bytes (top, left, bottom, right, default_color=0, flags=0, pad=0)
+            mask_hdr = struct.pack(">iiiiBBH", top, left, bottom, right, 0, 0, 0)
+            extra += struct.pack(">I", len(mask_hdr)) + mask_hdr
+        else:
+            extra += struct.pack(">I", 0)
+        extra += struct.pack(">I", 0)  # Layer blending ranges
+        extra += _pack_pascal_string(ascii_name, 4)
+        extra += _pack_unicode_layer_name(unicode_name)
+
+        rec += struct.pack(">I", len(extra)) + extra
+        return bytes(rec), bytes(ch_blobs)
+
+    rec0, ch0 = _layer_record_and_channels(0, 0, H, W, "Base", "原图", base_rgb, None)
+    rec1, ch1 = _layer_record_and_channels(cy1, cx1, cy2, cx2, "Repaired", "局部修复", rep_rgb, mask_l)
+
+    layer_info = struct.pack(">h", 2) + rec0 + rec1 + ch0 + ch1
+    if len(layer_info) % 2:
+        layer_info += b"\x00"
+
+    layer_and_mask = struct.pack(">I", len(layer_info)) + layer_info + struct.pack(">I", 0)
+
+    # Merged image data (compression=0, R plane + G plane + B plane)
+    mr, mg, mb = merged.split()
+    merged_data = struct.pack(">H", 0) + mr.tobytes() + mg.tobytes() + mb.tobytes()
+
+    header = b"8BPS" + struct.pack(">H6sHIIHH", 1, b"\x00" * 6, 3, H, W, 8, 3)
+    color_mode = struct.pack(">I", 0)
+    image_resources = struct.pack(">I", 0)
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with out_path.open("wb") as f:
+        f.write(header)
+        f.write(color_mode)
+        f.write(image_resources)
+        f.write(struct.pack(">I", len(layer_and_mask)))
+        f.write(layer_and_mask)
+        f.write(merged_data)
+
+
+def save_pasted_output(
+    base_img: Image.Image,
+    repaired_img: Image.Image,
+    crop_box: list[int],
+    out_path: Path,
+    feather: int = 28,
+) -> None:
+    """按输出扩展名自动保存为分层 PSD、无损 TIFF 或 PNG/JPG。"""
+    ext = out_path.suffix.lower()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    if ext == ".psd":
+        save_layered_psd(base_img, repaired_img, crop_box, out_path, feather=feather)
+        return
+    final_im = paste_back_smooth(base_img, repaired_img, crop_box, feather=feather)
+    if ext in (".tif", ".tiff"):
+        final_im.convert("RGB").save(out_path, format="TIFF", compression="tiff_lzw")
+    elif ext in (".jpg", ".jpeg"):
+        final_im.convert("RGB").save(out_path, quality=95)
+    else:
+        final_im.save(out_path)
 
 
 def build_repair_prompt(defect_desc: str, mask_color: str = DEFAULT_MASK_COLOR) -> str:
@@ -303,19 +448,16 @@ def cmd_paste_single(args: argparse.Namespace) -> int:
     meta_path = Path(args.meta).resolve()
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
     src_path = Path(meta["source_image"])
-    out_path = Path(args.out).resolve() if args.out else src_path.with_name(f"{src_path.stem}_repaired.png")
-    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fmt_ext = "." + args.format.lstrip(".").lower() if args.format else ".psd"
+    out_path = Path(args.out).resolve() if args.out else src_path.with_name(f"{src_path.stem}_repaired{fmt_ext}")
 
     with Image.open(src_path) as base_im, Image.open(Path(args.repaired).resolve()) as rep_im:
-        final_im = paste_back_smooth(base_im, rep_im, meta["crop_box"], feather=args.feather)
-        if out_path.suffix.lower() in (".jpg", ".jpeg"):
-            final_im = final_im.convert("RGB")
-        final_im.save(out_path)
+        save_pasted_output(base_im, rep_im, meta["crop_box"], out_path, feather=args.feather)
 
     if args.cleanup:
         shutil.rmtree(meta_path.parent, ignore_errors=True)
 
-    print(json.dumps({"status": "pasted", "out": str(out_path)}, ensure_ascii=False))
+    print(json.dumps({"status": "pasted", "out": str(out_path), "format": out_path.suffix.lstrip(".")}, ensure_ascii=False))
     return 0
 
 
@@ -370,7 +512,7 @@ def cmd_prepare_batch(args: argparse.Namespace) -> int:
                 "white_ref": str(white_ref),
                 "clean_crop": str(clean_path),
                 "masked_crop": str(masked_path),
-                "out_path": str(_resolve_path(root, item["out_path"])) if item.get("out_path") else str(img_path.with_name(f"{img_path.stem}_repaired.png")),
+                "out_path": str(_resolve_path(root, item["out_path"])) if item.get("out_path") else str(img_path.with_name(f"{img_path.stem}_repaired.psd")),
                 "prompt": prompt,
             }
         )
@@ -436,12 +578,10 @@ def cmd_paste_batch(args: argparse.Namespace) -> int:
 
         src_path = Path(entry["source_image"])
         out_path = Path(entry["out_path"])
-        out_path.parent.mkdir(parents=True, exist_ok=True)
+        if args.format:
+            out_path = out_path.with_suffix("." + args.format.lstrip(".").lower())
         with Image.open(src_path) as base_im, Image.open(cand) as rep_im:
-            final_im = paste_back_smooth(base_im, rep_im, entry["crop_box"], feather=args.feather)
-            if out_path.suffix.lower() in (".jpg", ".jpeg"):
-                final_im = final_im.convert("RGB")
-            final_im.save(out_path)
+            save_pasted_output(base_im, rep_im, entry["crop_box"], out_path, feather=args.feather)
         outputs.append(str(out_path))
 
     if args.cleanup and not missing:
@@ -471,7 +611,8 @@ def main(argv: list[str] | None = None) -> int:
     pts = sub.add_parser("paste-single", help="单张修好后外扩边羽化无损贴回原整图")
     pts.add_argument("--meta", required=True, help="prepare-single 产出的 *_meta.json")
     pts.add_argument("--repaired", required=True, help="AI 修好的产品外扩图")
-    pts.add_argument("--out", default="", help="最终输出路径（默认同目录 *_repaired.png）")
+    pts.add_argument("--out", default="", help="最终输出路径（默认同目录 *_repaired.psd，可指定 .psd/.tif/.png）")
+    pts.add_argument("--format", default="psd", choices=["psd", "tif", "tiff", "png", "jpg"], help="未指定 --out 时的默认输出格式（默认 psd 分层蒙版）")
     pts.add_argument("--feather", type=int, default=28, help="外扩边羽化像素（默认 28）")
     pts.add_argument("--cleanup", action="store_true", help="贴回完成后清理临时工作目录")
     pts.set_defaults(func=cmd_paste_single)
@@ -488,6 +629,7 @@ def main(argv: list[str] | None = None) -> int:
     ptb = sub.add_parser("paste-batch", help="批量将修好的产品外扩图无损贴回各自整图")
     ptb.add_argument("--workdir", required=True, help="prepare-batch 产出的临时目录")
     ptb.add_argument("--repaired-dir", required=True, help="存放 AI 修好图的目录（文件名匹配 <slug>.png 或 <slug>_01.png）")
+    ptb.add_argument("--format", default="", choices=["", "psd", "tif", "tiff", "png", "jpg"], help="可选强制覆写批量输出格式（如 psd/tif）")
     ptb.add_argument("--feather", type=int, default=28)
     ptb.add_argument("--cleanup", action="store_true", help="全部贴回成功后清理临时目录")
     ptb.set_defaults(func=cmd_paste_batch)

@@ -141,6 +141,35 @@ class MaskRepairTests(unittest.TestCase):
             self.assertTrue((root / "out" / "s01_fixed.png").is_file())
             self.assertFalse(workdir.exists())
 
+    def test_layered_psd_and_tiff_outputs(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            base = Image.new("RGB", (400, 600), (30, 50, 70))
+            repaired = Image.new("RGB", (200, 200), (210, 150, 90))
+            crop_box = [100, 200, 300, 400]
+
+            psd_path = root / "result.psd"
+            tif_path = root / "result.tif"
+            mod.save_pasted_output(base, repaired, crop_box, psd_path, feather=20)
+            mod.save_pasted_output(base, repaired, crop_box, tif_path, feather=20)
+
+            self.assertTrue(psd_path.is_file())
+            self.assertTrue(tif_path.is_file())
+
+            raw = psd_path.read_bytes()
+            self.assertTrue(raw.startswith(b"8BPS"))
+            self.assertIn(b"8BIMluni", raw)
+            # Pillow must be able to open the PSD composite preview and read exact pixels
+            with Image.open(psd_path) as psd_im:
+                self.assertEqual(psd_im.size, (400, 600))
+                self.assertEqual(psd_im.convert("RGB").getpixel((5, 5)), (30, 50, 70))
+                self.assertEqual(psd_im.convert("RGB").getpixel((200, 300)), (210, 150, 90))
+
+            with Image.open(tif_path) as tif_im:
+                self.assertEqual(tif_im.size, (400, 600))
+                self.assertEqual(tif_im.convert("RGB").getpixel((5, 5)), (30, 50, 70))
+                self.assertEqual(tif_im.convert("RGB").getpixel((200, 300)), (210, 150, 90))
+
 
 if __name__ == "__main__":
     unittest.main()
