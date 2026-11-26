@@ -271,16 +271,17 @@ def _save_hook_state(data: dict[str, Any]) -> None:
 def _get_conv_entry(data: dict[str, Any], conv_id: str) -> dict[str, Any]:
     raw = data.get(conv_id)
     if isinstance(raw, str):
-        entry: dict[str, Any] = {"turn_sig": raw, "last_route_key": "", "seen_rows": {}, "warned_bytes": False}
+        entry: dict[str, Any] = {"turn_sig": raw, "last_route_key": "", "seen_rows": {}, "warned_bytes": False, "turn_count": 0}
     elif isinstance(raw, dict):
         entry = {
             "turn_sig": str(raw.get("turn_sig") or ""),
             "last_route_key": str(raw.get("last_route_key") or ""),
             "seen_rows": dict(raw.get("seen_rows")) if isinstance(raw.get("seen_rows"), dict) else {},
             "warned_bytes": bool(raw.get("warned_bytes", False)),
+            "turn_count": int(raw.get("turn_count") or 0),
         }
     else:
-        entry = {"turn_sig": "", "last_route_key": "", "seen_rows": {}, "warned_bytes": False}
+        entry = {"turn_sig": "", "last_route_key": "", "seen_rows": {}, "warned_bytes": False, "turn_count": 0}
     data[conv_id] = entry
     return entry
 
@@ -329,6 +330,8 @@ def handle_pre_invocation(payload: dict[str, Any]) -> dict[str, Any]:
     if entry["turn_sig"] == turn_sig:
         return {"injectSteps": []}
     entry["turn_sig"] = turn_sig
+    entry["turn_count"] = int(entry.get("turn_count") or 0) + 1
+    turn_count = entry["turn_count"]
 
     route = classify_user_intent(user_text, root)
     route_key = f"{route['skill']}|{route['mode']}|{route['auth']}"
@@ -387,6 +390,21 @@ def handle_pre_invocation(payload: dict[str, Any]) -> dict[str, Any]:
             entry["warned_bytes"] = True
     else:
         entry["warned_bytes"] = False
+
+    # 长会话防失忆提醒（25 轮起每 15 轮提醒一次 /compact）
+    if turn_count >= 25 and (turn_count == 25 or (turn_count - 25) % 15 == 0):
+        lines.append(
+            f"- 提醒：当前会话已连续 {turn_count} 轮，上下文偏长易丢设定（氛围/已用饮品/道具），建议择机用 `/compact` 压缩上下文。"
+        )
+
+    # 追改/生图防漂移提醒（非局部修复时强提醒：禁垫 L3 候选图、必带里程碑、核对已用饮品道具）
+    is_img_route = any(s in route["skill"] for s in ("d-image-director", "d-image-runner", "d-project-pipeline"))
+    is_repair_turn = ("repair" in route["mode"]) or ("修复" in user_text)
+    is_rework_cue = any(k in user_text for k in ("重新", "重抽", "氛围", "不要", "换", "再"))
+    if is_img_route and not is_repair_turn and (route_key != prev_route_key or is_rework_cue):
+        lines.append(
+            "- 防漂移底线：严禁拿 `制作/` 未定稿候选图当垫图；必须带 L1 白底图 + 已定稿里程碑母版，并核对 `design.md` 已用饮品/道具防重复。"
+        )
 
     _save_hook_state(state)
     if not lines:

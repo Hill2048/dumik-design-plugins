@@ -215,11 +215,61 @@ def _build_feather_mask(tw: int, th: int, feather: int) -> Image.Image:
     return mask
 
 
+def match_border_color(
+    base_img: Image.Image,
+    repaired_img: Image.Image,
+    crop_box: list[int],
+    border_width: int = 16,
+    max_shift: float = 35.0,
+) -> Image.Image:
+    """
+    外扩边自动色差校准：比对原图 crop_box 四周平滑外扩边与 AI 修复图对应外扩边的 RGB 中位数偏差，
+    自动做限幅平移校正（±max_shift），消除纯色/奶油/白底背景贴回时的矩形框印。
+    """
+    import numpy as np
+
+    cx1, cy1, cx2, cy2 = [int(v) for v in crop_box]
+    tw, th = cx2 - cx1, cy2 - cy1
+    base_patch = base_img.convert("RGB").crop((cx1, cy1, cx2, cy2))
+    rep_rgb = repaired_img.convert("RGB")
+    if rep_rgb.size != (tw, th):
+        rep_rgb = rep_rgb.resize((tw, th), Image.LANCZOS)
+
+    bw = max(2, min(int(border_width), tw // 6, th // 6))
+    b_arr = np.asarray(base_patch, dtype=np.float32)
+    r_arr = np.asarray(rep_rgb, dtype=np.float32)
+
+    b_ring = np.concatenate(
+        [
+            b_arr[:bw, :, :].reshape(-1, 3),
+            b_arr[-bw:, :, :].reshape(-1, 3),
+            b_arr[bw:-bw, :bw, :].reshape(-1, 3),
+            b_arr[bw:-bw, -bw:, :].reshape(-1, 3),
+        ],
+        axis=0,
+    )
+    r_ring = np.concatenate(
+        [
+            r_arr[:bw, :, :].reshape(-1, 3),
+            r_arr[-bw:, :, :].reshape(-1, 3),
+            r_arr[bw:-bw, :bw, :].reshape(-1, 3),
+            r_arr[bw:-bw, -bw:, :].reshape(-1, 3),
+        ],
+        axis=0,
+    )
+    delta = np.median(b_ring, axis=0) - np.median(r_ring, axis=0)
+    delta = np.clip(delta, -max_shift, max_shift)
+    adjusted = np.clip(r_arr + delta, 0, 255).astype(np.uint8)
+    out = Image.fromarray(adjusted, mode="RGB")
+    return out.convert(repaired_img.mode) if repaired_img.mode == "RGBA" else out
+
+
 def paste_back_smooth(
     base_img: Image.Image,
     repaired_img: Image.Image,
     crop_box: list[int],
     feather: int = 28,
+    match_border: bool = False,
 ) -> Image.Image:
     """将修好的产品外扩图缩放对齐回 crop_box，在外扩背景边平滑羽化贴回原整图。"""
     base = base_img.convert("RGBA")
@@ -229,6 +279,8 @@ def paste_back_smooth(
 
     if repaired.size != (tw, th):
         repaired = repaired.resize((tw, th), Image.LANCZOS)
+    if match_border:
+        repaired = match_border_color(base, repaired, crop_box).convert("RGBA")
 
     mask = _build_feather_mask(tw, th, feather)
     base.paste(repaired, (cx1, cy1), mask)
@@ -258,6 +310,7 @@ def save_layered_psd(
     crop_box: list[int],
     out_path: Path,
     feather: int = 28,
+    match_border: bool = False,
 ) -> None:
     """
     零外部依赖写出标准 Adobe Photoshop 多图层可编辑蒙版 PSD（8-bit RGB）：
@@ -280,6 +333,8 @@ def save_layered_psd(
         r = cand.convert("RGB")
         if r.size != (tw, th):
             r = r.resize((tw, th), Image.LANCZOS)
+        if match_border:
+            r = match_border_color(base_rgb, r, crop_box).convert("RGB")
         rep_rgbs.append(r)
 
     mask_l = _build_feather_mask(tw, th, feather)
@@ -379,15 +434,16 @@ def save_pasted_output(
     crop_box: list[int],
     out_path: Path,
     feather: int = 28,
+    match_border: bool = False,
 ) -> None:
     """按输出扩展名自动保存为多候选分层 PSD、无损 TIFF 或 PNG/JPG。"""
     ext = out_path.suffix.lower()
     out_path.parent.mkdir(parents=True, exist_ok=True)
     if ext == ".psd":
-        save_layered_psd(base_img, repaired_imgs, crop_box, out_path, feather=feather)
+        save_layered_psd(base_img, repaired_imgs, crop_box, out_path, feather=feather, match_border=match_border)
         return
     primary = repaired_imgs[0] if isinstance(repaired_imgs, list) else repaired_imgs
-    final_im = paste_back_smooth(base_img, primary, crop_box, feather=feather)
+    final_im = paste_back_smooth(base_img, primary, crop_box, feather=feather, match_border=match_border)
     if ext in (".tif", ".tiff"):
         final_im.convert("RGB").save(out_path, format="TIFF", compression="tiff_lzw")
     elif ext in (".jpg", ".jpeg"):
@@ -587,7 +643,14 @@ def cmd_paste_single(args: argparse.Namespace) -> int:
         with Image.open(src_path) as base_im:
             for rp in rep_paths:
                 rep_imgs.append(Image.open(rp))
-            save_pasted_output(base_im, rep_imgs, meta["crop_box"], out_path, feather=args.feather)
+            save_pasted_output(
+                base_im,
+                rep_imgs,
+                meta["crop_box"],
+                out_path,
+                feather=args.feather,
+                match_border=bool(getattr(args, "match_border_color", False)),
+            )
     finally:
         for im in rep_imgs:
             im.close()
@@ -756,7 +819,14 @@ def cmd_paste_batch(args: argparse.Namespace) -> int:
             with Image.open(src_path) as base_im:
                 for cp in cands:
                     rep_imgs.append(Image.open(cp))
-                save_pasted_output(base_im, rep_imgs, entry["crop_box"], out_path, feather=args.feather)
+                save_pasted_output(
+                    base_im,
+                    rep_imgs,
+                    entry["crop_box"],
+                    out_path,
+                    feather=args.feather,
+                    match_border=bool(getattr(args, "match_border_color", False)),
+                )
         finally:
             for im in rep_imgs:
                 im.close()
@@ -794,6 +864,7 @@ def main(argv: list[str] | None = None) -> int:
     pts.add_argument("--out", default="", help="最终输出路径（默认同目录 *_repaired.psd，可指定 .psd/.tif/.png）")
     pts.add_argument("--format", default="psd", choices=["psd", "tif", "tiff", "png", "jpg"], help="未指定 --out 时的默认输出格式（默认 psd 分层蒙版）")
     pts.add_argument("--feather", type=int, default=28, help="外扩边羽化像素（默认 28）")
+    pts.add_argument("--match-border-color", action="store_true", help="纯色/棚拍背景贴回前自动对齐外扩边色差，消除矩形框印")
     pts.add_argument("--cleanup", action="store_true", help="贴回完成后清理临时工作目录")
     pts.set_defaults(func=cmd_paste_single)
 
@@ -811,6 +882,7 @@ def main(argv: list[str] | None = None) -> int:
     ptb.add_argument("--repaired-dir", required=True, help="存放 AI 修好图的目录（文件名匹配 <slug>.png 或 <slug>_01.png）")
     ptb.add_argument("--format", default="", choices=["", "psd", "tif", "tiff", "png", "jpg"], help="可选强制覆写批量输出格式（如 psd/tif）")
     ptb.add_argument("--feather", type=int, default=28)
+    ptb.add_argument("--match-border-color", action="store_true", help="纯色/棚拍背景贴回前自动对齐外扩边色差，消除矩形框印")
     ptb.add_argument("--cleanup", action="store_true", help="全部贴回成功后清理临时目录")
     ptb.set_defaults(func=cmd_paste_batch)
 

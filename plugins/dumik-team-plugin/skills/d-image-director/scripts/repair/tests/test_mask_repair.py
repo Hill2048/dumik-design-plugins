@@ -255,6 +255,16 @@ class MaskRepairTests(unittest.TestCase):
                 cx, cy = ref_im.width // 2, ref_im.height // 2
                 self.assertEqual(ref_im.convert("RGB").getpixel((cx, cy)), (120, 160, 200))
 
+    def test_match_border_color_eliminates_pure_bg_seam(self):
+        # Pure cream studio backdrop (235, 225, 210); AI crop shifted +18 darker -> (217, 207, 192)
+        base = Image.new("RGB", (600, 600), (235, 225, 210))
+        repaired = Image.new("RGB", (200, 200), (217, 207, 192))
+        crop_box = [200, 200, 400, 400]
+
+        pasted = mod.paste_back_smooth(base, repaired, crop_box, feather=20, match_border=True)
+        # After border color match, center of pasted patch matches cream backdrop cleanly
+        self.assertEqual(pasted.convert("RGB").getpixel((300, 300)), (235, 225, 210))
+
 
 if __name__ == "__main__":
     unittest.main()

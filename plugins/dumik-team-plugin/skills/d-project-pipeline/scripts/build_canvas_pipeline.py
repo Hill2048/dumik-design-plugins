@@ -715,7 +715,13 @@ def prepare_or_execute_batch(
     }
 
 
-def promote_candidate(project_root: Path, *, item_id: str, candidate_file: Path) -> dict[str, Any]:
+def promote_candidate(
+    project_root: Path,
+    *,
+    item_id: str,
+    candidate_file: Path,
+    allow_low_res: bool = False,
+) -> dict[str, Any]:
     """Promote an approved milestone or candidate image into 设定集/里程碑 or 成品/."""
     project_root = project_root.resolve()
     _, rows = parse_project_md(project_root / "project.md")
@@ -727,6 +733,27 @@ def promote_candidate(project_root: Path, *, item_id: str, candidate_file: Path)
     src = src.resolve()
     if not src.is_file():
         raise PipelineError(f"找不到要定稿的图片文件：{candidate_file}")
+
+    if not allow_low_res:
+        lower_parts = [p.lower() for p in src.parts]
+        if any("user_uploaded" in p for p in lower_parts):
+            raise PipelineError(
+                "检测到源图来自聊天框附件（.user_uploaded），聊天框会自动压缩为 1024px 有损图！"
+                "严禁直接当定稿归档，请向用户索要本机无损原图路径后再定稿（确需强制归档可加 --allow-low-res）。"
+            )
+        if not row.id.startswith("E"):
+            try:
+                from PIL import Image
+
+                with Image.open(src) as im:
+                    w, h = im.size
+            except Exception:
+                w = h = 0
+            if max(w, h) > 0 and max(w, h) < 1500:
+                raise PipelineError(
+                    f"检测到待定稿图片分辨率偏低（{w}×{h}，长边 < 1500px），疑似压缩预览图！"
+                    "请核对并传入 2K 无损原图路径（确需强制归档可加 --allow-low-res）。"
+                )
 
     ext = src.suffix.lower() or ".png"
     slug = sanitize_slug(row.title, row.id)
@@ -876,6 +903,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--promote", default=None, help="将某编号候选图定稿晋升到 设定集/里程碑 或 成品/")
     parser.add_argument("--file", default=None, help="配合 --promote 使用的候选图文件路径")
+    parser.add_argument("--allow-low-res", action="store_true", help="跳过定稿防压缩图门禁（允许 <1500px 或聊天框附件强制归档）")
     parser.add_argument("--variant-sku", default=None, help="多 SKU 批量一键换款：目标新 SKU 名称（归档至 成品/<SKU名>/）")
     parser.add_argument("--variant-ref", default=None, help="配合 --variant-sku 使用的新 SKU 白底参考图路径")
     parser.add_argument("--variant-desc", default="", help="配合 --variant-sku 使用的一句话颜色/材质差异说明")
@@ -904,7 +932,12 @@ def main(argv: list[str] | None = None) -> int:
         elif args.promote:
             if not args.file:
                 raise PipelineError("使用 --promote 时必须同时传入 --file <候选图路径>。")
-            res = promote_candidate(project_root, item_id=args.promote.strip(), candidate_file=Path(args.file))
+            res = promote_candidate(
+                project_root,
+                item_id=args.promote.strip(),
+                candidate_file=Path(args.file),
+                allow_low_res=bool(args.allow_low_res),
+            )
         elif args.execute or args.prepare_batch:
             ids = [s.strip() for s in args.ids.split(",")] if args.ids else None
             res = prepare_or_execute_batch(

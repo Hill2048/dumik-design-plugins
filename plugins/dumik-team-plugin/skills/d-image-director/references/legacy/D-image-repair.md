@@ -52,11 +52,11 @@ description: "选片后的产品细节修复质量门（产品外扩切图 + 局
    ```
    将产出的 `*_预览图.png`（左原切片 / 中洋红遮罩 / 右裁切白底）交用户确认。
 3. **授权发包生图**：用户明确下令「开始修复 / 出图」后，交 `d-image-runner`（默认 DesignFlow MCP `2K · x2`，`@图1` 涂色块外扩图 + `@图2` 白底基准图，显式传入脚本返回的 `ratio`）；**产品修复模型优先级固定为：`即梦 5.5`（`seedream-5.5`）＞ `即梦 5.0 Pro`（`seedream-5-pro`）＞ `Banana 2.1`（`banana2.1`）**（首选不可用时按序降级）。
-4. **无损贴回整图并清理 `%TEMP%`**：
+4. **无损贴回整图并清理 `%TEMP%`**（纯色/奶油/棚拍光滑背景建议加 `--match-border-color` 自动消除边缘色差框印）：
    ```powershell
    python scripts/repair/mask_repair.py paste-single `
      --meta "<temp>/*_meta.json" --repaired "<AI修好的外扩图>" `
-     --out "<项目>/制作/<编号_名称>/<原名>_已修复.psd" --cleanup
+     --out "<项目>/制作/<编号_名称>/<原名>_已修复.psd" --match-border-color --cleanup
    ```
 
 ## 批量修复流程（项目制多屏选片后）

@@ -36,7 +36,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 按 [插件路由](../../assets/agent-skill-routing.md) 处理明确的策略需求或专业入口指出的必要策略缺口；单图追改保持原路线，不因出现“质感、创意”就重开策划。多轮决定按 [任务状态合同](../../assets/task-state-contract.md) 维护。
 
-- `image`：针对本次策略缺项整理卖点去重顺序、物理画面证据翻译、**全页多使用/饮用场景矩阵（避免全案挤在同一桌面）**、**逐屏人物判定（无人纯概念 / 刚离席生活余温 / 局部手袖交互 / 真人半身大片）**与纯净 PS 负空间构图建议（必读 `references/visual-selling-translation.md`），不规定方向数量；需要写提示词时交 `d-image-director`。
+- `image`：针对本次策略缺项整理卖点去重顺序、物理画面证据翻译（**对比实测屏必须控制变量：同饮品/同介质对比，热态带清晰上升热气 vs 对照 0 热气塌泡、保冰态满杯大方冰+贴沿下沉冷气+干爽外壁 vs 对照仅剩少量小碎冰+饮品化水变淡+满壁滑落水珠**）、**全页多使用/饮用场景矩阵（避免全案挤在同一桌面）**、**逐屏人物判定（无人纯概念 / 刚离席生活余温 / 局部手袖交互 / 真人半身大片）**与纯净 PS 负空间构图建议（必读 `references/visual-selling-translation.md`），不规定方向数量；需要写提示词时交 `d-image-director`。
 - `canvas`：自动拆解飞书文档与飞书画布（`scripts/parse_feishu_canvas.py`，或由 `d-init` 一键建档时自动调用），过滤纯竞品图、剥离纯检测报告/规格参数排版屏，将卖点翻译为物理画面方向、多使用场景错峰、逐屏人物判定与 PS 留白建议后直接写入五段式嵌图 `project.md`（不落本地 `.json` 或冗余清单），并在启用 `--download-assets` 时下载各槽位参考缩略图进 `素材/飞书画布/` 供 Agent 睁眼读图理解构图与留白；详情页按买家真实下滑阅读顺序一表顺排（标出 `★第1批（同源 Mxx）` vs `第2批` vs `后期排版`），严禁将带水印/UI 的画布脏截图喂入生图 API 垫图。详细规范见 `references/feishu-canvas-decompose.md` 与 `references/visual-selling-translation.md`。
 - `video`：规划人群、痛点、卖点顺序、开头钩子、证据链、可见障碍和转化节奏。需要拆镜头时交给 `d-video-director`。
 
