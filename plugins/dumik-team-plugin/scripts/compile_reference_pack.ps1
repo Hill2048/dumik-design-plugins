@@ -1,6 +1,6 @@
 ﻿param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('d-init','d-image-director','d-image-runner','d-consistency-check','d-prompt-reverse','d-video-director','d-video-runner','d-visual-plan','d-project-pipeline','d-api-test','d-psb-install')]
+    [ValidateSet('d-init','d-image-director','d-image-runner','d-consistency-check','d-prompt-reverse','d-badge-wash','d-food-drink-stylist','d-video-director','d-video-runner','d-visual-plan','d-project-pipeline','d-api-test','d-psb-install')]
     [string]$Skill,
     [string]$Mode = 'default',
     [string]$Model = '',
@@ -82,7 +82,14 @@ switch ($Skill) {
         if ($modeText -match 'light|lighting|shadow|c4d|光影') { Add-Ref 'skills/d-image-director/references/lighting-control.md' }
         if ($modeText -match 'camera|lens|focal|composition|framing|广角|机位|构图|视角') { Add-Ref 'skills/d-image-director/references/camera-language.md' }
         if ($modeText -match 'realism|真实') { Add-Ref 'skills/d-image-director/references/realism.md' }
-        if ($modeText -match 'multiview|multi-view|logo|identity|card|prop|swatch|多视|身份卡|摆件|选样') { Add-Ref 'skills/d-image-director/references/multi-view-lock.md' }
+        if ($modeText -match 'multiview|multi-view|logo|identity|card|prop|swatch|多视|身份卡|摆件|选样') {
+            Add-Ref 'skills/d-image-director/references/multi-view-lock.md'
+            Add-Ref 'skills/d-image-director/references/pinterest-100-props-dna.md'
+        }
+        if ($modeText -match 'food|drink|beverage|cookware|pan|wok|pot|食|饮|菜|锅') {
+            Add-Ref 'skills/d-food-drink-stylist/references/editorial-realism-and-aesthetics.md'
+            Add-Ref 'skills/d-food-drink-stylist/references/culinary-physics-deep-analysis.md'
+        }
         if ($modeText -match 'model|talent|person|hand|wrist|sleeve|佩戴|模特|人|手|腕|袖') { Add-Ref 'skills/d-image-director/references/model-product.md' }
         if ($modeText -match 'json|module|模块') { Add-Ref 'skills/d-image-director/references/prompt-json-modules.md' }
     }
@@ -97,6 +104,42 @@ switch ($Skill) {
     'd-consistency-check' {
         Add-Ref 'assets/image-reference-format.md'
         Add-Ref 'skills/d-consistency-check/references/checklist.md'
+    }
+    'd-badge-wash' {
+        Add-Ref 'assets/image-reference-format.md'
+        Add-Ref 'assets/workflow-chain.md'
+    }
+    'd-food-drink-stylist' {
+        Add-Ref 'assets/image-reference-format.md'
+        Add-Ref 'skills/d-food-drink-stylist/references/editorial-realism-and-aesthetics.md'
+        Add-Ref 'skills/d-food-drink-stylist/references/culinary-physics-deep-analysis.md'
+        Add-Ref 'skills/d-food-drink-stylist/assets/moodboards/INDEX.md'
+        if ($modeText -match 'drink|beverage|cup|mug|茶|饮|咖|杯') {
+            Add-Ref 'skills/d-food-drink-stylist/references/drink-physics-deep-analysis.md'
+            Add-Ref 'skills/d-food-drink-stylist/references/pinterest-100-visual-dna.md'
+            Add-Ref 'skills/d-food-drink-stylist/references/beverage-food-catalog.md'
+        }
+        if ($modeText -match 'ingredient|raw|fruit|veg|spice|肉|果|蔬|原材|香料') {
+            Add-Ref 'skills/d-food-drink-stylist/references/ingredient-anatomy-dna.md'
+        }
+        if ($modeText -match 'cookware|pan|wok|pot|skillet|煎锅|炒锅|奶锅|雪平锅|锅') {
+            Add-Ref 'skills/d-food-drink-stylist/references/cookware-300-food-pairing-dna.md'
+        }
+        if ($modeText -match 'chinese|cn|中餐|炒|烧|蒸|面|煲') {
+            Add-Ref 'skills/d-food-drink-stylist/references/pinterest-100-chinese-food-dna.md'
+            Add-Ref 'skills/d-food-drink-stylist/references/beverage-food-catalog.md'
+        }
+        if ($modeText -match 'western|food|bakery|brunch|西餐|日料|烘焙|甜品|美食') {
+            Add-Ref 'skills/d-food-drink-stylist/references/pinterest-100-food-dna.md'
+            Add-Ref 'skills/d-food-drink-stylist/references/beverage-food-catalog.md'
+        }
+        if ($modeText -match 'all|full|schedule|排期') {
+            Add-Ref 'skills/d-food-drink-stylist/references/drink-physics-deep-analysis.md'
+            Add-Ref 'skills/d-food-drink-stylist/references/ingredient-anatomy-dna.md'
+            Add-Ref 'skills/d-food-drink-stylist/references/cookware-300-food-pairing-dna.md'
+            Add-Ref 'skills/d-food-drink-stylist/references/pinterest-100-chinese-food-dna.md'
+            Add-Ref 'skills/d-food-drink-stylist/references/beverage-food-catalog.md'
+        }
     }
     'd-image-runner' {
         Add-Ref 'assets/task-state-contract.md'

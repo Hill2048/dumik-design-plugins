@@ -1,0 +1,4 @@
+interface:
+  display_name: "食饮与锅具本体造型师"
+  short_description: "1000+实拍与31张3×3高清垫图库，纯本体食饮造型与微观物理"
+  default_prompt: "使用 $d-food-drink-stylist 为杯壶、煎锅、炒锅、小奶锅或餐具项目规划跨色相食饮排期、编写纯本体造型与微观口感物理片段，并按需用 crop_moodboard_tile.py 从内置 31 张 3×3 高清图板裁出 1024×1024 单格供 d-image-director / DesignFlow 垫图。"

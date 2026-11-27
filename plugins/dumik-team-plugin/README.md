@@ -13,12 +13,14 @@
 4. **纯无字底图 + 9:16 分批交付**
    - 画面正文不渲染营销文案、标尺或角标（保留产品原生丝印/刻字），按「第 0 批里程碑 → 第 1 批主图共用核心屏 → 第 2 批其余分屏 → 第 3 批独立 1:1 入口」推进。
 
-## 包含技能（10 个活跃技能）
+## 包含技能（12 个活跃技能）
 
 - `d-init`：项目初始化、目录整理与飞书画布增量同步
 - `d-visual-plan`：详情页结构、卖点四层纯视觉翻译与视频转化策划
-- `d-image-director`：图片提示词与改图指令编写（`detail / edit / brief / direction / hd / repair`）
-- `d-image-runner`：单图/多候选/批量出图与 RunningHub 放大抠图后处理
+- `d-image-director`：图片提示词与改图指令编写（`detail / edit / brief / direction / hd / repair`，含静奢高定摆件材质库与 4 张 3×3 高清摆件图板）
+- `d-food-drink-stylist`：食饮与锅具本体视觉造型师（1000+ 实拍精析 + 27 张 3×3 高清食饮垫图板 + `crop_moodboard_tile.py` 一键拆 1024px 单格，零光影/相机越权）
+- `d-badge-wash`：徽章/认证标/图标两步脱壳清洗与 3D 材质重构
+- `d-image-runner`：单图/多候选/批量出图（DesignFlow / DSH 画布默认 + API 直连兜底）与 RunningHub 放大抠图后处理
 - `d-project-pipeline`：成组图片跨步骤依赖与流水线恢复
 - `d-consistency-check`：原产品图与生成图三态一致性验收
 - `d-prompt-reverse`：参考图反推提示词草稿

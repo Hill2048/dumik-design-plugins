@@ -27,7 +27,7 @@ Skill 是可测流程封装，不是文章收藏。相邻步骤必须能传**结
 
 禁止：「按之前的来」且不附完整 Prompt 或五格。
 
-## 完整端到端标准生产线（一条线串通全部 11 个技能与配套工具）
+## 完整端到端标准生产线（一条线串通全部 12 个技能与配套工具）
 
 ```text
 Stage 1 · 建档与拆解（d-init + d-visual-plan）
@@ -38,13 +38,13 @@ Stage 2 · 第 0 批里程碑锁调（MS01~MS04：d-image-director detail → d-
   └─ 定稿锁入 设定集/里程碑/；纯审美/光影/材质公式写进 design.md，路径与 local-asset: 登记进 assets.md
   ↓
 Stage 3 · 置景摆件库 & 饮品/食材预规划（MS05 · 里程碑锁调后、进详情批量前必做）
-  └─ d-visual-plan 梳理 8~12 件风格摆件 + 全案饮品/食材错峰表写入 assets.md
-  └─ 重点摆件交 d-image-director（multi-view-lock.md 1×3/3×2 实物目录选样卡）+ d-image-runner 出图拍板入 设定集/摆件身份卡/
+  └─ d-visual-plan 协同 d-food-drink-stylist 梳理 8~12 件风格摆件 + 全案饮品/食材/锅具王牌配菜错峰表写入 assets.md
+  └─ 重点摆件与食饮可从内置 31 张 3×3 高清图板（单格 1024×1024）用 crop_moodboard_tile.py 裁单格作 @图 参考，交 d-image-director + d-image-runner 出选样卡拍板入 设定集/摆件身份卡/
   ↓
-Stage 4 · 第 1~3 批详情/主图/入口批量生产（d-project-pipeline + d-image-director + d-image-runner）
+Stage 4 · 第 1~3 批详情/主图/入口批量生产（d-project-pipeline + d-image-director + d-food-drink-stylist + d-image-runner）
   └─ 写每屏 prompt.md 强制三层垫图隔离（L1 必带，严禁垫 制作/ 未定稿候选图），从 assets.md 领用摆件（≤3件）与饮品并回填屏号
-  └─ 洗图走 wash_prep.py（洋红脱壳/抹字/9:16 顶部留白）；徽章/标贴洗材质走 d-badge-wash；反推参考走 d-prompt-reverse
-  └─ 明确授权后默认 DesignFlow 单节点并发（count/models/items），优先按 nodeId 导图落盘（全中文命名），跑 --status 同步
+  └─ 含食饮/锅具配菜屏由 d-food-drink-stylist 提供纯本体造型与微观物理片段（零光影/相机越权），由 d-image-director 统一套场景光影与机位；洗图走 wash_prep.py；徽章洗材质走 d-badge-wash；反推参考走 d-prompt-reverse
+  └─ 明确授权后默认 DesignFlow / DSH 单节点并发（count/models/items），优先按 nodeId 导图落盘（全中文命名），跑 --status 同步
   ↓
 Stage 5 · 三态验收 & 局部无损修复（d-consistency-check → d-image-director repair + d-image-runner）
   └─ 局部漂移走 mask_repair.py（0~1 百分比坐标 + --white-slot 自动切五视图 + 洋红破惰性 + 强制回原始干净图防变红）

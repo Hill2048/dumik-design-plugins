@@ -18,6 +18,10 @@ $expectedSkills = @(
     'd-visual-plan',
     'd-image-director',
     'd-image-runner',
+    'd-consistency-check',
+    'd-prompt-reverse',
+    'd-badge-wash',
+    'd-food-drink-stylist',
     'd-video-director',
     'd-video-runner',
     'd-project-pipeline'

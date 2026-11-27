@@ -44,6 +44,11 @@ python "<插件根目录>\skills\d-food-drink-stylist\scripts\crop_moodboard_til
 4. **食材本体 / 生鲜原材**：必读 `references/ingredient-anatomy-dna.md`；
 5. **中餐 / 西日成品菜**：加读 `references/pinterest-100-chinese-food-dna.md` 或 `references/pinterest-100-food-dna.md`。
 
+## 跨端兼容（Codex / Antigravity / Claude Code / DSH / Linux）
+
+- **Codex / Windows 参考包编译**：可运行 `scripts/compile_reference_pack.ps1 -Skill d-food-drink-stylist -Mode <drink|ingredient|cookware|chinese|western|all>` 一次打包对应参考文档；Linux / Grok Bot 环境直接按需 `read_file` 读取下方对应参考即可。
+- **DSH / DesignFlow 垫图协同**：用 `crop_moodboard_tile.py` 裁出的 `1024×1024` 单格写入系统 `%TEMP%\dumik-runs\`，直接传入 `d-image-runner` / `designflow_generate_image` 的 `referenceFiles`（`@图1` 等），严禁在项目目录内残留临时切片。
+
 ## 交付方式
 
 - 只输出 **「食饮选品排期」** 与 **「可直接嵌入 `d-image-director` 提示词的食饮本体造型片段（80~180 字）」**，不自行写整屏光影/相机/场景词，也不调付费生图接口。
