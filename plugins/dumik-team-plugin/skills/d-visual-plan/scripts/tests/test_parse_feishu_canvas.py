@@ -634,6 +634,102 @@ class ParseFeishuCanvasTests(unittest.TestCase):
             # S02 must correspondingly start below the quiet band (much shorter than 1:1!)
             self.assertLess(s2_h, s2_w * 0.75)
 
+    def test_sharp_banner_step_seam_refinement_and_blank_guard(self) -> None:
+        """Sharp color-step banner seams (without wide blank gaps) must snap cleanly, and blank crops must raise."""
+        RFB_MOD = _load("render_feishu_board", VISUAL_SCRIPT.parent / "render_feishu_board.py")
+        from PIL import Image as PilImage, ImageDraw as PilDraw
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tdir = Path(tmp)
+            # Reject effectively blank crop when check_blank=True
+            blank = PilImage.new("RGB", (200, 200), (247, 248, 250))
+            with self.assertRaises(ValueError):
+                RFB_MOD._save_png_atomic(blank, tdir / "blank.png", check_blank=True)
+
+            # Build 600x1400 strip:
+            # y=0..460 light beige card (low horizontal texture near bottom of y=450..460)
+            # y=460..1400 dark banner & textured pot crossing raw slice seam y=700!
+            full_img = PilImage.new("RGB", (600, 1400), (240, 234, 224))
+            d = PilDraw.Draw(full_img)
+            for y in range(60, 420, 18):
+                for x in range(40, 560, 24):
+                    d.rectangle([x, y, x + 10, y + 10], fill=(120, 95, 70))
+            # Sharp color transition at y=460 into dark background + textured subject across y=700
+            d.rectangle([0, 460, 600, 1400], fill=(28, 30, 26))
+            for y in range(510, 1280, 14):
+                for x in range(40, 560, 20):
+                    d.rectangle([x, y, x + 10, y + 10], fill=(230, 195, 95))
+
+            tok_a = tdir / "BannerATok1234567890.png"
+            tok_b = tdir / "BannerBTok1234567890.png"
+            full_img.crop((0, 0, 600, 700)).save(tok_a)
+            full_img.crop((0, 700, 600, 1400)).save(tok_b)
+
+            nodes = [
+                {"id": "ba", "type": "image", "x": 100, "y": 1000, "width": 600, "height": 700, "image": {"token": "BannerATok1234567890"}},
+                {"id": "bb", "type": "image", "x": 100, "y": 1700, "width": 600, "height": 700, "image": {"token": "BannerBTok1234567890"}},
+            ]
+            parsed = PARSER_MOD._normalize_nodes(nodes)
+            fake_analyzed = {
+                "detail_screens": [
+                    {"id": "S16", "source_kind": "image", "rect": {"x": 100, "y": 1000, "w": 600, "h": 700, "node_id": "ba"}, "sticky_notes": [], "side_reference_images": []},
+                    {"id": "S17", "source_kind": "image", "rect": {"x": 100, "y": 1700, "w": 600, "h": 700, "node_id": "bb"}, "sticky_notes": [], "side_reference_images": []},
+                ],
+                "main_cards": [],
+                "entry_cards": [],
+            }
+            res = RFB_MOD.reconstruct_and_crop_board(
+                analyzed_board=fake_analyzed,
+                parsed=parsed,
+                raw_token_files={"BannerATok1234567890": tok_a, "BannerBTok1234567890": tok_b},
+                dest_dir=tdir / "out",
+                zones={"detail"},
+                write_overviews=False,
+            )
+            with PilImage.open(res["snapshots"]["S16"]) as im16, PilImage.open(res["snapshots"]["S17"]) as im17:
+                # S16 should shrink upward to ~460 (< 600), and S17 should expand upward to ~940 (> 760)
+                self.assertLess(im16.height, im16.width * 0.95)
+                self.assertGreater(im17.height, im17.width * 1.25)
+
+    def test_medium_scale_board_and_side_by_side_main_thumbnails(self) -> None:
+        """Medium-scale boards (455x607 main, 580-wide detail, 302x303 SKU) parse cleanly and embed main thumbs beside Wave 1 rows."""
+        nodes = [
+            # 3 horizontal 455x607 main cards
+            {"id": "m1", "type": "image", "x": 100, "y": 100, "width": 455, "height": 607, "image": {"token": "Main1Tok1234567890"}},
+            {"id": "m2", "type": "image", "x": 620, "y": 100, "width": 455, "height": 607, "image": {"token": "Main2Tok1234567890"}},
+            {"id": "m3", "type": "image", "x": 1140, "y": 100, "width": 455, "height": 607, "image": {"token": "Main3Tok1234567890"}},
+            {"id": "mt1", "type": "composite_shape", "x": 110, "y": 120, "width": 320, "height": 60, "text": {"text": "0涂层 爆炒不粘"}},
+            # 4 vertical 580-wide detail cards
+            {"id": "d1", "type": "image", "x": 100, "y": 1000, "width": 580, "height": 720, "image": {"token": "Det1Tok1234567890"}},
+            {"id": "dt1", "type": "composite_shape", "x": 120, "y": 1040, "width": 320, "height": 60, "text": {"text": "0涂层 爆炒不粘 详情首屏"}},
+            {"id": "d2", "type": "image", "x": 100, "y": 1720, "width": 580, "height": 720, "image": {"token": "Det2Tok1234567890"}},
+            {"id": "d3", "type": "image", "x": 100, "y": 2440, "width": 580, "height": 720, "image": {"token": "Det3Tok1234567890"}},
+            {"id": "d4", "type": "image", "x": 100, "y": 3160, "width": 580, "height": 720, "image": {"token": "Det4Tok1234567890"}},
+            # 2 302x303 SKU cards with sku header
+            {"id": "skh", "type": "composite_shape", "x": 2000, "y": 60, "width": 100, "height": 40, "text": {"text": "sku"}},
+            {"id": "e1", "type": "image", "x": 2000, "y": 120, "width": 302, "height": 303, "image": {"token": "Sku1Tok1234567890"}},
+            {"id": "et1", "type": "composite_shape", "x": 2010, "y": 360, "width": 180, "height": 40, "text": {"text": "炒锅+煎锅两件套"}},
+            {"id": "e2", "type": "image", "x": 2360, "y": 120, "width": 302, "height": 303, "image": {"token": "Sku2Tok1234567890"}},
+            {"id": "et2", "type": "composite_shape", "x": 2370, "y": 360, "width": 180, "height": 40, "text": {"text": "四件套全家福"}},
+        ]
+        analyzed = PARSER_MOD.analyze_whiteboard_nodes(nodes, board_token="MedBoard")
+        self.assertEqual(len(analyzed["main_cards"]), 3)
+        self.assertEqual(len(analyzed["detail_screens"]), 4)
+        self.assertEqual(len(analyzed["entry_cards"]), 2)
+
+        # Simulate asset paths & render project.md -> verify side-by-side main thumb in Wave 1 row
+        analyzed["main_cards"][0]["local_asset_path"] = "素材/飞书画布/M01_画布原图.png"
+        manifest = PARSER_MOD.build_manifest(
+            doc_info={"title": "中尺度套装测试", "headings": [], "tables": [], "whiteboards": [], "paragraphs": [], "links": []},
+            boards=[analyzed],
+            source_url="https://example.feishu.cn/wiki/test",
+            identities_used=["user"],
+            default_ratio="9:16",
+        )
+        md = PARSER_MOD.render_project_markdown(manifest)
+        self.assertIn("批次与同源主图对照", md)
+        self.assertIn('<img src="素材/飞书画布/M01_画布原图.png" width="90">', md)
+
 
 if __name__ == "__main__":
     unittest.main()

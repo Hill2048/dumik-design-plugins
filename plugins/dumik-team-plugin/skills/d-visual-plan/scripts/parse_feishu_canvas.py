@@ -395,21 +395,29 @@ def extract_json_payload(stdout: str) -> dict[str, Any]:
     if start < 0:
         raise FeishuCanvasError(f"lark-cli 返回非 JSON 输出: {stdout[:300]}")
     try:
-        return json.loads(stdout[start:])
+        obj, _ = json.JSONDecoder().raw_decode(stdout, start)
+        if not isinstance(obj, dict):
+            raise FeishuCanvasError(f"lark-cli 返回非对象 JSON: {type(obj).__name__}")
+        return obj
     except json.JSONDecodeError as exc:
         raise FeishuCanvasError(f"解析 lark-cli JSON 失败: {exc}") from exc
 
 
 def run_lark_cli(args: list[str], *, cwd: Path | None = None) -> dict[str, Any]:
     exe = resolve_lark_cli()
+    run_cwd = str(cwd) if cwd else None
+    if run_cwd and run_cwd.startswith("\\\\"):
+        run_cwd = tempfile.gettempdir()
     proc = subprocess.run(
         [exe, *args],
-        cwd=str(cwd) if cwd else None,
+        cwd=run_cwd,
         capture_output=True,
         text=True,
         encoding="utf-8",
         errors="replace",
     )
+    if (proc.stdout or "").find("{") >= 0:
+        return extract_json_payload(proc.stdout or "")
     combined = (proc.stdout or "") + "\n" + (proc.stderr or "")
     return extract_json_payload(combined)
 
@@ -480,33 +488,44 @@ def download_whiteboard_media(
         for identity in identities:
             if cmd_name == "+media-download" and identity in blocked:
                 continue
-            resp = run_lark_cli(
-                [
-                    "docs",
-                    cmd_name,
-                    "--as",
-                    identity,
-                    "--token",
-                    token,
-                    "--output",
-                    rel_out,
-                    "--overwrite",
-                ],
-                cwd=dest_dir,
-            )
-            if resp.get("ok"):
-                data = resp.get("data") or {}
-                saved = data.get("saved_path")
-                ctype = str(data.get("content_type") or "")
-                if saved and Path(saved).exists():
-                    return str(_ensure_image_extension(Path(saved).resolve(), ctype)), None
-                matches = list(dest_dir.glob(f"{safe_stem}*"))
-                if matches:
-                    return str(_ensure_image_extension(matches[0].resolve(), ctype)), None
-            elif cmd_name == "+media-download":
-                subtype = ((resp.get("error") or {}).get("subtype") or "").lower()
-                if subtype == "permission_denied":
-                    blocked.add(identity)
+            with tempfile.TemporaryDirectory(prefix="dumik-lark-media-") as tmp_dir:
+                tmp_path = Path(tmp_dir)
+                resp = run_lark_cli(
+                    [
+                        "docs",
+                        cmd_name,
+                        "--as",
+                        identity,
+                        "--token",
+                        token,
+                        "--output",
+                        rel_out,
+                        "--overwrite",
+                    ],
+                    cwd=tmp_path,
+                )
+                if resp.get("ok"):
+                    data = resp.get("data") or {}
+                    saved = data.get("saved_path")
+                    ctype = str(data.get("content_type") or "")
+                    src_file: Path | None = None
+                    if saved and Path(saved).exists():
+                        src_file = Path(saved).resolve()
+                    else:
+                        matches = list(tmp_path.glob(f"{safe_stem}*"))
+                        if matches:
+                            src_file = matches[0].resolve()
+                    if src_file is not None and src_file.is_file():
+                        ext = src_file.suffix.lower()
+                        if ext not in (".png", ".jpg", ".jpeg", ".webp", ".gif"):
+                            ext = CONTENT_TYPE_EXT.get((ctype or "").split(";", 1)[0].strip().lower(), ".png")
+                        dest_file = dest_dir / f"{safe_stem}{ext}"
+                        shutil.copy2(str(src_file), str(dest_file))
+                        return str(dest_file), None
+                elif cmd_name == "+media-download":
+                    subtype = ((resp.get("error") or {}).get("subtype") or "").lower()
+                    if subtype == "permission_denied":
+                        blocked.add(identity)
     return None, f"无法下载或预览图片 {token}（身份：{','.join(identities)}）"
 
 
@@ -704,13 +723,13 @@ def _detect_horizontal_main_row_ids(
     """Protect >=3-card horizontal 3:4 main-image rows from being swallowed by vertical detail stacks."""
     cands: list[dict[str, Any]] = []
     for img in images:
-        if img["w"] >= 600 and img["h"] >= 800 and 0.66 <= img["ratio"] <= 0.86:
+        if img["w"] >= 380 and img["h"] >= 500 and 0.66 <= img["ratio"] <= 0.86:
             cands.append(img)
     for shp in shapes:
-        if shp["w"] >= 600 and shp["h"] >= 800 and 0.66 <= shp["ratio"] <= 0.86 and not shp["text"]:
+        if shp["w"] >= 380 and shp["h"] >= 500 and 0.66 <= shp["ratio"] <= 0.86 and not shp["text"]:
             cands.append(shp)
     for sec in sections:
-        if 600 <= sec["w"] <= 1800 and 800 <= sec["h"] <= 2400 and 0.66 <= sec["ratio"] <= 0.86:
+        if 380 <= sec["w"] <= 1800 and 500 <= sec["h"] <= 2400 and 0.66 <= sec["ratio"] <= 0.86:
             cands.append(sec)
 
     rows: list[list[dict[str, Any]]] = []
@@ -793,7 +812,7 @@ def _find_detail_stack(
     for node, kind in container_nodes:
         if node["id"] in protected or _is_non_detail_section(node):
             continue
-        if not (650 <= node["w"] <= 1900 and 420 <= node["h"] <= 4500):
+        if not (480 <= node["w"] <= 1900 and 300 <= node["h"] <= 4500):
             continue
         overlaps_existing = any(
             overlap_1d(node["x"], node["x"] + node["w"], c["x"], c["x"] + c["w"]) > min(node["w"], c["w"]) * 0.5
@@ -810,7 +829,7 @@ def _find_detail_stack(
     for img in images:
         if img["id"] in protected or _is_non_detail_section(img):
             continue
-        if not (650 <= img["w"] <= 1900 and 320 <= img["h"] <= 4500):
+        if not (480 <= img["w"] <= 1900 and 240 <= img["h"] <= 4500):
             continue
         inside_container = any(
             c["area"] > 0
@@ -896,7 +915,7 @@ def _find_detail_stack(
         for img in images:
             if img["id"] in best_ids or img["id"] in protected or _is_non_detail_section(img):
                 continue
-            if 650 <= img["w"] <= 1900 and 100 <= img["h"] < 340 and abs(img["x"] - card["x"]) <= 120:
+            if 480 <= img["w"] <= 1900 and 100 <= img["h"] < 260 and abs(img["x"] - card["x"]) <= 120:
                 gap_y = img["y"] - (card["y"] + card["h"])
                 if -40 <= gap_y <= 45:
                     card["h"] = max(card["h"], (img["y"] + img["h"]) - card["y"])
@@ -1136,9 +1155,9 @@ def _find_main_and_entry_cards(
         if _has_overhead_video_marker(img, video_markers):
             consumed_image_ids.add(img["id"])
             continue
-        if img["w"] >= 600 and img["h"] >= 800 and 0.66 <= img["ratio"] <= 0.86:
+        if img["w"] >= 380 and img["h"] >= 500 and 0.66 <= img["ratio"] <= 0.86:
             main_candidates.append(dict(img, source_kind="image"))
-        elif img["w"] >= 580 and img["h"] >= 580 and 0.88 <= img["ratio"] <= 1.12:
+        elif img["w"] >= 280 and img["h"] >= 280 and 0.88 <= img["ratio"] <= 1.12:
             square_candidates.append(dict(img, source_kind="image"))
 
     for node, kind in [*( (s, "layout_frame") for s in shapes ), *( (sec, "section_frame") for sec in sections )]:
@@ -1155,7 +1174,7 @@ def _find_main_and_entry_cards(
                 if (node["x"] - 20) <= shp["cx"] <= (node["x"] + node["w"] + 20) and (node["y"] - 20) <= shp["cy"] <= (node["y"] + node["h"] + 20):
                     consumed_shape_ids.add(shp["id"])
             continue
-        if 600 <= node["w"] <= 1800 and 800 <= node["h"] <= 2400 and 0.66 <= node["ratio"] <= 0.86:
+        if 380 <= node["w"] <= 1800 and 500 <= node["h"] <= 2400 and 0.66 <= node["ratio"] <= 0.86:
             overlaps = any(
                 overlap_1d(node["x"], node["x"] + node["w"], c["x"], c["x"] + c["w"]) > min(node["w"], c["w"]) * 0.5
                 and overlap_1d(node["y"], node["y"] + node["h"], c["y"], c["y"] + c["h"]) > min(node["h"], c["h"]) * 0.5
@@ -1163,7 +1182,7 @@ def _find_main_and_entry_cards(
             )
             if not overlaps:
                 main_candidates.append(dict(node, token="", source_kind=kind))
-        elif kind == "layout_frame" and 580 <= node["w"] <= 1800 and 580 <= node["h"] <= 1800 and 0.88 <= node["ratio"] <= 1.12:
+        elif kind == "layout_frame" and 280 <= node["w"] <= 1800 and 280 <= node["h"] <= 1800 and 0.88 <= node["ratio"] <= 1.12:
             overlaps = any(
                 overlap_1d(node["x"], node["x"] + node["w"], c["x"], c["x"] + c["w"]) > min(node["w"], c["w"]) * 0.5
                 and overlap_1d(node["y"], node["y"] + node["h"], c["y"], c["y"] + c["h"]) > min(node["h"], c["h"]) * 0.5
@@ -2518,8 +2537,13 @@ def render_project_markdown(
         links_md = " · ".join(f"[第{i}段]({o})" for i, o in enumerate(detail_ovs, start=1)) if len(detail_ovs) > 1 else f"[{Path(detail_ovs[0]).name}]({detail_ovs[0]})"
         lines.append(f"> 详情区完整排布还原总览：{links_md}（跨切片无缝画面已自动重定位分界线）")
         lines.append("")
-    lines.append("| 编号 | 批次与关联 | 画布原图与参考 | 运营原主副标题 & 批注（PS排字直接复制） | 纯无字底图拍法 & PS留白 | 机位景别 | 当前出图 | 状态 |")
+    lines.append("| 编号 | 批次与同源主图对照 | 画布原图与参考 | 运营原主副标题 & 批注（PS排字直接复制） | 纯无字底图拍法 & PS留白 | 机位景别 | 当前出图 | 状态 |")
     lines.append("| --- | --- | --- | --- | --- | --- | --- | --- |")
+    main_img_by_id: dict[str, str] = {}
+    for mc in manifest.get("mainCards3x4", []):
+        mp = (mc.get("local_asset_path") or "").replace("\\", "/").strip()
+        if mp:
+            main_img_by_id[mc["id"]] = mp
     detail_ordered = waves.get("detailScreensOrdered")
     if not detail_ordered:
         combined_det = [*waves.get("wave1_detail_main_shared", []), *waves.get("wave2_detail_rest", [])]
@@ -2533,11 +2557,15 @@ def render_project_markdown(
         is_w1 = item.get("priority_wave") == 1
         cls_info = classify_screen_visual_mode(item, is_main_shared=is_w1) if "visual_mode" not in item else item
         is_layout = cls_info.get("visual_mode") == "layout_only"
-        linked = _md_cell("、".join(item.get("linked_main_ids", [])))
+        linked_ids = list(item.get("linked_main_ids", []))
+        linked = _md_cell("、".join(linked_ids))
         if is_layout:
             batch_col = "后期排版"
         elif is_w1:
             batch_col = f"**★第1批**（同源 {linked}）" if linked else "**★第1批**"
+            linked_thumbs = [f'<img src="{main_img_by_id[mid]}" width="90">' for mid in linked_ids if mid in main_img_by_id]
+            if linked_thumbs:
+                batch_col += "<br>" + " ".join(linked_thumbs)
         else:
             batch_col = "第2批"
 

@@ -2,7 +2,7 @@
 name: d-visual-plan
 description: "策划整页详情结构、卖点顺序、物理视觉证据、场景错峰与逐屏人物判定（含飞书画布翻译入 project.md）。写单图提示词交 d-image-director，不执行生成。"
 metadata:
-  version: 0.3.2
+  version: 0.3.3
 ---
 
 # 视觉策划
@@ -38,7 +38,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 
 - `image`：针对本次策略缺项整理卖点去重顺序、物理画面证据翻译（**对比实测屏必须控制变量：同饮品/同介质对比，热态带清晰上升热气 vs 对照 0 热气塌泡、保冰态满杯大方冰+贴沿下沉冷气+干爽外壁 vs 对照仅剩少量小碎冰+饮品化水变淡+满壁滑落水珠**）、**全页多使用/饮用场景矩阵（避免全案挤在同一桌面）**、**逐屏人物判定（无人纯概念 / 刚离席生活余温 / 局部手袖交互 / 真人半身大片）**与纯净 PS 负空间构图建议（必读 `references/visual-selling-translation.md`），不规定方向数量；需要写提示词时交 `d-image-director`。
 - **置景摆件库与食材预规划（里程碑定稿后、进第 1 批详情前必做）**：当第 0 批里程碑（`MS02`/`MS04`）锁调后、批量开写详情 `S*` 之前，主动基于已锁定的配色结构（亮区+暖桥+深色锚点）与禁材红线完成两张表并写入 `assets.md`（不污染 `design.md`）：① **风格摆件库（8~12 件）**：结合 `d-image-director/references/pinterest-100-props-dna.md` 与内置 `摆件_01~04` 高清图板，按桌面小件、织物、花器、金属石材等分组写清材质/色系/体量，重点款交 `d-image-director` 出选样卡或拆单格垫图拍板样式再入 `设定集/摆件身份卡/`，彻底避免后期「AI 生啥用啥」；② **饮品/食材/锅具王牌配菜全案错峰排期表**（适用杯壶/煎锅/炒锅/小奶锅/厨电/餐具）：协同 `d-food-drink-stylist` 一次性为整页涉及吃喝烹饪的屏幕排定品种、色相、口感物理与对应内置 `3×3` 图板格号，保证相邻屏不重样、同单品全案 ≤2 次。
-- `canvas`：自动拆解飞书文档与飞书画布（`scripts/parse_feishu_canvas.py`，或由 `d-init` 一键建档时自动调用），过滤纯竞品图、剥离纯检测报告/规格参数排版屏，将卖点翻译为物理画面方向、多使用场景错峰、逐屏人物判定与 PS 留白建议后直接写入五段式嵌图 `project.md`（不落本地 `.json` 或冗余清单），并在启用 `--download-assets` 时下载各槽位参考缩略图进 `素材/飞书画布/` 供 Agent 睁眼读图理解构图与留白；详情页按买家真实下滑阅读顺序一表顺排（标出 `★第1批（同源 Mxx）` vs `第2批` vs `后期排版`），严禁将带水印/UI 的画布脏截图喂入生图 API 垫图。详细规范见 `references/feishu-canvas-decompose.md` 与 `references/visual-selling-translation.md`。
+- `canvas`：自动拆解飞书文档与飞书画布（`scripts/parse_feishu_canvas.py` + `scripts/render_feishu_board.py`，或由 `d-init` 一键建档时自动调用），兼容中尺度缩放画布与 NAS/UNC 盘拉图，过滤纯竞品图、剥离纯检测报告/规格参数排版屏，将卖点翻译为物理画面方向、多使用场景错峰、逐屏人物判定与 PS 留白建议后直接写入五段式嵌图 `project.md`（不落本地 `.json` 或冗余清单），并在启用 `--download-assets` 时通过本地还原自动裁切各槽位参考缩略图进 `素材/飞书画布/`（内置高反差横幅/留白防拦腰断切、相邻底图防串图、横排卡边界隔离与防白图校验）；详情页按买家真实下滑阅读顺序一表顺排，并在「批次与同源主图对照」列为 `★第1批（同源 Mxx）` 并排嵌入对应主图缩略图方便核对；严禁将带水印/UI 的画布脏截图喂入生图 API 垫图。详细规范见 `references/feishu-canvas-decompose.md` 与 `references/visual-selling-translation.md`。
 - `video`：规划人群、痛点、卖点顺序、开头钩子、证据链、可见障碍和转化节奏。需要拆镜头时交给 `d-video-director`。
 
 ## 任务拆解（强制）

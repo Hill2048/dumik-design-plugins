@@ -2,7 +2,7 @@
 name: d-init
 description: "建档或维护单个 DUMIK 产品项目文件夹（初始化、--sync 增量同步飞书画布、维护 AGENTS.md / design.md 规则）。写单屏提示词交 d-image-director，调生图交 d-image-runner。"
 metadata:
-  version: 0.4.2
+  version: 0.4.3
 ---
 
 # 项目初始化与增量同步

@@ -531,7 +531,22 @@ def render_region_canvas(
     return canvas
 
 
-def _save_png_atomic(img: Any, dest_path: Path) -> Path:
+def _is_effectively_blank(img: Any, bg_rgb: tuple[int, int, int] = (247, 248, 250)) -> bool:
+    """Return True if a rendered crop has virtually zero non-background content."""
+    if not PIL_AVAILABLE or img is None:
+        return True
+    thumb = img.convert("RGB").resize((48, 48))
+    pixels = list(getattr(thumb, "get_flattened_data", thumb.getdata)())
+    if not pixels:
+        return True
+    bg_r, bg_g, bg_b = bg_rgb
+    non_bg = sum(1 for r, g, b in pixels if abs(r - bg_r) + abs(g - bg_g) + abs(b - bg_b) > 18)
+    return (non_bg / len(pixels)) < 0.015
+
+
+def _save_png_atomic(img: Any, dest_path: Path, *, check_blank: bool = False) -> Path:
+    if check_blank and _is_effectively_blank(img):
+        raise ValueError(f"Refusing to save blank crop: {dest_path.name}")
     dest_path.parent.mkdir(parents=True, exist_ok=True)
     tmp_p = dest_path.with_suffix(".tmp.png")
     img.convert("RGB").save(tmp_p, format="PNG")
@@ -567,6 +582,7 @@ def _compute_card_crop_bounds(
     parsed: dict[str, list[dict[str, Any]]],
     *,
     vertical_neighbors: list[tuple[float, float]] | None = None,
+    horizontal_neighbors: list[tuple[float, float]] | None = None,
     pad_x: float = 32.0,
     pad_y: float = 22.0,
 ) -> tuple[tuple[float, float, float, float], tuple[float, float, float, float] | None]:
@@ -587,16 +603,43 @@ def _compute_card_crop_bounds(
         elif ny1 >= by + bh - 60.0 and ny2 > by + bh:
             lower_floor = min(lower_floor, max(ny1 - 2.0, by + bh - 60.0))
 
-    # Expand to keep shapes/badges straddling card border (< 180u overhang)
+    # Clamp horizontal expansion away from side-by-side neighbor cards in horizontal rows (e.g. main/SKU rows)
+    left_wall = -1e12
+    right_wall = 1e12
+    for nx1, nx2 in horizontal_neighbors or []:
+        if nx2 <= bx + 40.0 and nx1 < bx:
+            left_wall = max(left_wall, min((nx2 + bx) / 2.0, bx - 4.0))
+        elif nx1 >= bx + bw - 40.0 and nx2 > bx + bw:
+            right_wall = min(right_wall, max((bx + bw + nx1) / 2.0, bx + bw + 4.0))
+
+    # Expand to keep shapes/badges straddling card border (skip detached zone headers like 'sku'/'主图')
+    zone_header_words = {"sku", "SKU", "主图", "750主图", "入口", "入口图", "车图", "详情"}
     for node in [*parsed.get("shapes", []), *parsed.get("tables", [])]:
+        ntxt = (node.get("text") or "").strip()
+        if ntxt in zone_header_words and (node["y"] + node["h"] <= by + 4.0 or node["x"] + node["w"] <= bx + 4.0):
+            continue
         if _overlap_1d(bx - 120, bx + bw + 120, node["x"], node["x"] + node["w"]) > 0 and _overlap_1d(by - 120, by + bh + 120, node["y"], node["y"] + node["h"]) > 0:
             if node["w"] < bw * 1.4 and node["h"] < bh * 1.4:
                 nx1, ny1, nx2, ny2 = node["x"], node["y"], node["x"] + node["w"], node["y"] + node["h"]
-                if ny1 >= upper_ceil and ny2 <= lower_floor:
+                if ny1 >= upper_ceil and ny2 <= lower_floor and nx1 >= left_wall - 20.0 and nx2 <= right_wall + 20.0:
                     cx1 = min(cx1, nx1 - 16.0)
                     cx2 = max(cx2, nx2 + 16.0)
                     cy1 = min(cy1, ny1 - 12.0)
                     cy2 = max(cy2, ny2 + 12.0)
+
+    # Expand for foreground cutout images straddling card border (e.g. overlaid product cutouts on SKU cards)
+    card_node_id = (card_item.get("rect") or {}).get("node_id") or ""
+    for im in parsed.get("images", []):
+        if im.get("id") == card_node_id:
+            continue
+        if im["w"] <= bw * 0.95 and im["h"] <= bh * 0.95:
+            if _overlap_1d(bx, bx + bw, im["x"], im["x"] + im["w"]) > 0 and _overlap_1d(by, by + bh, im["y"], im["y"] + im["h"]) > 0:
+                ix1, iy1, ix2, iy2 = im["x"], im["y"], im["x"] + im["w"], im["y"] + im["h"]
+                if iy1 >= upper_ceil and iy2 <= lower_floor and ix1 >= left_wall - 12.0 and ix2 <= right_wall + 12.0:
+                    cx1 = min(cx1, max(left_wall, ix1 - 10.0))
+                    cx2 = max(cx2, min(right_wall, ix2 + 10.0))
+                    cy1 = min(cy1, max(upper_ceil, iy1 - 10.0))
+                    cy2 = max(cy2, min(lower_floor, iy2 + 10.0))
 
     # Expand for adjacent sticky notes belonging to this card (keeps real relative position!)
     attached = set(card_item.get("sticky_notes") or [])
@@ -609,13 +652,17 @@ def _compute_card_crop_bounds(
         if (txt in attached and dist <= 950.0) or (dist <= 420.0 and vert_overlap):
             sx1, sy1, sx2, sy2 = stk["x"], stk["y"], stk["x"] + stk["w"], stk["y"] + stk["h"]
             if sy1 >= upper_ceil - 40 and sy2 <= lower_floor + 40:
-                cx1 = min(cx1, sx1 - 18.0)
-                cx2 = max(cx2, sx2 + 18.0)
+                cx1 = min(cx1, max(left_wall, sx1 - 18.0))
+                cx2 = max(cx2, min(right_wall, sx2 + 18.0))
                 cy1 = min(cy1, max(upper_ceil, sy1 - 14.0))
                 cy2 = max(cy2, min(lower_floor, sy2 + 14.0))
 
+    cx1 = max(cx1, left_wall)
+    cx2 = min(cx2, right_wall)
     cy1 = max(cy1, upper_ceil)
     cy2 = min(cy2, lower_floor)
+    if cx2 <= bx:
+        cx1, cx2 = bx, bx + bw
     if cy2 <= by:
         cy1, cy2 = by, by + bh
     card_crop = (cx1, cy1, cx2, cy2)
@@ -720,25 +767,44 @@ def _refine_flush_detail_crops(
 
         y_seam_w = (a_y2 + b_y1) / 2.0
         py_seam = int(round((y_seam_w - zy1) * scale))
-        # A genuine clean margin around the raw slice line must span >= 4 contiguous full-width quiet rows
-        seam_band = [_row_stats(py, x1_px, x2_px) for py in range(max(0, py_seam - 5), min(img_h, py_seam + 6))]
+        # A genuine clean margin around the raw slice line must span >= 10 contiguous full-width quiet rows
+        # (a thin 4-6px hairline beneath a dangling headline/badge must NOT block snapping to a wide divider band)
+        seam_band = [_row_stats(py, x1_px, x2_px) for py in range(max(0, py_seam - 7), min(img_h, py_seam + 8))]
         has_clean_seam_band = False
         q_streak = 0
         for avg_v, p90_v, _ in seam_band:
             q_streak = (q_streak + 1) if (avg_v <= 20.0 and p90_v <= 26.0) else 0
-            if q_streak >= 4:
+            if q_streak >= 10:
                 has_clean_seam_band = True
                 break
         if has_clean_seam_band:
             continue
 
-        # Raw slice cut directly through high-detail graphics — find the nearest clean full-width valley
-        lo_w = max(a_y1 + 0.35 * float(ra["h"]), y_seam_w - 0.55 * float(ra["h"]))
-        hi_w = min(b_y2 - 0.35 * float(rb["h"]), y_seam_w + 0.55 * float(rb["h"]))
+        # Raw slice cut directly through high-detail graphics — find the nearest clean full-width divider:
+        # (1) uniform quiet horizontal margin band, OR (2) sharp full-width horizontal color-step banner seam.
+        lo_w = max(a_y1 + 0.25 * float(ra["h"]), y_seam_w - 0.65 * float(ra["h"]))
+        hi_w = min(b_y2 - 0.25 * float(rb["h"]), y_seam_w + 0.65 * float(rb["h"]))
         py_lo = max(4, int(round((lo_w - zy1) * scale)))
         py_hi = min(img_h - 4, int(round((hi_w - zy1) * scale)))
         if py_hi - py_lo < 20:
             continue
+
+        def _row_step_score(py: int) -> tuple[float, float]:
+            """Return (fraction_of_cols_with_vertical_step, mean_vertical_delta) across row py -> py+1."""
+            if py < 1 or py >= img_h - 2:
+                return 0.0, 0.0
+            step_hits = 0
+            total_s = 0
+            v_sum = 0
+            for x in range(x1_px, x2_px, 4):
+                r0, g0, b0 = px[x, py - 1]
+                r1, g1, b1 = px[x, py + 1]
+                vd = abs(r0 - r1) + abs(g0 - g1) + abs(b0 - b1)
+                v_sum += vd
+                if vd >= 42:
+                    step_hits += 1
+                total_s += 1
+            return (step_hits / max(total_s, 1)), (v_sum / max(total_s, 1))
 
         stats_map = {py: _row_stats(py, x1_px, x2_px) for py in range(py_lo, py_hi + 1)}
         # Build contiguous full-width quiet runs (zero arm/handle/box crossing any horizontal block)
@@ -756,8 +822,6 @@ def _refine_flush_detail_crops(
                 cur_run = []
         if len(cur_run) >= 6:
             runs.append(cur_run)
-        if not runs:
-            continue
 
         best_py = py_seam
         best_score = float("inf")
@@ -770,6 +834,27 @@ def _refine_flush_detail_crops(
             if score < best_score:
                 best_score = score
                 best_py = mid_py
+
+        # Fallback: detect sharp full-width horizontal banner/section step (e.g. beige card -> dark section banner)
+        if best_py == py_seam:
+            for py in range(py_lo + 4, py_hi - 4):
+                if abs(py - py_seam) < 10:
+                    continue
+                wy = zy1 + py / scale
+                if any((oy1 + 6.0) < wy < (oy2 - 6.0) for oy1, oy2 in avoid_y_intervals):
+                    continue
+                frac, v_mean = _row_step_score(py)
+                if frac < 0.72 or v_mean < 48.0:
+                    continue
+                # At least one side (above or below the horizontal seam) must be a clean low-texture margin/frame
+                above_avg = sum(stats_map[y][0] for y in range(py - 4, py)) / 4.0
+                below_avg = sum(stats_map[y][0] for y in range(py + 1, py + 5)) / 4.0
+                if min(above_avg, below_avg) > 22.0:
+                    continue
+                score = min(above_avg, below_avg) - 0.15 * v_mean + 0.035 * abs(py - py_seam)
+                if score < best_score:
+                    best_score = score
+                    best_py = py
 
         if best_py == py_seam:
             continue
@@ -806,15 +891,26 @@ def _export_zone_group(
     if not valid_cards:
         return result
 
-    all_y_ranges = [(float(c["rect"]["y"]), float(c["rect"]["y"]) + float(c["rect"]["h"])) for c in valid_cards]
+    all_rects = [
+        (
+            float(c["rect"]["x"]),
+            float(c["rect"]["y"]),
+            float(c["rect"]["x"]) + float(c["rect"]["w"]),
+            float(c["rect"]["y"]) + float(c["rect"]["h"]),
+        )
+        for c in valid_cards
+    ]
     # Prepare crop rectangles for each card & row strip
     card_specs: list[dict[str, Any]] = []
     for idx, card in enumerate(valid_cards):
-        other_y = [yr for i, yr in enumerate(all_y_ranges) if i != idx]
+        cx1, cy1, cx2, cy2 = all_rects[idx]
+        other_y = [(ry1, ry2) for i, (rx1, ry1, rx2, ry2) in enumerate(all_rects) if i != idx and _overlap_1d(cx1, cx2, rx1, rx2) > 40.0]
+        other_x = [(rx1, rx2) for i, (rx1, ry1, rx2, ry2) in enumerate(all_rects) if i != idx and _overlap_1d(cy1, cy2, ry1, ry2) > 40.0]
         crop_b, strip_b = _compute_card_crop_bounds(
             card,
             parsed,
             vertical_neighbors=other_y,
+            horizontal_neighbors=other_x,
             pad_x=default_pad_x,
             pad_y=default_pad_y,
         )
@@ -882,11 +978,42 @@ def _export_zone_group(
         if refine_flush_seams:
             _refine_flush_detail_crops(chunk, zone_img, zone_bounds, scale, parsed)
 
-        # Direct crops from reconstructed zone canvas
-        for sp in chunk:
+        # Direct crops from reconstructed zone canvas (guarding against neighbor-tail duplicate bleed)
+        for sp_idx, sp in enumerate(chunk):
             cid = sp["card"]["id"]
-            card_crop_img = _crop_world_rect_from_canvas(zone_img, zone_bounds, scale, sp["crop_b"], max_width=760, max_height=3200)
-            snap_path = _save_png_atomic(card_crop_img, dest_dir / f"{cid}_画布原图.png")
+            cb = sp["crop_b"]
+            bleeding_ids: set[str] = set()
+            if sp_idx > 0:
+                prev_rect = chunk[sp_idx - 1]["card"]["rect"]
+                py1_p = float(prev_rect["y"])
+                py2_p = py1_p + float(prev_rect["h"])
+                for im in parsed.get("images", []):
+                    im_id = im.get("id") or ""
+                    if not im_id or im_id == (sp["card"].get("rect") or {}).get("node_id"):
+                        continue
+                    im_y1, im_y2 = float(im["y"]), float(im["y"]) + float(im["h"])
+                    im_x1, im_x2 = float(im["x"]), float(im["x"]) + float(im["w"])
+                    if _overlap_1d(cb[0], cb[2], im_x1, im_x2) < (cb[2] - cb[0]) * 0.45:
+                        continue
+                    # Image mainly belongs to previous card but its tail pokes over the top of this card
+                    if im_y1 < cb[1] - 120.0 and im_y2 > cb[1] + 25.0 and im_y2 < cb[3] - 120.0:
+                        ov_prev = _overlap_1d(py1_p, py2_p, im_y1, im_y2)
+                        if ov_prev > float(im["h"]) * 0.55:
+                            bleeding_ids.add(im_id)
+            if bleeding_ids:
+                clean_canvas = render_region_canvas(
+                    cb,
+                    parsed,
+                    raw_token_files,
+                    scale=scale,
+                    draw_grid=False,
+                    exclude_node_ids=bleeding_ids,
+                    image_cache=image_cache,
+                )
+                card_crop_img = _crop_world_rect_from_canvas(clean_canvas, cb, scale, cb, max_width=760, max_height=3200) if clean_canvas is not None else _crop_world_rect_from_canvas(zone_img, zone_bounds, scale, cb, max_width=760, max_height=3200)
+            else:
+                card_crop_img = _crop_world_rect_from_canvas(zone_img, zone_bounds, scale, cb, max_width=760, max_height=3200)
+            snap_path = _save_png_atomic(card_crop_img, dest_dir / f"{cid}_画布原图.png", check_blank=True)
             result["snapshots"][cid] = snap_path
 
             if write_row_strips and sp["strip_b"] is not None:
