@@ -92,6 +92,82 @@ class AgyDumikHooksRoutingTests(unittest.TestCase):
         self.assertEqual(res_exec["skill"], "d-brand-badge -> d-image-runner")
         self.assertEqual(res_exec["auth"], "authorized")
 
+    def test_compact_command_and_checkpoint_reset_turn_count(self):
+        import json
+        import tempfile
+        from unittest import mock
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "design.md").write_text("# Design\n", encoding="utf-8")
+            (root / "project.md").write_text("# Project\n", encoding="utf-8")
+            (root / "AGENTS.md").write_text("# Agents\n", encoding="utf-8")
+
+            # Case 1: /compact resets turn_count to 0 immediately
+            fake_state = {
+                "conv-reset": {
+                    "turn_sig": "old",
+                    "last_route_key": "",
+                    "seen_rows": {},
+                    "warned_bytes": False,
+                    "turn_count": 39,
+                    "last_checkpoint_sig": "",
+                }
+            }
+            with mock.patch.object(hooks, "_load_hook_state", return_value=fake_state), mock.patch.object(
+                hooks, "_save_hook_state"
+            ), mock.patch.object(hooks, "_detect_checkpoint_turn_state", return_value=None):
+                out_compact = hooks.handle_pre_invocation(
+                    {"cwd": str(root), "conversationId": "conv-reset", "lastUserInput": "/compact"}
+                )
+                self.assertEqual(out_compact, {"injectSteps": []})
+                self.assertEqual(fake_state["conv-reset"]["turn_count"], 0)
+
+                out_next = hooks.handle_pre_invocation(
+                    {"cwd": str(root), "conversationId": "conv-reset", "lastUserInput": "继续看 S01 提示词"}
+                )
+                combined_next = "\n".join(s["systemMessage"]["systemMessage"] for s in out_next.get("injectSteps", []))
+                self.assertNotIn("/compact", combined_next)
+                self.assertEqual(fake_state["conv-reset"]["turn_count"], 1)
+
+            # Case 2: New CHECKPOINT in transcript.jsonl automatically resets turn_count from 54 -> 2
+            tp = root / "transcript.jsonl"
+            tp.write_text(
+                "\n".join(
+                    [
+                        json.dumps({"step_index": 10, "type": "USER_INPUT"}),
+                        json.dumps({"step_index": 500, "type": "CHECKPOINT", "created_at": "2026-11-28T07:00:00Z"}),
+                        json.dumps({"step_index": 501, "type": "USER_INPUT"}),
+                        json.dumps({"step_index": 505, "type": "USER_INPUT"}),
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            cp_state = hooks._detect_checkpoint_turn_state("conv-cp", transcript_path=tp)
+            self.assertEqual(cp_state, ("500|2026-11-28T07:00:00Z", 2))
+
+            fake_state_cp = {
+                "conv-cp": {
+                    "turn_sig": "old",
+                    "last_route_key": "",
+                    "seen_rows": {},
+                    "warned_bytes": False,
+                    "turn_count": 54,
+                    "last_checkpoint_sig": "100|2026-11-27T01:00:00Z",
+                }
+            }
+            with mock.patch.object(hooks, "_load_hook_state", return_value=fake_state_cp), mock.patch.object(
+                hooks, "_save_hook_state"
+            ), mock.patch.object(hooks, "_detect_checkpoint_turn_state", return_value=cp_state):
+                out_cp = hooks.handle_pre_invocation(
+                    {"cwd": str(root), "conversationId": "conv-cp", "lastUserInput": "继续写 S02 提示词"}
+                )
+                combined_cp = "\n".join(s["systemMessage"]["systemMessage"] for s in out_cp.get("injectSteps", []))
+                self.assertNotIn("/compact", combined_cp)
+                self.assertEqual(fake_state_cp["conv-cp"]["turn_count"], 2)
+                self.assertEqual(fake_state_cp["conv-cp"]["last_checkpoint_sig"], "500|2026-11-28T07:00:00Z")
+
 
 if __name__ == "__main__":
     unittest.main()

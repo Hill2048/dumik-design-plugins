@@ -309,7 +309,14 @@ def _save_hook_state(data: dict[str, Any]) -> None:
 def _get_conv_entry(data: dict[str, Any], conv_id: str) -> dict[str, Any]:
     raw = data.get(conv_id)
     if isinstance(raw, str):
-        entry: dict[str, Any] = {"turn_sig": raw, "last_route_key": "", "seen_rows": {}, "warned_bytes": False, "turn_count": 0}
+        entry: dict[str, Any] = {
+            "turn_sig": raw,
+            "last_route_key": "",
+            "seen_rows": {},
+            "warned_bytes": False,
+            "turn_count": 0,
+            "last_checkpoint_sig": "",
+        }
     elif isinstance(raw, dict):
         entry = {
             "turn_sig": str(raw.get("turn_sig") or ""),
@@ -317,11 +324,55 @@ def _get_conv_entry(data: dict[str, Any], conv_id: str) -> dict[str, Any]:
             "seen_rows": dict(raw.get("seen_rows")) if isinstance(raw.get("seen_rows"), dict) else {},
             "warned_bytes": bool(raw.get("warned_bytes", False)),
             "turn_count": int(raw.get("turn_count") or 0),
+            "last_checkpoint_sig": str(raw.get("last_checkpoint_sig") or ""),
         }
     else:
-        entry = {"turn_sig": "", "last_route_key": "", "seen_rows": {}, "warned_bytes": False, "turn_count": 0}
+        entry = {
+            "turn_sig": "",
+            "last_route_key": "",
+            "seen_rows": {},
+            "warned_bytes": False,
+            "turn_count": 0,
+            "last_checkpoint_sig": "",
+        }
     data[conv_id] = entry
     return entry
+
+
+def _detect_checkpoint_turn_state(conv_id: str, transcript_path: Path | None = None) -> tuple[str, int] | None:
+    """读取 Antigravity transcript.jsonl，返回 (最新 CHECKPOINT 标识, 该 CHECKPOINT 之后的 USER_INPUT 轮数)。"""
+    if not conv_id or conv_id == "default":
+        return None
+    tp = transcript_path or (
+        Path.home() / ".gemini" / "antigravity" / "brain" / conv_id / ".system_generated" / "logs" / "transcript.jsonl"
+    )
+    if not tp.is_file():
+        return None
+    try:
+        last_cp_sig = ""
+        turns_after_cp = 0
+        with tp.open("r", encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                if '"CHECKPOINT"' in line:
+                    try:
+                        obj = json.loads(line)
+                    except Exception:
+                        continue
+                    if obj.get("type") == "CHECKPOINT":
+                        last_cp_sig = f"{obj.get('step_index', '')}|{obj.get('created_at', '')}"
+                        turns_after_cp = 0
+                elif last_cp_sig and '"USER_INPUT"' in line:
+                    try:
+                        obj = json.loads(line)
+                    except Exception:
+                        continue
+                    if obj.get("type") == "USER_INPUT":
+                        turns_after_cp += 1
+        if not last_cp_sig:
+            return None
+        return last_cp_sig, turns_after_cp
+    except Exception:
+        return None
 
 
 def handle_session_start(payload: dict[str, Any]) -> dict[str, Any]:
@@ -368,7 +419,25 @@ def handle_pre_invocation(payload: dict[str, Any]) -> dict[str, Any]:
     if entry["turn_sig"] == turn_sig:
         return {"injectSteps": []}
     entry["turn_sig"] = turn_sig
-    entry["turn_count"] = int(entry.get("turn_count") or 0) + 1
+
+    # 1) 用户主动输入 /compact 时直接清零轮次并静默返回
+    if re.match(r"^/compact(?:\s|$)", user_text.strip(), re.IGNORECASE):
+        entry["turn_count"] = 0
+        _save_hook_state(state)
+        return {"injectSteps": []}
+
+    # 2) 自动感知 Antigravity transcript.jsonl 中的最新 CHECKPOINT（覆盖手动与自动压缩）
+    cp_info = _detect_checkpoint_turn_state(conv_id)
+    if cp_info is not None:
+        cp_sig, turns_after_cp = cp_info
+        if cp_sig != entry.get("last_checkpoint_sig"):
+            entry["last_checkpoint_sig"] = cp_sig
+            # 本轮 PreInvocation 对应刚进来的这次 USER_INPUT，至少计为 1
+            entry["turn_count"] = max(1, turns_after_cp)
+        else:
+            entry["turn_count"] = max(int(entry.get("turn_count") or 0) + 1, turns_after_cp)
+    else:
+        entry["turn_count"] = int(entry.get("turn_count") or 0) + 1
     turn_count = entry["turn_count"]
 
     route = classify_user_intent(user_text, root)
