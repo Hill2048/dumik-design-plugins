@@ -2,15 +2,16 @@
   "name": "dumik",
   "displayName": "DUMIK Team Plugin",
   "version": "0.2.46",
-  "description": "DUMIK 团队视觉工作流：一文件夹一项目一键建档（飞书多画布纯画面拆解 + 实时同步）、零本地运行垃圾、纵向导演机位去单调、视觉里程碑定调与主图优先 9:16 无字底图批量出图。",
+  "description": "DUMIK 团队视觉工作流：一文件夹四文档项目建档（飞书画布拆解与增量同步）、摆件/食饮库与 3D 徽章、9:16 纯无字底图批量出图与局部无损修复、短视频拉片分镜，以及 PS 排版终稿六维审查与离线 HTML 审稿台。",
   "logo": "assets/logo.svg",
   "author": {
     "name": "DUMIK Team"
   },
   "repository": "https://github.com/Hill2048/dumik-design-plugins",
   "suggestedPrompts": [
-    "用这个飞书链接一键初始化当前项目文件夹，生成 project.md、design.md 与 AGENTS.md",
+    "用这个飞书链接一键初始化当前项目文件夹，生成 AGENTS.md、design.md、assets.md 与 project.md",
     "先为视觉里程碑写好纯无字底图 prompt.md 并预留 PS 排版留白（默认 9:16）",
-    "开始生图：按主图共用优先顺序跑第一批 9:16 无字底图"
+    "开始生图：按主图共用优先顺序跑第一批 9:16 无字底图",
+    "对照飞书策划和规格表，审查一遍排版终稿并生成红框标注与离线 HTML 审稿台"
   ]
 }
