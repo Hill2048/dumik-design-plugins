@@ -219,6 +219,21 @@ class FullWorkflowE2ETests(unittest.TestCase):
             with mock.patch.dict("os.environ", {"PYTEST_CURRENT_TEST": "e2e_stage7"}):
                 self.assertFalse(TELEM_MOD.report_event_async(event="invoke", skill="d-project-pipeline"))
 
+    def test_audit_assets_md_flags_missing_paths(self):
+        with tempfile.TemporaryDirectory() as td:
+            proj = Path(td) / "巡检测试"
+            proj.mkdir()
+            (proj / "设定集" / "场景身份卡").mkdir(parents=True)
+            (proj / "设定集" / "场景身份卡" / "01_有效母版.png").write_bytes(b"ok")
+            (proj / "assets.md").write_text(
+                "- 有效：`设定集/场景身份卡/01_有效母版.png`\n"
+                "- 失效：`设定集/场景身份卡/01_旧失效卡.png`\n"
+                "- 旧版已废弃：`设定集/场景身份卡/00_废弃卡.png`\n",
+                encoding="utf-8",
+            )
+            broken = PIPE_MOD.audit_assets_md(proj)
+            self.assertEqual(broken, ["设定集/场景身份卡/01_旧失效卡.png"])
+
 
 if __name__ == "__main__":
     unittest.main()

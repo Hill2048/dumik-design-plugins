@@ -218,10 +218,19 @@ def _find_matching_image(directory: Path, row_id: str, *, recursive: bool = Fals
     return hits[0] if hits else None
 
 
+HELPER_IMAGE_MARKERS = ("_已修复", "_预览", "_对比", "_遮罩", "_白底参考")
+
+
 def _list_candidate_images(work_dir: Path | None) -> list[Path]:
     if not work_dir or not work_dir.is_dir():
         return []
-    return [p for p in sorted(work_dir.iterdir()) if p.is_file() and p.suffix.lower() in IMAGE_EXTS]
+    return [
+        p
+        for p in sorted(work_dir.iterdir())
+        if p.is_file()
+        and p.suffix.lower() in IMAGE_EXTS
+        and not any(m in p.stem for m in HELPER_IMAGE_MARKERS)
+    ]
 
 
 def sync_project_status(project_root: Path) -> dict[str, Any]:
@@ -306,13 +315,40 @@ def sync_project_status(project_root: Path) -> dict[str, Any]:
         tmp.write_text("\n".join(lines) + "\n", encoding="utf-8")
         os.replace(tmp, project_md_path)
 
+    broken_asset_paths = audit_assets_md(project_root)
+
     return {
         "ok": True,
         "projectRoot": str(project_root),
         "updatedRows": updated_rows,
         "totalRows": len(rows),
         "statusBreakdown": summary_counts,
+        "brokenAssetPaths": broken_asset_paths,
     }
+
+
+def audit_assets_md(project_root: Path) -> list[str]:
+    """Return missing relative/absolute image paths referenced in assets.md (ignores placeholders & deprecated notes)."""
+    assets_md = project_root / "assets.md"
+    if not assets_md.is_file():
+        return []
+    text = assets_md.read_text(encoding="utf-8", errors="ignore")
+    broken: list[str] = []
+    seen: set[str] = set()
+    for line in text.splitlines():
+        if any(k in line for k in ("待填", "待按需", "已废弃", "已替代", "仅备用")):
+            continue
+        for raw in re.findall(r"`([^`\r\n]+\.(?:png|jpg|jpeg|webp|psd))`", line, re.I):
+            ref = raw.strip()
+            if not ref or ref in seen or "*" in ref or "<" in ref or ref.startswith("_"):
+                continue
+            if not (re.match(r"^[a-zA-Z]:[\\/]", ref) or "/" in ref or "\\" in ref):
+                continue
+            seen.add(ref)
+            cand = Path(ref) if re.match(r"^[a-zA-Z]:[\\/]", ref) else (project_root / ref)
+            if not cand.exists():
+                broken.append(ref)
+    return broken
 
 
 def _validate_api_ref_path(resolved_path: str, project_root: Path) -> None:
