@@ -1,6 +1,6 @@
 {
   "name": "dumik-team-plugin",
-  "version": "0.2.41",
+  "version": "0.2.42",
   "description": "DUMIK 团队视觉工作流：统一图片生产，以及统一视频内容设计、导演调度、提示词编译、拉片、故事板和生成执行。",
   "author": {
     "name": "DUMIK Team"
@@ -21,6 +21,7 @@
       "d-consistency-check",
       "d-prompt-reverse",
       "d-badge-wash",
+      "d-brand-badge",
       "d-food-drink-stylist",
       "d-video-director",
       "d-video-runner",
@@ -41,6 +42,7 @@
       "产品结构一致性验收",
       "提示词反推（人判主次）",
       "徽章与认证标两步脱壳清洗重构",
+      "DUMIK 品牌扁六边形 3D 徽章设计与三材质四层重构",
       "食饮与锅具本体造型及微观烹饪物理",
       "31张3×3高清垫图库与一键拆单格（1024px）",
       "静奢高定摆件材质物理库",

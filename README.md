@@ -89,7 +89,7 @@ flowchart LR
 
 > 日常使用无需关心以下细节，仅在维护插件、配置本机接口或发版时查阅。
 
-- **底层能力模块（12 个活跃 Skills）**：项目建档 `d-init` · 视觉策划 `d-visual-plan` · 图片导演 `d-image-director`（含摆件材质库与 4 张 3×3 高清图板）· 食饮与锅具造型师 `d-food-drink-stylist`（含 27 张 3×3 高清食饮垫图板与 `crop_moodboard_tile.py` 一键拆 1024px 单格）· 徽章材质清洗 `d-badge-wash` · 图片执行 `d-image-runner`（支持 DesignFlow / DSH 画布与 API 直连）· 批量流水线 `d-project-pipeline` · 一致性审稿 `d-consistency-check` · 参考图反推 `d-prompt-reverse` · 视频导演 `d-video-director` · 视频执行 `d-video-runner` · API 基准测试 `d-api-test`（详细路由见 [agent-skill-routing.md](plugins/dumik-team-plugin/assets/agent-skill-routing.md)）。原 `d-psb-install`（PSB 智能对象工具）已标注废弃并移入 `archive/deprecated-psb-tools/` 保留存档，默认不再加载也不自动拉取。
+- **底层能力模块（13 个活跃 Skills）**：项目建档 `d-init` · 视觉策划 `d-visual-plan` · 图片导演 `d-image-director`（含摆件材质库与 4 张 3×3 高清图板）· 食饮与锅具造型师 `d-food-drink-stylist`（含 27 张 3×3 高清食饮垫图板与 `crop_moodboard_tile.py` 一键拆 1024px 单格）· 品牌扁六边形 3D 徽章 `d-brand-badge`（内置 4 张品牌标牌与三材质四层标杆图库）· 徽章材质清洗 `d-badge-wash` · 图片执行 `d-image-runner`（支持 DesignFlow / DSH 画布与 API 直连）· 批量流水线 `d-project-pipeline` · 一致性审稿 `d-consistency-check` · 参考图反推 `d-prompt-reverse` · 视频导演 `d-video-director` · 视频执行 `d-video-runner` · API 基准测试 `d-api-test`（详细路由见 [agent-skill-routing.md](plugins/dumik-team-plugin/assets/agent-skill-routing.md)）。原 `d-psb-install`（PSB 智能对象工具）已标注废弃并移入 `archive/deprecated-psb-tools/` 保留存档，默认不再加载也不自动拉取。
 - **密钥隔离**：公开仓库不内置任何 API Key。直连生图前请在本机配置环境变量，或运行 `scripts/init_api_cache.py` 写入本机缓存，或通过 `--api-key` 临时传入。
 - **自动更新**：支持会话级快进更新检查（`scripts/update_dumik_plugin.ps1`），自动保护本地未提交改动，并已兼容旧仓库名 `dumik-codex-plugins` 的自动迁移。
 - **发版规则**：见 [rules/AGENTS.md](plugins/dumik-team-plugin/rules/AGENTS.md)。正式发版通过 `plugins/dumik-team-plugin/scripts/release_dumik_plugin.ps1 -NotesFile "<公告文件>"` 自动递增版本号（默认 `+0.0.1`）并同步发布至 GitHub Releases。

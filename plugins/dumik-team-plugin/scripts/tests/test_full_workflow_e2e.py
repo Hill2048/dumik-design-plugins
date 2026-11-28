@@ -216,7 +216,8 @@ class FullWorkflowE2ETests(unittest.TestCase):
             self.assertEqual(stop_dirty["decision"], "continue")
             (proj / "run-state.json").unlink()
 
-            self.assertFalse(TELEM_MOD.report_event_async(event="invoke", skill="d-project-pipeline"))
+            with mock.patch.dict("os.environ", {"PYTEST_CURRENT_TEST": "e2e_stage7"}):
+                self.assertFalse(TELEM_MOD.report_event_async(event="invoke", skill="d-project-pipeline"))
 
 
 if __name__ == "__main__":

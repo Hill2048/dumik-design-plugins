@@ -244,6 +244,11 @@ def classify_user_intent(user_text: str, project_root: Path) -> dict[str, Any]:
         skill, mode = "d-consistency-check", "review"
     elif any(k in active_text for k in ("反推", "拆参考图", "还原提示词")):
         skill, mode = "d-prompt-reverse", "reverse"
+    elif not is_pure_archive and any(
+        k in lowered for k in ("品牌徽章", "品牌风格3d徽章", "品牌3d徽章", "品牌六边形", "扁六边形徽章", "六边形徽章", "德马克徽章", "dumik徽章", "3d徽章")
+    ):
+        skill = "d-brand-badge -> d-image-runner" if auth == "authorized" else "d-brand-badge"
+        mode = "brand-badge + execute" if auth == "authorized" else "brand-badge"
     elif not is_pure_archive and any(k in active_text for k in ("清洗徽章", "徽章", "勋章", "认证标", "角标", "小铭牌", "纯色平面图")):
         skill = "d-badge-wash -> d-image-runner" if auth == "authorized" else "d-badge-wash"
         mode = "wash + execute" if auth == "authorized" else "wash"
@@ -433,8 +438,8 @@ def handle_pre_invocation(payload: dict[str, Any]) -> dict[str, Any]:
     # 追改/生图防漂移提醒（非局部修复时强提醒：禁垫 L3 候选图、必带里程碑、核对已用饮品道具）
     is_img_route = any(s in route["skill"] for s in ("d-image-director", "d-image-runner", "d-project-pipeline"))
     is_repair_turn = ("repair" in route["mode"]) or ("修复" in user_text)
-    is_rework_cue = any(k in user_text for k in ("重新", "重抽", "氛围", "不要", "换", "再"))
-    if is_img_route and not is_repair_turn and (route_key != prev_route_key or is_rework_cue):
+    is_rework_cue = any(k in user_text for k in ("重新", "重抽", "重跑", "氛围", "风格丢", "不要垫图", "换场景", "换材质", "换背景"))
+    if is_img_route and not is_repair_turn and route["auth"] != "forbidden" and (route_key != prev_route_key or is_rework_cue):
         lines.append(
             "- 防漂移底线：严禁拿 `制作/` 未定稿候选图当垫图；必须带 L1 白底图 + 已定稿里程碑母版，并核对 `assets.md` 已用饮品/摆件防重复。"
         )

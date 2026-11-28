@@ -1,0 +1,4 @@
+interface:
+  display_name: "DUMIK 品牌 3D 扁六边形徽章"
+  short_description: "内置品牌扁六边形与三材质四层标杆库，先平面确认再出 3D 纯白底徽章"
+  default_prompt: "使用 $d-brand-badge 设计或重塑为 DUMIK 品牌风格修长扁六边形 3D 金属徽章：先出纯色 2D 平面版式并逐字确认，再渲染极薄 316L 冷银托 + 液态镜面淡香槟金 + 深暖黑咖烤漆下沉内盘纯白底成品。"

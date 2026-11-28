@@ -83,6 +83,15 @@ class AgyDumikHooksRoutingTests(unittest.TestCase):
         self.assertEqual(res["skill"], "d-food-drink-stylist")
         self.assertEqual(res["auth"], "unconfirmed")
 
+    def test_brand_badge_route_matches(self):
+        res = hooks.classify_user_intent("帮我重新设计一个我们品牌六边形的3D徽章", Path("."))
+        self.assertEqual(res["skill"], "d-brand-badge")
+        self.assertEqual(res["auth"], "unconfirmed")
+
+        res_exec = hooks.classify_user_intent("开始生图，生成品牌扁六边形徽章", Path("."))
+        self.assertEqual(res_exec["skill"], "d-brand-badge -> d-image-runner")
+        self.assertEqual(res_exec["auth"], "authorized")
+
 
 if __name__ == "__main__":
     unittest.main()

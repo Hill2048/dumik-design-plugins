@@ -1,6 +1,6 @@
 ﻿param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('d-init','d-image-director','d-image-runner','d-consistency-check','d-prompt-reverse','d-badge-wash','d-food-drink-stylist','d-video-director','d-video-runner','d-visual-plan','d-project-pipeline','d-api-test','d-psb-install')]
+    [ValidateSet('d-init','d-image-director','d-image-runner','d-consistency-check','d-prompt-reverse','d-badge-wash','d-brand-badge','d-food-drink-stylist','d-video-director','d-video-runner','d-visual-plan','d-project-pipeline','d-api-test','d-psb-install')]
     [string]$Skill,
     [string]$Mode = 'default',
     [string]$Model = '',
@@ -108,6 +108,11 @@ switch ($Skill) {
     'd-badge-wash' {
         Add-Ref 'assets/image-reference-format.md'
         Add-Ref 'assets/workflow-chain.md'
+    }
+    'd-brand-badge' {
+        Add-Ref 'assets/image-reference-format.md'
+        Add-Ref 'skills/d-brand-badge/references/brand-badge-system.md'
+        Add-Ref 'skills/d-brand-badge/assets/refs/INDEX.md'
     }
     'd-food-drink-stylist' {
         Add-Ref 'assets/image-reference-format.md'

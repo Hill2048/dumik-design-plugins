@@ -163,6 +163,17 @@ class AgyDumikHooksTests(unittest.TestCase):
             self.assertIn("d-badge-wash -> d-image-runner", badge_run_msg)
             self.assertIn("已授权可执行", badge_run_msg)
 
+            # Brand hexagon 3D badge routes to d-brand-badge
+            brand_badge_plan = HOOKS.dispatch_hook({
+                "hookEventName": "PreInvocation",
+                "conversationId": conv,
+                "lastUserInput": "重新设计成我们品牌六边形的3D徽章",
+                "cwd": str(root),
+            })
+            brand_badge_msg = brand_badge_plan["injectSteps"][0]["systemMessage"]["systemMessage"]
+            self.assertIn("d-brand-badge", brand_badge_msg)
+            self.assertIn("仅文本/禁调接口", brand_badge_msg)
+
             # Stop blocks when unsynced candidate or .pytest_cache exists, stops cleanly after cleanup
             (root / "制作" / "S04_首屏" / "候选_01.png").write_bytes(b"cand")
             (root / ".pytest_cache").mkdir()
