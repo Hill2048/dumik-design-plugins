@@ -260,6 +260,53 @@ class FullWorkflowE2ETests(unittest.TestCase):
             self.assertIn("user-select: text", html_txt)
             self.assertIn("nav-thumb", html_txt)
             self.assertIn('"ref_01"', html_txt)
+            self.assertIn('role="tablist"', html_txt)
+            self.assertIn("startViewTransition", html_txt)
+
+            # Stage 7b: Second-round iterative review merges into same HTML, inherits unresolved via carry/resolved_ids, and updates in-place on same version_id
+            page2_src = Path(td) / "1-2.jpg"
+            Image.new("RGB", (790, 1200), (242, 240, 236)).save(page2_src, quality=90)
+            spec_v2 = Path(td) / "review_v2.json"
+            spec_v2.write_text(
+                json.dumps(
+                    {
+                        "project_name": "测试纯钛杯",
+                        "images": [str(page2_src)],
+                        "inherit_unresolved_from": "prev",
+                        "resolved_ids": [],
+                        "new_issues": [
+                            {
+                                "severity": "error",
+                                "screen": "S04 材质总述",
+                                "bbox": [30, 500, 620, 720],
+                                "short_tag": "新增拼写错",
+                                "title": "英文拼写错误",
+                                "issue": "Aesthetice 拼错",
+                                "copy": "Aesthetics",
+                            }
+                        ],
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            rc_rv2 = REVIEW_MOD.main(["--spec", str(spec_v2), "--project-root", str(proj)])
+            self.assertEqual(rc_rv2, 0)
+            # Re-run v2 in place with --version-id v2 should keep total versions == 2
+            rc_rv2_upd = REVIEW_MOD.main(
+                ["--spec", str(spec_v2), "--project-root", str(proj), "--version-id", "v2"]
+            )
+            self.assertEqual(rc_rv2_upd, 0)
+            merged_data = REVIEW_MOD.extract_existing_board_data(review_html)
+            self.assertIsNotNone(merged_data)
+            self.assertEqual(len(merged_data["versions"]), 2)
+            self.assertEqual(merged_data["versions"][0]["label"], "一审")
+            self.assertEqual(merged_data["versions"][1]["label"], "二审")
+            self.assertEqual(len(merged_data["versions"][1]["cards"]), 2)
+            self.assertEqual(len(merged_data["planRefs"]), 1)  # shared Feishu ref deduplicated
+            html_txt_v2 = review_html.read_text(encoding="utf-8")
+            self.assertIn("vtab-v1", html_txt_v2)
+            self.assertIn("vtab-v2", html_txt_v2)
 
             # Stage 8: Stop hook passes on clean project (including 成品/审稿报告/), blocks on stray JSON clutter
             stop_clean = HOOKS_MOD.handle_stop({"cwd": str(proj), "terminationReason": "NO_TOOL_CALL"})
