@@ -185,6 +185,16 @@ def has_unfilled_prop_bible(project_root: Path) -> bool:
     return True
 
 
+HELPER_IMAGE_MARKERS = ("_已修复", "_预览", "_对比", "_遮罩", "_白底参考")
+
+
+def _is_candidate_image(path: Path) -> bool:
+    if not path.is_file() or path.suffix.lower() not in IMAGE_EXTS:
+        return False
+    stem = path.stem
+    return not any(marker in stem for marker in HELPER_IMAGE_MARKERS)
+
+
 def detect_unsynced_work_dirs(project_root: Path) -> list[str]:
     make_dir = project_root / "制作"
     pm_path = project_root / "project.md"
@@ -193,15 +203,15 @@ def detect_unsynced_work_dirs(project_root: Path) -> list[str]:
     unsynced: list[str] = []
     rows = _extract_project_rows(project_root)
     for rid, (status, _) in rows.items():
-        if status.startswith(("已锁定", "已定稿", "无需生图")):
+        if status.startswith(("已锁定", "已定稿", "已确认", "已修复", "无需生图")):
             continue
         exact = re.compile(rf"^{re.escape(rid)}(?:$|_)")
         dirs = [d for d in make_dir.iterdir() if d.is_dir() and exact.match(d.name)]
         if not dirs:
             continue
         d = dirs[0]
-        cands = [f for f in d.iterdir() if f.is_file() and f.suffix.lower() in IMAGE_EXTS]
-        if cands and not status.startswith(f"候选已出({len(cands)}张)"):
+        cands = [f for f in d.iterdir() if _is_candidate_image(f)]
+        if cands and not re.match(rf"^候选已出\s*[（(]\s*{len(cands)}\s*张\s*[）)]", status):
             unsynced.append(f"{rid}: 磁盘{len(cands)}张 vs 账本「{status}」")
         elif (d / "prompt.md").is_file() and not cands and status in ("待写词", "待派生", "待生成定调"):
             unsynced.append(f"{rid}: 有prompt.md vs 账本「{status}」")
@@ -420,9 +430,12 @@ def handle_pre_invocation(payload: dict[str, Any]) -> dict[str, Any]:
         return {"injectSteps": []}
     entry["turn_sig"] = turn_sig
 
-    # 1) 用户主动输入 /compact 时直接清零轮次并静默返回
-    if re.match(r"^/compact(?:\s|$)", user_text.strip(), re.IGNORECASE):
+    # 1) 用户主动输入 /compact /clear /reset 时清零本上下文窗口内的全部状态并静默返回
+    if re.match(r"^/(?:compact|clear|reset)(?:\s|$)", user_text.strip(), re.IGNORECASE):
         entry["turn_count"] = 0
+        entry["seen_rows"] = {}
+        entry["last_route_key"] = ""
+        entry["warned_bytes"] = False
         _save_hook_state(state)
         return {"injectSteps": []}
 
@@ -432,7 +445,10 @@ def handle_pre_invocation(payload: dict[str, Any]) -> dict[str, Any]:
         cp_sig, turns_after_cp = cp_info
         if cp_sig != entry.get("last_checkpoint_sig"):
             entry["last_checkpoint_sig"] = cp_sig
-            # 本轮 PreInvocation 对应刚进来的这次 USER_INPUT，至少计为 1
+            # 压缩后上下文已折叠，同步清零 seen_rows / last_route_key / warned_bytes 以便按需重新注入
+            entry["seen_rows"] = {}
+            entry["last_route_key"] = ""
+            entry["warned_bytes"] = False
             entry["turn_count"] = max(1, turns_after_cp)
         else:
             entry["turn_count"] = max(int(entry.get("turn_count") or 0) + 1, turns_after_cp)

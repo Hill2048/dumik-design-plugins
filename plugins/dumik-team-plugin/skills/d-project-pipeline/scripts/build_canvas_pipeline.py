@@ -70,9 +70,10 @@ def sanitize_slug(text: str, fallback: str = "item") -> str:
 def resolve_output_size(ratio: str, quality: str) -> str:
     clean_ratio = (ratio or "9:16").strip().lower()
     clean_q = (quality or "2k").strip().lower()
-    if clean_ratio in ("9:16", "3:4", "1:1"):
+    supported = ("9:16", "16:9", "3:4", "4:3", "1:1", "2:3", "3:2")
+    if clean_ratio in supported:
         return f"{clean_ratio}-{clean_q}"
-    if clean_ratio.startswith(("9:16-", "3:4-", "1:1-")):
+    if any(clean_ratio.startswith(f"{r}-") for r in supported):
         return clean_ratio
     if re.fullmatch(r"\d+x\d+", clean_ratio):
         return clean_ratio

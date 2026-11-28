@@ -167,6 +167,25 @@ class AgyDumikHooksRoutingTests(unittest.TestCase):
                 self.assertNotIn("/compact", combined_cp)
                 self.assertEqual(fake_state_cp["conv-cp"]["turn_count"], 2)
                 self.assertEqual(fake_state_cp["conv-cp"]["last_checkpoint_sig"], "500|2026-11-28T07:00:00Z")
+                # Also verify seen_rows & last_route_key were cleared on checkpoint
+                self.assertEqual(fake_state_cp["conv-cp"]["seen_rows"], {})
+
+    def test_detect_unsynced_ignores_repaired_helpers_and_accepts_fullwidth_parens(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            s01 = root / "制作" / "S01_首屏"
+            s01.mkdir(parents=True)
+            (s01 / "候选_01.png").write_bytes(b"1")
+            (s01 / "候选_02.png").write_bytes(b"2")
+            (s01 / "候选_01_已修复.png").write_bytes(b"rep")
+            (s01 / "候选_01_预览图.png").write_bytes(b"prev")
+            (root / "project.md").write_text(
+                "| 编号 | 画面意图 | 状态 |\n| --- | --- | --- |\n| S01 | 首屏KV | 候选已出（2张） |\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(hooks.detect_unsynced_work_dirs(root), [])
 
 
 if __name__ == "__main__":
