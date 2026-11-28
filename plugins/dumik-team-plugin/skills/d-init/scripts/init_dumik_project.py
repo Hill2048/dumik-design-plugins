@@ -4,8 +4,8 @@
 Unified DUMIK project initializer and Feishu incremental synchronizer.
 
 Creates a self-contained project folder with:
-- Standard folders: 素材/实拍原图, 设定集/{白底图,里程碑,必渲特写}, 制作, 成品/{详情_790xn,主图_3x4,入口与SKU_1x1}
-- Exactly three clean root Markdown docs: AGENTS.md, design.md, project.md
+- Standard folders: 素材/实拍原图, 设定集/{白底图,里程碑,摆件身份卡,必渲特写}, 制作, 成品/{详情_790xn,主图_3x4,入口与SKU_1x1,审稿报告}
+- Exactly four clean root Markdown docs: AGENTS.md, design.md, assets.md, project.md
 - Zero JSON queues, zero run logs, and zero pre-created empty task folders under 制作/.
 """
 
@@ -32,11 +32,13 @@ STANDARD_DIRS = (
     "素材/实拍原图",
     "设定集/白底图",
     "设定集/里程碑",
+    "设定集/摆件身份卡",
     "设定集/必渲特写",
     "制作",
     "成品/详情_790xn",
     "成品/主图_3x4",
     "成品/入口与SKU_1x1",
+    "成品/审稿报告",
 )
 
 
@@ -115,6 +117,7 @@ def render_project_agents_md(project_name: str) -> str:
 - **零运行垃圾**：禁写 `.json` 队列、`拆解清单.md` 或运行记录；制作只按需建 `制作/<编号_名称>/prompt.md` 覆盖维护最新版。
 - **参考与授权**：白底只锁结构固有色；光色从 `design.md` 与 `设定集/`；飞书参考图只读不喂 API；未收「开始生图/出图」绝不调付费接口。
 - **汇报带短卖点**：列编号必附4~6字卖点（如 `S01 健康对比`），一眼扫完，忌裸号或长句。
+- **终稿排版审查**：PS 排完详情/主图上线前走 `d-detail-review`，对照 `素材/飞书画布/` 与 `project.md` 六维终检（违禁/合规一律红灯），审稿台与标注图落 `成品/审稿报告/`。
 - **防截断按需读账本**：`project.md` 与 `assets.md`（资产路径/哈希、摆件库、食材表）不整本内联，按当前编号按需读取或跑 `--status`。
 
 ## 项目上下文自动挂载

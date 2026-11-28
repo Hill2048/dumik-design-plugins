@@ -47,7 +47,12 @@ def _rect_distance(a: tuple[float, float, float, float], b: tuple[float, float, 
 
 
 def _find_cjk_font_path() -> str | None:
+    local_fonts = os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\Windows\Fonts")
     candidates = [
+        r"C:\Windows\Fonts\MiSansVF.ttf",
+        os.path.join(local_fonts, "MiSansVF.ttf"),
+        r"C:\Windows\Fonts\MiSans-Regular.ttf",
+        os.path.join(local_fonts, "MiSans-Regular.ttf"),
         r"C:\Windows\Fonts\msyh.ttc",
         r"C:\Windows\Fonts\msyhbd.ttc",
         r"C:\Windows\Fonts\simhei.ttf",

@@ -187,6 +187,17 @@ class AgyDumikHooksRoutingTests(unittest.TestCase):
             )
             self.assertEqual(hooks.detect_unsynced_work_dirs(root), [])
 
+    def test_detail_review_route_matches(self):
+        for q in ("审核一遍我文案是否写错，对比策划", "帮我做详情页审查，查错别字并圈出标注", "找出详情页里行业领先的违禁词", "改一下审稿台布局"):
+            res = hooks.classify_user_intent(q, Path("."))
+            self.assertEqual(res["skill"], "d-detail-review", msg=q)
+            self.assertEqual(res["auth"], "unconfirmed")
+
+    def test_api_benchmark_route_matches(self):
+        res = hooks.classify_user_intent("帮我跑一下图片API基准测试，测模型可用性", Path("."))
+        self.assertEqual(res["skill"], "d-api-test")
+        self.assertEqual(res["mode"], "benchmark")
+
 
 if __name__ == "__main__":
     unittest.main()

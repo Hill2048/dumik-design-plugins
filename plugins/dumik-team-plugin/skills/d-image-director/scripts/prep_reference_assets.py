@@ -230,7 +230,7 @@ def main(argv: list[str] | None = None) -> int:
     aw = sub.add_parser("auto-white", help="自动检测五视图白底图中每只产品的边界框（#1..#N）")
     aw.add_argument("--image", required=True, help="多视图白底图路径")
 
-    go = sub.add_parser("grid-overlay", help="为复杂场景图叠加 10x10 百分比标尺网格（落 %TEMP%）")
+    go = sub.add_parser("grid-overlay", help="为复杂场景图叠加 10x10 百分比标尺网格（落 %%TEMP%%）")
     go.add_argument("--image", required=True, help="场景图路径")
     go.add_argument("--out", default="", help="可选输出路径")
 

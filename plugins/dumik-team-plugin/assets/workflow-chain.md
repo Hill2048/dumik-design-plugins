@@ -12,6 +12,7 @@ Skill 是可测流程封装，不是文章收藏。相邻步骤必须能传**结
 | 反推 | 人判主次记录 + 结构化草稿（非终稿除非人确认） |
 | 出图 | 文件路径 + 模型/参数记录（密钥不进文档） |
 | 验收 | 分项三态表 + 总判 |
+| 终稿审查 | 红框编号标注大图 + 悬浮连线离线 HTML 审稿台（含策划原图对照与一键复制文案，违禁/合规红灯） |
 
 上一步缺可测输出时，下一步不得用散文假装已完成。
 
@@ -27,7 +28,7 @@ Skill 是可测流程封装，不是文章收藏。相邻步骤必须能传**结
 
 禁止：「按之前的来」且不附完整 Prompt 或五格。
 
-## 完整端到端标准生产线（一条线串通全部 13 个技能与配套工具）
+## 完整端到端标准生产线（一条线串通全部 14 个技能与配套工具）
 
 ```text
 Stage 1 · 建档与拆解（d-init + d-visual-plan）
@@ -53,7 +54,11 @@ Stage 5 · 三态验收 & 局部无损修复（d-consistency-check → d-image-d
 Stage 6 · 定稿晋升与多 SKU 延展（d-project-pipeline）
   └─ --promote 防压缩图门禁（拦截 .user_uploaded/ 与 <1500px）晋升 成品/，支持 --variant-sku 多配色批量换款
   ↓
-Stage 7 · 全链路护航与观测（agy_dumik_hooks.py + dumik_telemetry.py）
+Stage 7 · 终稿排版审查与上线把关（d-detail-review）
+  └─ 设计师在 PS 排完详情长图/主图后，slice_for_review.py 带 X/Y 像素刻度尺切高清条带，逐屏对照 素材/飞书画布/ 与 project.md 规格真源做六维终检（违禁/合规一律红灯）
+  └─ build_review_board.py 自动落盘 成品/审稿报告/：居中连贯详情长图 + 左右悬浮卡片 + SVG 细引导线 + 放大策划原图 + 一键复制文案（全插件统一中文 MiSans / 英数 Google Sans）
+  ↓
+Stage 8 · 全链路护航与观测（agy_dumik_hooks.py + dumik_telemetry.py）
   └─ 25 轮长会话 /compact 提醒、追改防漂移、置景表未填提醒、Stop 清垃圾/同步检查、飞书多维表格全链路异步埋点
 ```
 

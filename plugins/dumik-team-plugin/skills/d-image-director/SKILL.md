@@ -2,7 +2,7 @@
 name: d-image-director
 description: "编写或追改纯无字底图 prompt.md（里程碑/详情/主图 detail、改图 edit、方向 direction、高清 hd、局部修 repair）。仅交付提示词文本，不调付费生图接口。"
 metadata:
-  version: 0.4.3
+  version: 0.4.4
 ---
 
 # 图片导演

@@ -1,6 +1,6 @@
 # DUMIK 唯一路由合同
 
-本文件是 DUMIK Team Plugin 的唯一能力路由。项目根目录的 `AGENTS.md` 优先决定项目协作、授权、确认和目录；本文件只决定当前工作应进入哪个插件 skill。13 个活跃 skill 是专业入口，不互相争夺总控，也不在没有明确条件时串联。
+本文件是 DUMIK Team Plugin 的唯一能力路由。项目根目录的 `AGENTS.md` 优先决定项目协作、授权、确认和目录；本文件只决定当前工作应进入哪个插件 skill。14 个活跃 skill 是专业入口，不互相争夺总控，也不在没有明确条件时串联。
 
 ## 判定顺序
 
@@ -27,7 +27,12 @@ image.strategy
 image.review
   对比原产品图与 AI 生成图做结构/外观验收，输出一致/不一致/无法判断；审稿、一致性检查、结构验收
   -> d-consistency-check
-  排除：写/改提示词（→ d-image-director）；卖点或详情策略（→ d-visual-plan）；调接口出图（→ d-image-runner）
+  排除：已排版详情页/主图成品文案对照策划审查与红框圈注（→ d-detail-review）；写/改提示词（→ d-image-director）；卖点或详情策略（→ d-visual-plan）；调接口出图（→ d-image-runner）
+
+image.detail_review
+  审查已排版完成的详情页长图/主图成品：自动带坐标标尺切片高清读图，逐屏对照飞书策划原图、project.md 规格真源与广告法合规，查出文案错字、老模板残留、数据打架、漏填项与违禁词，并在原图上红框编号圈出标注 + 贴上策划原图 + 输出一键复制正确文案的离线交互式 HTML 审稿台与标注大图
+  -> d-detail-review
+  排除：单张 AI 无字底图 vs 白底产品结构三态验收（→ d-consistency-check）；新建或重做整页视觉策划（→ d-visual-plan）；写/改单图提示词（→ d-image-director）；调接口出图（→ d-image-runner）
 
 image.reverse
   从参考图反推/拆解提示词；还原提示词结构；用户说反推、拆图、根据参考图生成提示词草稿

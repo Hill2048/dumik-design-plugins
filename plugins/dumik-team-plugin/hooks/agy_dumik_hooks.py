@@ -250,6 +250,13 @@ def classify_user_intent(user_text: str, project_root: Path) -> dict[str, Any]:
 
     if any(k in active_text for k in ("初始化", "建档", "增量同步", "同步画布", "项目规约", "改规则")) or "--sync" in lowered:
         skill, mode = "d-init", "init/maintain"
+    elif any(k in lowered for k in ("基准测试", "api测试", "测试api", "测一下新api", "测模型可用性", "模型基准")):
+        skill, mode = "d-api-test", "benchmark"
+    elif any(
+        k in active_text
+        for k in ("审核文案", "审查文案", "文案审查", "文案审核", "文案是否写错", "查错别字", "核对策划", "对比策划", "终稿审查", "详情审查", "详情页审查", "圈出标注", "审稿报告", "审稿台", "违禁词", "行业领先")
+    ):
+        skill, mode = "d-detail-review", "review"
     elif any(k in active_text for k in ("验收", "审稿", "一致性", "三态", "对比原图")):
         skill, mode = "d-consistency-check", "review"
     elif any(k in active_text for k in ("反推", "拆参考图", "还原提示词")):

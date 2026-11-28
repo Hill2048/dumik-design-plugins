@@ -28,6 +28,8 @@ WASH_MOD = _load("e2e_wash", "skills/d-image-director/scripts/wash_prep.py")
 REPAIR_MOD = _load("e2e_repair", "skills/d-image-director/scripts/repair/mask_repair.py")
 HOOKS_MOD = _load("e2e_hooks", "hooks/agy_dumik_hooks.py")
 TELEM_MOD = _load("e2e_telem", "scripts/dumik_telemetry.py")
+SLICE_MOD = _load("e2e_slice", "skills/d-detail-review/scripts/slice_for_review.py")
+REVIEW_MOD = _load("e2e_review", "skills/d-detail-review/scripts/build_review_board.py")
 
 
 class FullWorkflowE2ETests(unittest.TestCase):
@@ -207,7 +209,59 @@ class FullWorkflowE2ETests(unittest.TestCase):
             self.assertTrue(var_res["ok"])
             self.assertEqual(var_res["count"], 1)
 
-            # Stage 7: Stop hook passes on clean project, blocks on stray JSON clutter; telemetry suppressed in pytest
+            # Stage 7: Final layout detail review (d-detail-review) inside project structure -> 成品/审稿报告/
+            ps_final = base / "1.jpg"
+            Image.new("RGB", (790, 2200), (242, 238, 230)).save(ps_final)
+            plan_ref = proj / "素材" / "飞书画布" / "S01_画布原图.png"
+            plan_ref.parent.mkdir(parents=True, exist_ok=True)
+            Image.new("RGB", (500, 700), (235, 240, 248)).save(plan_ref)
+
+            slice_dir = base / "review_slices"
+            slice_dir.mkdir()
+            slice_info = SLICE_MOD.slice_image(ps_final, slice_dir, "1", 1200, 100, skip_blank=False)
+            self.assertGreaterEqual(len(slice_info["strips"]), 2)
+
+            spec_tmp = base / "review_input.json"
+            spec_tmp.write_text(
+                json.dumps(
+                    {
+                        "project_name": "测试纯钛杯",
+                        "images": [{"key": "1", "label": "详情1", "path": str(ps_final)}],
+                        "issues": [
+                            {
+                                "id": "01",
+                                "severity": "error",
+                                "screen": "S01 健康对比",
+                                "image_key": "1",
+                                "bbox": [40, 120, 420, 260],
+                                "short_tag": "违禁词:行业领先",
+                                "title": "违禁词必改",
+                                "issue": "行业领先属极限违禁词，一律红灯。",
+                                "plan_ref": "素材/飞书画布/S01_画布原图.png",
+                                "copy_blocks": [{"label": "替换文案", "text": "TA1级纯钛"}],
+                            }
+                        ],
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            rc_rv = REVIEW_MOD.main(["--spec", str(spec_tmp), "--project-root", str(proj)])
+            self.assertEqual(rc_rv, 0)
+            review_html = proj / "成品" / "审稿报告" / "终稿审查报告_测试纯钛杯.html"
+            review_img = proj / "成品" / "审稿报告" / "1_审稿标注.jpg"
+            self.assertTrue(review_html.is_file())
+            self.assertTrue(review_img.is_file())
+            html_txt = review_html.read_text(encoding="utf-8")
+            self.assertIn("Google Sans", html_txt)
+            self.assertIn("MiSans", html_txt)
+            self.assertIn("TA1级纯钛", html_txt)
+            self.assertIn('closedby="any"', html_txt)
+            self.assertIn("user-select: text", html_txt)
+            self.assertIn("nav-thumb", html_txt)
+            self.assertIn('"ref_01"', html_txt)
+
+            # Stage 8: Stop hook passes on clean project (including 成品/审稿报告/), blocks on stray JSON clutter
             stop_clean = HOOKS_MOD.handle_stop({"cwd": str(proj), "terminationReason": "NO_TOOL_CALL"})
             self.assertEqual(stop_clean["decision"], "stop")
 
