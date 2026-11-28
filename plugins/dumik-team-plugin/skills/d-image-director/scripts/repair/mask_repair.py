@@ -206,13 +206,46 @@ def build_masked_crop(
     return clean_crop, masked_crop, meta
 
 
-def _build_feather_mask(tw: int, th: int, feather: int) -> Image.Image:
+def _build_feather_mask(
+    tw: int,
+    th: int,
+    feather: int,
+    clamp_edges: tuple[bool, bool, bool, bool] = (False, False, False, False),
+) -> Image.Image:
+    """构建平滑羽化蒙版；clamp_edges=(left, top, right, bottom) 为 True 的贴边侧保持不透明防边缘发虚。"""
     f = max(0, min(int(feather), tw // 4, th // 4))
+    left_c, top_c, right_c, bottom_c = clamp_edges
+    x1 = 0 if left_c else f
+    y1 = 0 if top_c else f
+    x2 = tw if right_c else (tw - f)
+    y2 = th if bottom_c else (th - f)
     mask = Image.new("L", (tw, th), 0)
-    ImageDraw.Draw(mask).rectangle([f, f, tw - f, th - f], fill=255)
+    ImageDraw.Draw(mask).rectangle([x1, y1, x2, y2], fill=255)
     if f > 0:
         mask = mask.filter(ImageFilter.GaussianBlur(f / 2))
+        if any(clamp_edges):
+            import numpy as np
+
+            arr = np.asarray(mask, dtype=np.uint8).copy()
+            strip = max(1, f)
+            # 贴原图画幅边缘处沿法向拉回全不透明，同时尊重非贴边侧的渐隐
+            if left_c:
+                arr[y1:y2, :strip] = np.maximum(arr[y1:y2, :strip], 255)
+            if right_c:
+                arr[y1:y2, tw - strip :] = np.maximum(arr[y1:y2, tw - strip :], 255)
+            if top_c:
+                arr[:strip, x1:x2] = np.maximum(arr[:strip, x1:x2], 255)
+            if bottom_c:
+                arr[th - strip :, x1:x2] = np.maximum(arr[th - strip :, x1:x2], 255)
+            mask = Image.fromarray(arr, mode="L")
     return mask
+
+
+def _resolve_custom_mask(custom_mask: Image.Image, tw: int, th: int) -> Image.Image:
+    m = custom_mask.convert("L")
+    if m.size != (tw, th):
+        m = m.resize((tw, th), Image.LANCZOS)
+    return m
 
 
 def match_border_color(
@@ -221,10 +254,11 @@ def match_border_color(
     crop_box: list[int],
     border_width: int = 16,
     max_shift: float = 35.0,
+    custom_mask: Image.Image | None = None,
 ) -> Image.Image:
     """
-    外扩边自动色差校准：比对原图 crop_box 四周平滑外扩边与 AI 修复图对应外扩边的 RGB 中位数偏差，
-    自动做限幅平移校正（±max_shift），消除纯色/奶油/白底背景贴回时的矩形框印。
+    外扩边/羽化环带自动色差校准：比对原图与 AI 修复图交界处的 RGB 中位数偏差，
+    自动做限幅平移校正（±max_shift），消除纯色/平滑桌面贴回时的矩形框印或光晕。
     """
     import numpy as np
 
@@ -235,28 +269,39 @@ def match_border_color(
     if rep_rgb.size != (tw, th):
         rep_rgb = rep_rgb.resize((tw, th), Image.LANCZOS)
 
-    bw = max(2, min(int(border_width), tw // 6, th // 6))
     b_arr = np.asarray(base_patch, dtype=np.float32)
     r_arr = np.asarray(rep_rgb, dtype=np.float32)
 
-    b_ring = np.concatenate(
-        [
-            b_arr[:bw, :, :].reshape(-1, 3),
-            b_arr[-bw:, :, :].reshape(-1, 3),
-            b_arr[bw:-bw, :bw, :].reshape(-1, 3),
-            b_arr[bw:-bw, -bw:, :].reshape(-1, 3),
-        ],
-        axis=0,
-    )
-    r_ring = np.concatenate(
-        [
-            r_arr[:bw, :, :].reshape(-1, 3),
-            r_arr[-bw:, :, :].reshape(-1, 3),
-            r_arr[bw:-bw, :bw, :].reshape(-1, 3),
-            r_arr[bw:-bw, -bw:, :].reshape(-1, 3),
-        ],
-        axis=0,
-    )
+    b_ring = None
+    r_ring = None
+    if custom_mask is not None:
+        m_arr = np.asarray(_resolve_custom_mask(custom_mask, tw, th), dtype=np.float32) / 255.0
+        ring = (m_arr > 0.05) & (m_arr < 0.75)
+        if int(ring.sum()) >= 32:
+            b_ring = b_arr[ring]
+            r_ring = r_arr[ring]
+
+    if b_ring is None:
+        bw = max(2, min(int(border_width), tw // 6, th // 6))
+        b_ring = np.concatenate(
+            [
+                b_arr[:bw, :, :].reshape(-1, 3),
+                b_arr[-bw:, :, :].reshape(-1, 3),
+                b_arr[bw:-bw, :bw, :].reshape(-1, 3),
+                b_arr[bw:-bw, -bw:, :].reshape(-1, 3),
+            ],
+            axis=0,
+        )
+        r_ring = np.concatenate(
+            [
+                r_arr[:bw, :, :].reshape(-1, 3),
+                r_arr[-bw:, :, :].reshape(-1, 3),
+                r_arr[bw:-bw, :bw, :].reshape(-1, 3),
+                r_arr[bw:-bw, -bw:, :].reshape(-1, 3),
+            ],
+            axis=0,
+        )
+
     delta = np.median(b_ring, axis=0) - np.median(r_ring, axis=0)
     delta = np.clip(delta, -max_shift, max_shift)
     adjusted = np.clip(r_arr + delta, 0, 255).astype(np.uint8)
@@ -270,19 +315,29 @@ def paste_back_smooth(
     crop_box: list[int],
     feather: int = 28,
     match_border: bool = False,
+    custom_mask: Image.Image | None = None,
 ) -> Image.Image:
-    """将修好的产品外扩图缩放对齐回 crop_box，在外扩背景边平滑羽化贴回原整图。"""
+    """将修好的局部图缩放对齐回 crop_box，按自定义轮廓蒙版或贴边自适应羽化平滑贴回原整图。"""
     base = base_img.convert("RGBA")
     repaired = repaired_img.convert("RGBA")
+    W, H = base.size
     cx1, cy1, cx2, cy2 = [int(v) for v in crop_box]
     tw, th = cx2 - cx1, cy2 - cy1
 
     if repaired.size != (tw, th):
         repaired = repaired.resize((tw, th), Image.LANCZOS)
-    if match_border:
-        repaired = match_border_color(base, repaired, crop_box).convert("RGBA")
 
-    mask = _build_feather_mask(tw, th, feather)
+    if custom_mask is not None:
+        mask = _resolve_custom_mask(custom_mask, tw, th)
+    else:
+        clamp_edges = (cx1 <= 0, cy1 <= 0, cx2 >= W, cy2 >= H)
+        mask = _build_feather_mask(tw, th, feather, clamp_edges=clamp_edges)
+
+    if match_border:
+        repaired = match_border_color(
+            base, repaired, crop_box, custom_mask=mask if custom_mask is not None else None
+        ).convert("RGBA")
+
     base.paste(repaired, (cx1, cy1), mask)
     return base
 
@@ -308,17 +363,21 @@ def save_layered_psd(
     base_img: Image.Image,
     repaired_imgs: Image.Image | list[Image.Image],
     crop_box: list[int],
-    out_path: Path,
+    out_path: Path | str,
     feather: int = 28,
     match_border: bool = False,
+    custom_mask: Image.Image | list[Image.Image | None] | None = None,
+    layer_names: list[str] | None = None,
+    visible_flags: list[bool] | None = None,
 ) -> None:
     """
     零外部依赖写出标准 Adobe Photoshop 多图层可编辑蒙版 PSD（8-bit RGB）：
     - 底层「原图」：完整原始整图
-    - 顶层「修复候选_01」「修复候选_02」…：各自对齐到 crop_box 并附带独立可编辑羽化图层蒙版（channel_id=-2）
-      默认仅第 1 个候选层可见（flags=0），其余候选层默认隐藏（flags=2），进 PS 点小眼睛 1 秒切换或混拼。
-    - 同时写入合成预览图（以第 1 个候选合成），支持 Windows 缩略图、Eagle、飞书与 Photoshop 直接打开。
+    - 顶层「修复候选_01」「修复候选_02」…（或自定义中文 layer_names）：各自对齐到 crop_box
+      并附带独立可编辑羽化/轮廓图层蒙版（channel_id=-2），支持传入单张或逐层 custom_mask。
+    - 默认仅第 1 个候选层可见（可通过 visible_flags 显式控制多层同时显示），合成预览按所有可见层叠加。
     """
+    out_path = Path(out_path)
     candidates = repaired_imgs if isinstance(repaired_imgs, list) else [repaired_imgs]
     if not candidates:
         raise ValueError("至少需要 1 张修复候选图")
@@ -328,20 +387,48 @@ def save_layered_psd(
     cx1, cy1, cx2, cy2 = [int(v) for v in crop_box]
     tw, th = cx2 - cx1, cy2 - cy1
 
+    clamp_edges = (cx1 <= 0, cy1 <= 0, cx2 >= W, cy2 >= H)
+    default_mask_l = _build_feather_mask(tw, th, feather, clamp_edges=clamp_edges)
+
+    per_layer_masks: list[Image.Image] = []
+    per_layer_is_custom: list[bool] = []
+    for idx in range(len(candidates)):
+        cm: Image.Image | None = None
+        if isinstance(custom_mask, list):
+            cm = custom_mask[idx] if idx < len(custom_mask) else None
+        else:
+            cm = custom_mask
+        if cm is not None:
+            per_layer_masks.append(_resolve_custom_mask(cm, tw, th))
+            per_layer_is_custom.append(True)
+        else:
+            per_layer_masks.append(default_mask_l)
+            per_layer_is_custom.append(False)
+
     rep_rgbs: list[Image.Image] = []
-    for cand in candidates:
+    for idx, cand in enumerate(candidates):
         r = cand.convert("RGB")
         if r.size != (tw, th):
             r = r.resize((tw, th), Image.LANCZOS)
         if match_border:
-            r = match_border_color(base_rgb, r, crop_box).convert("RGB")
+            r = match_border_color(
+                base_rgb,
+                r,
+                crop_box,
+                custom_mask=per_layer_masks[idx] if per_layer_is_custom[idx] else None,
+            ).convert("RGB")
         rep_rgbs.append(r)
 
-    mask_l = _build_feather_mask(tw, th, feather)
+    vis_list = [
+        (bool(visible_flags[idx]) if visible_flags is not None and idx < len(visible_flags) else (idx == 0))
+        for idx in range(len(rep_rgbs))
+    ]
 
-    # Merged composite preview uses the first candidate
+    # Merged composite preview stacks all visible layers in order
     merged = base_rgb.copy()
-    merged.paste(rep_rgbs[0], (cx1, cy1), mask_l)
+    for idx, rep_rgb in enumerate(rep_rgbs):
+        if vis_list[idx]:
+            merged.paste(rep_rgb, (cx1, cy1), per_layer_masks[idx])
 
     def _layer_record_and_channels(
         top: int,
@@ -398,9 +485,12 @@ def save_layered_psd(
 
     for idx, rep_rgb in enumerate(rep_rgbs, start=1):
         a_name = "Repaired" if len(rep_rgbs) == 1 else f"Repaired_{idx:02d}"
-        u_name = "局部修复" if len(rep_rgbs) == 1 else f"修复候选_{idx:02d}"
+        if layer_names is not None and (idx - 1) < len(layer_names) and layer_names[idx - 1]:
+            u_name = str(layer_names[idx - 1])
+        else:
+            u_name = "局部修复" if len(rep_rgbs) == 1 else f"修复候选_{idx:02d}"
         rec_i, ch_i = _layer_record_and_channels(
-            cy1, cx1, cy2, cx2, a_name, u_name, rep_rgb, mask_l, visible=(idx == 1)
+            cy1, cx1, cy2, cx2, a_name, u_name, rep_rgb, per_layer_masks[idx - 1], visible=vis_list[idx - 1]
         )
         records.append(rec_i)
         channels.append(ch_i)
@@ -432,18 +522,35 @@ def save_pasted_output(
     base_img: Image.Image,
     repaired_imgs: Image.Image | list[Image.Image],
     crop_box: list[int],
-    out_path: Path,
+    out_path: Path | str,
     feather: int = 28,
     match_border: bool = False,
+    custom_mask: Image.Image | list[Image.Image | None] | None = None,
+    layer_names: list[str] | None = None,
+    visible_flags: list[bool] | None = None,
 ) -> None:
     """按输出扩展名自动保存为多候选分层 PSD、无损 TIFF 或 PNG/JPG。"""
+    out_path = Path(out_path)
     ext = out_path.suffix.lower()
     out_path.parent.mkdir(parents=True, exist_ok=True)
     if ext == ".psd":
-        save_layered_psd(base_img, repaired_imgs, crop_box, out_path, feather=feather, match_border=match_border)
+        save_layered_psd(
+            base_img,
+            repaired_imgs,
+            crop_box,
+            out_path,
+            feather=feather,
+            match_border=match_border,
+            custom_mask=custom_mask,
+            layer_names=layer_names,
+            visible_flags=visible_flags,
+        )
         return
     primary = repaired_imgs[0] if isinstance(repaired_imgs, list) else repaired_imgs
-    final_im = paste_back_smooth(base_img, primary, crop_box, feather=feather, match_border=match_border)
+    primary_mask = custom_mask[0] if isinstance(custom_mask, list) else custom_mask
+    final_im = paste_back_smooth(
+        base_img, primary, crop_box, feather=feather, match_border=match_border, custom_mask=primary_mask
+    )
     if ext in (".tif", ".tiff"):
         final_im.convert("RGB").save(out_path, format="TIFF", compression="tiff_lzw")
     elif ext in (".jpg", ".jpeg"):

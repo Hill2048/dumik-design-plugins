@@ -1,7 +1,7 @@
 {
   "name": "dumik",
   "displayName": "DUMIK Team Plugin",
-  "version": "0.2.47",
+  "version": "0.2.48",
   "description": "DUMIK 团队视觉工作流：一文件夹四文档项目建档（飞书画布拆解与增量同步）、摆件/食饮库与 3D 徽章、9:16 纯无字底图批量出图与局部无损修复、短视频拉片分镜，以及 PS 排版终稿六维审查与离线 HTML 审稿台。",
   "logo": "assets/logo.svg",
   "author": {

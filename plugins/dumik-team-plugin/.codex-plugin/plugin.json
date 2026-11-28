@@ -1,6 +1,6 @@
 {
   "name": "dumik-team-plugin",
-  "version": "0.2.47",
+  "version": "0.2.48",
   "description": "DUMIK 团队视觉工作流：覆盖项目建档、策划与食饮/摆件库、3D 徽章、无字底图出图与局部修复、排版终稿六维审查，以及视频拉片、分镜与生成执行。",
   "author": {
     "name": "DUMIK Team"
