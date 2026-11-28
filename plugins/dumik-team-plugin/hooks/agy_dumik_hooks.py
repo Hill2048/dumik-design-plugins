@@ -185,7 +185,7 @@ def has_unfilled_prop_bible(project_root: Path) -> bool:
     return True
 
 
-HELPER_IMAGE_MARKERS = ("_已修复", "_预览", "_对比", "_遮罩", "_白底参考")
+HELPER_IMAGE_MARKERS = ("_已修复", "_预览", "_对比", "_遮罩", "_白底参考", "_透明底")
 
 
 def _is_candidate_image(path: Path) -> bool:
@@ -261,6 +261,11 @@ def classify_user_intent(user_text: str, project_root: Path) -> dict[str, Any]:
         skill, mode = "d-consistency-check", "review"
     elif any(k in active_text for k in ("反推", "拆参考图", "还原提示词")):
         skill, mode = "d-prompt-reverse", "reverse"
+    elif any(
+        k in active_text
+        for k in ("抠图", "扣图", "抠成透明", "扣成透明", "抠透明", "扣透明", "去白底", "去背景", "透明底png", "透明底PNG", "抠出来", "扣出来")
+    ) and not any(k in lowered for k in ("runninghub", "云端抠图", "实景抠图", "复杂背景", "生图", "生成", "出图", "重抽", "提示词", "prompt")):
+        skill, mode = "d-cutout", "solid"
     elif not is_pure_archive and any(
         k in lowered for k in ("品牌徽章", "品牌风格3d徽章", "品牌3d徽章", "品牌六边形", "扁六边形徽章", "六边形徽章", "德马克徽章", "dumik徽章", "3d徽章")
     ):
@@ -487,11 +492,14 @@ def handle_pre_invocation(payload: dict[str, Any]) -> dict[str, Any]:
         except Exception:
             pass
     if is_meaningful_route and route_key != prev_route_key:
-        auth_tag = {
-            "authorized": "已授权可执行",
-            "forbidden": "禁止生图（仅文本）",
-            "unconfirmed": "仅文本/禁调接口",
-        }[route["auth"]]
+        if route["skill"] in ("d-cutout", "d-detail-review"):
+            auth_tag = "本地零费用可执行"
+        else:
+            auth_tag = {
+                "authorized": "已授权可执行",
+                "forbidden": "禁止生图（仅文本）",
+                "unconfirmed": "仅文本/禁调接口",
+            }[route["auth"]]
         if route["mode"] == "general":
             lines.append(f"[DUMIK 授权] {auth_tag}")
         else:

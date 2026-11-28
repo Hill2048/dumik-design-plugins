@@ -23,6 +23,7 @@ $expectedSkills = @(
     'd-prompt-reverse',
     'd-badge-wash',
     'd-brand-badge',
+    'd-cutout',
     'd-food-drink-stylist',
     'd-video-director',
     'd-video-runner',

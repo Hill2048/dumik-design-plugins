@@ -198,6 +198,30 @@ class AgyDumikHooksRoutingTests(unittest.TestCase):
         self.assertEqual(res["skill"], "d-api-test")
         self.assertEqual(res["mode"], "benchmark")
 
+    def test_cutout_route_and_helper_exclusion(self):
+        import tempfile
+
+        for q in ("把这张徽章抠成透明底PNG", "帮我扣图去白底", "把这几个3D字抠出来"):
+            res = hooks.classify_user_intent(q, Path("."))
+            self.assertEqual(res["skill"], "d-cutout", msg=q)
+
+        # RunningHub / 复杂实景云端抠图仍交 d-image-runner，不抢路由
+        res_rh = hooks.classify_user_intent("把这张复杂实景用 RunningHub 抠图去背景", Path("."))
+        self.assertEqual(res_rh["skill"], "d-image-runner")
+
+        # _透明底 辅助图不触发 Stop Hook 候选数不匹配误报
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            s01 = root / "制作" / "S01_健康对比"
+            s01.mkdir(parents=True)
+            (s01 / "候选_01.png").write_bytes(b"1")
+            (s01 / "候选_01_透明底.png").write_bytes(b"cut")
+            (root / "project.md").write_text(
+                "| 编号 | 画面意图 | 状态 |\n| --- | --- | --- |\n| S01 | 健康对比 | 候选已出（1张） |\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(hooks.detect_unsynced_work_dirs(root), [])
+
 
 if __name__ == "__main__":
     unittest.main()

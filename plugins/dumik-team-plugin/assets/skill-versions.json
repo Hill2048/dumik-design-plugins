@@ -1,6 +1,6 @@
 {
   "plugin": "dumik-team-plugin",
-  "pluginVersion": "0.2.48",
+  "pluginVersion": "0.2.49",
   "skills": {
     "d-init": "0.4.3",
     "d-api-test": "0.1.4",
@@ -15,6 +15,7 @@
     "d-prompt-reverse": "0.1.0",
     "d-badge-wash": "0.1.0",
     "d-brand-badge": "0.1.0",
+    "d-cutout": "0.1.0",
     "d-food-drink-stylist": "1.2.0"
   },
   "deprecatedSkills": {

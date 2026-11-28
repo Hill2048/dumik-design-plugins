@@ -15,15 +15,16 @@
 5. **排版终稿六维审查 + 统一字体规范**
    - PS 排版完稿后由 `d-detail-review` 自动带坐标标尺切片读字、对照飞书策划原图与规格真源做六维终检（违禁/合规一律红灯），产出红框标注大图与居中连贯悬浮连线离线 HTML 审稿台至 `成品/审稿报告/`；全插件 HTML 报告与脚本标注统一采用中文 `MiSans`、英文与数字 `Google Sans`。
 
-## 包含技能（14 个活跃技能）
+## 包含技能（15 个活跃技能）
 
 - `d-init`：项目初始化、目录整理与飞书画布增量同步
 - `d-visual-plan`：详情页结构、卖点四层纯视觉翻译与视频转化策划
-- `d-image-director`：图片提示词与改图指令编写（`detail / edit / brief / direction / hd / repair`，含静奢高定摆件材质库与 4 张 3×3 高清摆件图板）
+- `d-image-director`：图片提示词与改图指令编写（`detail / edit / brief / direction / hd / repair`，含静奢高定摆件材质库、4 张 3×3 高清摆件图板与 `logo_patch.py` 代码级精修标/LED 改色）
 - `d-food-drink-stylist`：食饮与锅具本体视觉造型师（1000+ 实拍精析 + 27 张 3×3 高清食饮垫图板 + `crop_moodboard_tile.py` 一键拆 1024px 单格，零光影/相机越权）
 - `d-brand-badge`：DUMIK 品牌风格 3D 扁六边形徽章专属设计（内置 4 张品牌扁六边形与三材质四层标杆图库，先 2D 平面逐字确认再出纯白底 3D）
 - `d-badge-wash`：徽章/认证标/图标两步脱壳清洗与 3D 材质重构（保留原外形）
-- `d-image-runner`：单图/多候选/批量出图（DesignFlow / DSH 画布默认 + API 直连兜底）与 RunningHub 放大抠图后处理
+- `d-cutout`：工业级极速本地精抠专家（0.5~1s 无损精抠白底/纯色底 3D 立体字、金属徽章、白底产品、透明玻璃与带软投影小件；悬崖孔洞检测防抠穿高光 + 凹角清灰 + 2px 反混合去白边 + 双底验收板 + 2 层 RGBA PSD，零费用支持批量并发）
+- `d-image-runner`：单图/多候选/批量出图（DesignFlow / DSH 画布默认 + API 直连兜底）与 RunningHub 放大/复杂实景抠图后处理
 - `d-project-pipeline`：成组图片跨步骤依赖与流水线恢复
 - `d-consistency-check`：原产品图与生成图三态一致性验收
 - `d-detail-review`：已排版详情页/主图终稿六维审查（带 X/Y 像素标尺切片读字、对照飞书策划原图与规格真源、违禁/合规一律红灯，输出居中连贯悬浮连线多版本离线 HTML 审稿台与红框标注大图至 `成品/审稿报告/`，支持一/二/三审自动合并、增量继承与右上角版本切换）

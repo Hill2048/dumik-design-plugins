@@ -33,7 +33,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<插件根目录>\scripts\u
 ## 模式
 
 - `generate`：普通图片生成、改图、单图和独立多候选并发（默认 `banana2.1`，`2K`，`thinkingLevel: high`，超 `6MB` 大图脚本内自动在内存压缩不落项目垃圾）。
-- `postprocess`：RunningHub 放大、超分、抠图、去背景和固定工作流后处理。
+- `postprocess`：RunningHub 放大、超分、复杂非纯色实景云端 AI 抠图/去背景和固定工作流后处理（纯白/纯黑/纯色底的徽章、3D 立体字、白底产品与透明玻璃请优先交给零费用本地技能 `d-cutout`）。
 
 ## 执行规则
 

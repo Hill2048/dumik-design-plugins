@@ -1,15 +1,15 @@
 {
   "name": "dumik-team-plugin",
-  "version": "0.2.48",
-  "description": "DUMIK 团队视觉工作流：覆盖项目建档、策划与食饮/摆件库、3D 徽章、无字底图出图与局部修复、排版终稿六维审查，以及视频拉片、分镜与生成执行。",
+  "version": "0.2.49",
+  "description": "DUMIK 团队视觉工作流：覆盖项目建档、策划与食饮/摆件库、3D 徽章、本地极速精抠、无字底图出图与局部修复、排版终稿六维审查，以及视频拉片、分镜与生成执行。",
   "author": {
     "name": "DUMIK Team"
   },
   "skills": "./skills/",
   "interface": {
     "displayName": "DUMIK Team Plugin",
-    "shortDescription": "DUMIK 视觉全链路：建档策划、食饮与 3D 徽章、出图局部修、排版终稿审查与视频分镜执行。",
-    "longDescription": "面向 DUMIK 团队的视觉工作流插件。图片线覆盖四文档项目建档、飞书同步、摆件与食饮造型库、品牌 3D 徽章设计与清洗、无字底图批量生产、局部无损修复、RunningHub 超分抠图与 PS 排版终稿六维审查（居中连贯悬浮连线离线 HTML 审稿台）；视频线统一故事合同、素材映射、内容设计、导演调度与提示词编译，再按 Seedance 2.5、Dreamina 或 Veo 做末端适配，并连接转化策划、视频证据报告、故事板与批量生视频。",
+    "shortDescription": "DUMIK 视觉全链路：建档策划、食饮与 3D 徽章、极速精抠、出图局部修、终稿审查与视频执行。",
+    "longDescription": "面向 DUMIK 团队的视觉工作流插件。图片线覆盖四文档项目建档、飞书同步、摆件与食饮造型库、品牌 3D 徽章设计与清洗、工业级本地极速精抠（悬崖孔洞检测防抠穿高光+去白边+双底验收板+2层PSD）、无字底图批量生产、局部无损修复（含代码修标/LED 改色）、RunningHub 超分与复杂实景抠图、PS 排版终稿六维审查（居中连贯悬浮连线离线 HTML 审稿台）；视频线统一故事合同、素材映射、内容设计、导演调度与提示词编译，再按 Seedance 2.5、Dreamina 或 Veo 做末端适配，并连接转化策划、视频证据报告、故事板与批量生视频。",
     "developerName": "DUMIK Team",
     "category": "创意工具",
     "capabilities": [
@@ -23,6 +23,7 @@
       "d-prompt-reverse",
       "d-badge-wash",
       "d-brand-badge",
+      "d-cutout",
       "d-food-drink-stylist",
       "d-video-director",
       "d-video-runner",
@@ -45,6 +46,7 @@
       "提示词反推（人判主次）",
       "徽章与认证标两步脱壳清洗重构",
       "DUMIK 品牌扁六边形 3D 徽章设计与三材质四层重构",
+      "白底与纯色底工业级极速精抠（悬崖孔洞检测防抠穿高光+反混合去白边+2层PSD）",
       "食饮与锅具本体造型及微观烹饪物理",
       "31张3×3高清垫图库与一键拆单格（1024px）",
       "静奢高定摆件材质物理库",

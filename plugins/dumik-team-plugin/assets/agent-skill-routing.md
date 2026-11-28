@@ -1,6 +1,6 @@
 # DUMIK 唯一路由合同
 
-本文件是 DUMIK Team Plugin 的唯一能力路由。项目根目录的 `AGENTS.md` 优先决定项目协作、授权、确认和目录；本文件只决定当前工作应进入哪个插件 skill。14 个活跃 skill 是专业入口，不互相争夺总控，也不在没有明确条件时串联。
+本文件是 DUMIK Team Plugin 的唯一能力路由。项目根目录的 `AGENTS.md` 优先决定项目协作、授权、确认和目录；本文件只决定当前工作应进入哪个插件 skill。15 个活跃 skill 是专业入口，不互相争夺总控，也不在没有明确条件时串联。
 
 ## 判定顺序
 
@@ -11,7 +11,7 @@
 3. 再看操作类型：改写、规划、生成、后处理或批量。
 4. 数量与授权分开判断：“批量写提示词”仍是文字任务，多候选生成可直接交 runner；只有需要跨步骤依赖、恢复与执行编排时才使用 pipeline。项目制本身不是生成授权。
 
-“提示词、改图指令、分镜、故事板”优先进入 director；“生成、出图、出片、提交、调用接口、放大、抠图、去背景”才进入 runner。Runner 不替用户重新设计提示词；缺少完整提示词时退回对应 director。
+“提示词、改图指令、分镜、故事板”优先进入 director；纯白/纯色底 3D 立体字、徽章、产品与透明玻璃的本地极速抠图直接进入 `d-cutout`（纯本地零费用，无需付费授权）；“生成、出图、出片、提交、调用接口、放大、超分、复杂实景云端去背景”才进入 runner。Runner 不替用户重新设计提示词；缺少完整提示词时退回对应 director。
 
 ## 图片路由
 
@@ -54,8 +54,13 @@ image.food_drink
   -> d-food-drink-stylist
   排除：整屏光影/机位/场景写词（→ d-image-director）；产品局部修复（→ d-image-director repair）；仅调接口执行（→ d-image-runner）
 
+image.cutout
+  纯白/纯黑/纯色底 3D 立体字、金属徽章、产品白底图、高反光金属件、透明玻璃水晶或带投影小件的本地极速精抠去底（输出无损 RGBA 透明底 PNG、双底验收板与可选 2 层 PSD；零费用、支持批量并发）
+  -> d-cutout
+  排除：复杂非纯色实景/人物发丝需调用云端 AI 抠图（→ d-image-runner postprocess）；仅写词或画 2D 平面图（→ d-image-director / d-brand-badge / d-badge-wash）
+
 image.execute
-  明确要求生图、出图、改图执行、调用图片接口、批量候选、放大、超分、抠图或去背景
+  明确要求生图、出图、改图执行、调用图片接口、批量候选、放大、超分，或复杂实景图调用 RunningHub 云端 AI 抠图/去背景
   -> d-image-runner
 
 image.batch

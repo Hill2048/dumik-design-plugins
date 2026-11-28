@@ -12,6 +12,7 @@ Skill 是可测流程封装，不是文章收藏。相邻步骤必须能传**结
 | 反推 | 人判主次记录 + 结构化草稿（非终稿除非人确认） |
 | 出图 | 文件路径 + 模型/参数记录（密钥不进文档） |
 | 验收 | 分项三态表 + 总判 |
+| 本地精抠 | 无损 RGBA 透明底 PNG（可选 2 层 PSD）+ `%TEMP%` 双底对比验收板 |
 | 终稿审查 | 红框编号标注大图 + 悬浮连线离线 HTML 审稿台（含策划原图对照与一键复制文案，违禁/合规红灯） |
 
 上一步缺可测输出时，下一步不得用散文假装已完成。
@@ -28,7 +29,7 @@ Skill 是可测流程封装，不是文章收藏。相邻步骤必须能传**结
 
 禁止：「按之前的来」且不附完整 Prompt 或五格。
 
-## 完整端到端标准生产线（一条线串通全部 14 个技能与配套工具）
+## 完整端到端标准生产线（一条线串通全部 15 个技能与配套工具）
 
 ```text
 Stage 1 · 建档与拆解（d-init + d-visual-plan）
@@ -44,7 +45,7 @@ Stage 3 · 置景摆件库 & 饮品/食材预规划（MS05 · 里程碑锁调后
   ↓
 Stage 4 · 第 1~3 批详情/主图/入口批量生产（d-project-pipeline + d-image-director + d-food-drink-stylist + d-image-runner）
   └─ 写每屏 prompt.md 强制三层垫图隔离（L1 必带，严禁垫 制作/ 未定稿候选图），从 assets.md 领用摆件（≤3件）与饮品并回填屏号
-  └─ 含食饮/锅具配菜屏由 d-food-drink-stylist 提供纯本体造型与微观物理片段（零光影/相机越权），由 d-image-director 统一套场景光影与机位；洗图走 wash_prep.py；品牌扁六边形 3D 徽章走 d-brand-badge，旧标原外形洗材质走 d-badge-wash；反推参考走 d-prompt-reverse
+  └─ 含食饮/锅具配菜屏由 d-food-drink-stylist 提供纯本体造型与微观物理片段（零光影/相机越权），由 d-image-director 统一套场景光影与机位；洗图走 wash_prep.py；品牌扁六边形 3D 徽章走 d-brand-badge，旧标原外形洗材质走 d-badge-wash；纯白/纯色底 3D 立体字、徽章、小件与透明玻璃出图后无缝交 d-cutout 0.5 秒本地精抠无损透明底 PNG/PSD；反推参考走 d-prompt-reverse
   └─ 明确授权后默认 DesignFlow / DSH 单节点并发（count/models/items），优先按 nodeId 导图落盘（全中文命名），跑 --status 同步
   ↓
 Stage 5 · 三态验收 & 局部无损修复（d-consistency-check → d-image-director repair + d-image-runner）

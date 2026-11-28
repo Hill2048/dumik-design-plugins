@@ -42,7 +42,7 @@ flowchart LR
 | **结构验收与局部无损修复** | 对照白底原图输出三态结构与无字纯净度审稿；发现把手、Logo、接缝、晶粒等局部漂移时，自动外扩切图 + 白底局部对齐 + 强制回原始干净图防变红变糊，原地覆写唯一修复图与可编辑 PSD |
 | **排版终稿六维审查** | 查错字、老模板残留、数据打架、漏填项与违禁合规词（合规问题一律红灯）；输出居中连贯 0 缝详情长图 + 左右悬浮卡片细线引导 + 放大策划原图对照 + 右上角缩略图导航 + 可拖选一键复制正确文案的离线 HTML 审稿台，支持一/二/三审多版本迭代合并、增量继承免重搓与右上角一键切版本 |
 | **参考图反推提示词** | 遇到好参考图时，先把构图、光影和主体结构拆成可编辑草稿，由你定好主次与锁定区，再编译成可直接复用的终稿提示词 |
-| **放大超分与一键抠图** | 选中的候选图可直接调用 RunningHub 做高清超分放大、抠图与去背景 |
+| **本地极速精抠与超分** | 纯白/纯色底 3D 立体字、金属徽章、产品白底图、透明玻璃与带投影小件直接本地零费用 1 秒无损精抠（防抠穿金属高光 + 去白边毛刺 + 双底验收板 + 可选 2 层 RGBA PSD）；复杂实景与 4K 超分走 RunningHub 云端后处理 |
 | **短视频策划、拉片与出片** | 拆解竞品或真实参考视频并生成可视化拉片报告；梳理卖点节奏与开头钩子、编写分镜故事板与关键帧提示词；确认后直接提交 Seedance、Dreamina 或 Veo 生成并下载成片 |
 | **API 基准测试** | 新增或更换生图 API 时，用标准双参考改图题快速测速、尺寸比例与保真度（注：原 Photoshop PSB 智能对象插件已废弃归档，默认不再加载与拉取） |
 
@@ -71,7 +71,7 @@ flowchart LR
 
 支持通过插件配置或本地挂载将本仓库的 `plugins/dumik-team-plugin` 接入 `~/.gemini/config/plugins/dumik`：
 
-- 接入后自动启用团队全局视觉规则、生命周期护航钩子（`hooks.json`）与全部 14 个工作流技能。
+- 接入后自动启用团队全局视觉规则、生命周期护航钩子（`hooks.json`）与全部 15 个工作流技能。
 - 配合 DesignFlow MCP 使用时，生图任务默认直接走画布节点流（默认规格 `Banana 2.1 · 9:16 · 2K · x2`，支持同词多模型/多屏单节点并发，离线或冲突时自动直连兜底）。
 
 ### 2. Codex
@@ -96,7 +96,7 @@ flowchart LR
 
 > 日常使用无需关心以下细节，仅在维护插件、配置本机接口或发版时查阅。
 
-- **底层能力模块（14 个活跃 Skills）**：项目建档 `d-init` · 视觉策划 `d-visual-plan` · 图片导演 `d-image-director`（含摆件材质库与 4 张 3×3 高清摆件图板）· 食饮与锅具造型师 `d-food-drink-stylist`（含 27 张 3×3 高清食饮垫图板与 `crop_moodboard_tile.py` 一键拆 1024px 单格）· 品牌扁六边形 3D 徽章 `d-brand-badge`（内置 4 张品牌标牌与三材质四层标杆图库）· 徽章材质清洗 `d-badge-wash` · 图片执行 `d-image-runner`（支持 DesignFlow / DSH 画布与 API 直连）· 批量流水线 `d-project-pipeline` · 一致性审稿 `d-consistency-check` · 终稿排版审查 `d-detail-review`（带坐标标尺切片 `slice_for_review.py` + 悬浮连线离线审稿台 `build_review_board.py`）· 参考图反推 `d-prompt-reverse` · 视频导演 `d-video-director` · 视频执行 `d-video-runner` · API 基准测试 `d-api-test`（详细路由见 [agent-skill-routing.md](plugins/dumik-team-plugin/assets/agent-skill-routing.md)，端到端 8 阶段生产线见 [workflow-chain.md](plugins/dumik-team-plugin/assets/workflow-chain.md)）。原 `d-psb-install`（PSB 智能对象工具）已标注废弃并移入 `archive/deprecated-psb-tools/` 保留存档，默认不再加载也不自动拉取。
+- **底层能力模块（15 个活跃 Skills）**：项目建档 `d-init` · 视觉策划 `d-visual-plan` · 图片导演 `d-image-director`（含摆件材质库、4 张 3×3 高清摆件图板与 `logo_patch.py` 代码修标）· 食饮与锅具造型师 `d-food-drink-stylist`（含 27 张 3×3 高清食饮垫图板与 `crop_moodboard_tile.py` 一键拆 1024px 单格）· 品牌扁六边形 3D 徽章 `d-brand-badge`（内置 4 张品牌标牌与三材质四层标杆图库）· 徽章材质清洗 `d-badge-wash` · 工业级极速精抠 `d-cutout`（悬崖孔洞检测防抠穿高光 + 凹角清灰 + 反混合去白边 + 双底验收板 + 2 层 RGBA PSD）· 图片执行 `d-image-runner`（支持 DesignFlow / DSH 画布与 API 直连）· 批量流水线 `d-project-pipeline` · 一致性审稿 `d-consistency-check` · 终稿排版审查 `d-detail-review`（带坐标标尺切片 `slice_for_review.py` + 悬浮连线离线审稿台 `build_review_board.py`）· 参考图反推 `d-prompt-reverse` · 视频导演 `d-video-director` · 视频执行 `d-video-runner` · API 基准测试 `d-api-test`（详细路由见 [agent-skill-routing.md](plugins/dumik-team-plugin/assets/agent-skill-routing.md)，端到端 8 阶段生产线见 [workflow-chain.md](plugins/dumik-team-plugin/assets/workflow-chain.md)）。原 `d-psb-install`（PSB 智能对象工具）已标注废弃并移入 `archive/deprecated-psb-tools/` 保留存档，默认不再加载也不自动拉取。
 - **统一字体与 UI 规范**：全插件所有 HTML 审稿台、可视化报告、工具面板与脚本图片标注统一采用中文 `MiSans`（`MiSans VF`）、英文与数字 `Google Sans`（`Google Sans Flex`）。
 - **项目协议与钩子护航**：四文档防截断结构与标准目录定义见 [project-env-protocol.md](plugins/dumik-team-plugin/assets/project-env-protocol.md)；生命周期路由、防漂移、垃圾拦截与长会话提醒由 `plugins/dumik-team-plugin/hooks/agy_dumik_hooks.py` 统一驱动。
 - **密钥隔离**：公开仓库不内置任何 API Key。直连生图前请在本机配置环境变量，或运行 `scripts/init_api_cache.py` 写入本机缓存，或通过 `--api-key` 临时传入。
